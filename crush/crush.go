@@ -31,6 +31,69 @@ import (
 
 type Crush struct{}
 
+// CreateTar writes a TAR to the destination io.Writer containing the directories and files in the source folder.
+func (c *Crush) CreateTar(destination io.Writer, source string) error {
+	t := tar.NewWriter(destination)
+	defer t.Close()
+
+	if err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(source, path)
+		if err != nil {
+			return fmt.Errorf("uanble to calculate relative path %s -> %s: %w", source, path, err)
+		}
+		if info.IsDir() {
+			rel = fmt.Sprintf("%s/", rel)
+		}
+
+		if rel == "./" {
+			return nil
+		}
+
+		h, err := tar.FileInfoHeader(info, info.Name())
+		if err != nil {
+			return fmt.Errorf("unable to create TAR header from %+v: %w", info, err)
+		}
+		h.Name = rel
+
+		if err := t.WriteHeader(h); err != nil {
+			return fmt.Errorf("unable to write header %+v: %w", h, err)
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		in, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("unable to open %s: %w", path, err)
+		}
+		defer in.Close()
+
+		if _, err := io.Copy(t, in); err != nil {
+			return fmt.Errorf("unable to copy %s to %s: %w", path, h.Name, err)
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("unable to create tar from %s: %w", source, err)
+	}
+
+	return nil
+}
+
+// CreateTarGz writes a GZIP'd TAR to the destination io.Writer containing the directories and files in the source
+// folder.
+func (c *Crush) CreateTarGz(destination io.Writer, source string) error {
+	gz := gzip.NewWriter(destination)
+	defer gz.Close()
+
+	return c.CreateTar(gz, source)
+}
+
 // ExtractTar extracts source TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
 func (c *Crush) ExtractTar(source io.Reader, destination string, stripComponents int) error {
@@ -80,9 +143,9 @@ func (c *Crush) ExtractTarGz(source io.Reader, destination string, stripComponen
 	return c.ExtractTar(gz, destination, stripComponents)
 }
 
-// ExtractTarXZ extracts source XZ'd TAR file to a destination directory.  An arbitrary number of top-level directory
+// ExtractTarXz extracts source XZ'd TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func (c *Crush) ExtractTarXZ(source io.Reader, destination string, stripComponents int) error {
+func (c *Crush) ExtractTarXz(source io.Reader, destination string, stripComponents int) error {
 	xz, err := xz.NewReader(source, 0)
 	if err != nil {
 		return fmt.Errorf("unable to create XZ reader: %w", err)
@@ -93,7 +156,7 @@ func (c *Crush) ExtractTarXZ(source io.Reader, destination string, stripComponen
 
 // ExtractZip extracts source ZIP file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func (c *Crush) ExtractZIP(source *os.File, destination string, stripComponents int) error {
+func (c *Crush) ExtractZip(source *os.File, destination string, stripComponents int) error {
 	stat, err := source.Stat()
 	if err != nil {
 		return fmt.Errorf("unable to stat %s: %w", source.Name(), err)
