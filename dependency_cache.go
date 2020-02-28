@@ -133,12 +133,12 @@ func (d DependencyCache) download(uri string, destination string) error {
 		return fmt.Errorf("unable to create new GET request for %s: %w", uri, err)
 	}
 
-	t := &http.Transport{Proxy: http.ProxyFromEnvironment}
-	t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
-
 	if d.UserAgent != "" {
 		req.Header.Set("User-Agent", d.UserAgent)
 	}
+
+	t := &http.Transport{Proxy: http.ProxyFromEnvironment}
+	t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
 
 	client := http.Client{Transport: t}
 	resp, err := client.Do(req)

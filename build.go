@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/buildpacks/libcnb"
+	"github.com/heroku/color"
 	"github.com/imdario/mergo"
 	"github.com/paketoio/libpak/bard"
 	"github.com/paketoio/libpak/internal"
@@ -30,6 +31,8 @@ import (
 
 // Build is called by the main function of a buildpack, for build.
 func Build(f libcnb.BuildFunc, options ...libcnb.Option) {
+	logger := bard.NewLogger(os.Stdout)
+
 	libcnb.Build(
 		func(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 
@@ -42,29 +45,45 @@ func Build(f libcnb.BuildFunc, options ...libcnb.Option) {
 				return libcnb.BuildResult{}, fmt.Errorf("unable to merge bindings %+v and %+v: %w", context.Platform.Bindings, bindings, err)
 			}
 
-			file := filepath.Join(context.Layers.Path, "*.toml")
-			existing, err := filepath.Glob(file)
-			if err != nil {
-				return libcnb.BuildResult{}, fmt.Errorf("unable to list files in %s: %w", file, err)
-			}
-			for _, e := range existing {
-				if !strings.HasSuffix(e, "store.toml") {
-					if err = os.RemoveAll(e); err != nil {
-						return libcnb.BuildResult{}, fmt.Errorf("unable to remove file %s: %w", e, err)
-					}
-				}
-			}
-
 			result, err := f(context)
 			if err != nil {
-				err = bard.IdentifiableError{
+				return result, bard.IdentifiableError{
 					Name:        context.Buildpack.Info.Name,
 					Description: context.Buildpack.Info.Version,
 					Err:         err,
 				}
 			}
 
-			return result, err
+			file := filepath.Join(context.Layers.Path, "*.toml")
+			existing, err := filepath.Glob(file)
+			if err != nil {
+				return libcnb.BuildResult{}, fmt.Errorf("unable to list files in %s: %w", file, err)
+			}
+
+			var contrib []string
+			for _, l := range result.Layers {
+				contrib = append(contrib, l.Name())
+			}
+
+			var remove []string
+			for _, e := range existing {
+				if !strings.HasSuffix(e, "store.toml") && !contains(contrib, strings.TrimSuffix(filepath.Base(e), ".toml")) {
+					remove = append(remove, e)
+				}
+			}
+
+			if len(remove) > 0 {
+				logger.Header("%s unused layers", color.YellowString("Removing"))
+
+				for _, r := range remove {
+					logger.Body(strings.TrimSuffix(filepath.Base(r), ".toml"))
+					if err = os.RemoveAll(r); err != nil {
+						return libcnb.BuildResult{}, fmt.Errorf("unable to remove file %s: %w", r, err)
+					}
+				}
+			}
+
+			return result, nil
 		},
 		append([]libcnb.Option{
 			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
@@ -72,4 +91,14 @@ func Build(f libcnb.BuildFunc, options ...libcnb.Option) {
 			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
 		}, options...)...,
 	)
+}
+
+func contains(candidates []string, value string) bool {
+	for _, c := range candidates {
+		if c == value {
+			return true
+		}
+	}
+
+	return false
 }

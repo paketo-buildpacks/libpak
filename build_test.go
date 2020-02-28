@@ -191,7 +191,7 @@ test-secret-key = "test-secret-value"
 			libcnb.WithTOMLWriter(tomlWriter),
 		)
 
-		Expect(filepath.Join(layersPath, "alpha.toml")).NotTo(BeARegularFile())
+		Expect(filepath.Join(layersPath, "alpha.toml")).To(BeARegularFile())
 		Expect(filepath.Join(layersPath, "bravo.toml")).NotTo(BeARegularFile())
 		Expect(filepath.Join(layersPath, "store.toml")).To(BeARegularFile())
 	})
