@@ -52,12 +52,13 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		downloadPath, err = ioutil.TempDir("", "dependency-cache-download-path")
 		Expect(err).NotTo(HaveOccurred())
 
+		RegisterTestingT(t)
 		server = ghttp.NewServer()
 
 		dependency = libpak.BuildpackDependency{
 			ID:      "test-id",
 			Name:    "test-name",
-			Version: libpak.NewBuildpackVersion("1.1.1"),
+			Version: "1.1.1",
 			URI:     fmt.Sprintf("%s/test-path", server.URL()),
 			SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
 			Stacks:  []string{"test-stack"},
@@ -72,6 +73,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		dependencyCache = libpak.DependencyCache{
 			CachePath:    cachePath,
 			DownloadPath: downloadPath,
+			UserAgent:    "test-user-agent",
 		}
 	})
 
@@ -157,8 +159,8 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 	it("sets User-Agent", func() {
 		server.AppendHandlers(ghttp.CombineHandlers(
-			ghttp.RespondWith(http.StatusOK, "test-fixture"),
 			ghttp.VerifyHeaderKV("User-Agent", "test-user-agent"),
+			ghttp.RespondWith(http.StatusOK, "test-fixture"),
 		))
 
 		a, err := dependencyCache.Artifact(dependency)

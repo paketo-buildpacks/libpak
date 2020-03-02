@@ -58,7 +58,7 @@ type DependencyCache struct {
 // download, skipping all of the caches.
 func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, error) {
 	var (
-		actual   map[string]interface{}
+		actual   BuildpackDependency
 		artifact string
 		file     string
 	)
@@ -76,14 +76,12 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 		return os.Open(artifact)
 	}
 
-	expected := dependency.Metadata()
-
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
 	if _, err := toml.DecodeFile(file, &actual); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("unable to decode download metadata %s: %w", file, err)
 	}
 
-	if reflect.DeepEqual(expected, actual) {
+	if reflect.DeepEqual(dependency, actual) {
 		d.Logger.Body("%s cached download from buildpack", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(dependency.URI)))
 	}
@@ -93,7 +91,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 		return nil, fmt.Errorf("unable to decode download metadata %s: %w", file, err)
 	}
 
-	if reflect.DeepEqual(expected, actual) {
+	if reflect.DeepEqual(dependency, actual) {
 		d.Logger.Body("%s previously cached download", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(dependency.URI)))
 	}

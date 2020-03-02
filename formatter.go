@@ -27,7 +27,7 @@ func (d DependenciesFormatter) String() string {
 	var s []string
 
 	for _, c := range d {
-		s = append(s, fmt.Sprintf("(%s, %s, %s)", c.ID, c.Version.Original(), c.Stacks))
+		s = append(s, fmt.Sprintf("(%s, %s, %s)", c.ID, c.Version, c.Stacks))
 	}
 
 	return fmt.Sprint(s)

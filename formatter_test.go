@@ -35,12 +35,12 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 			deps := []libpak.BuildpackDependency{
 				{
 					ID:      "test-id-1",
-					Version: libpak.NewBuildpackVersion("1.1.1"),
+					Version: "1.1.1",
 					Stacks:  []string{"test-stack-1"},
 				},
 				{
 					ID:      "test-id-2",
-					Version: libpak.NewBuildpackVersion("2.2.2"),
+					Version: "2.2.2",
 					Stacks:  []string{"test-stack-2"},
 				},
 			}

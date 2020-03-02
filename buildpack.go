@@ -17,47 +17,11 @@
 package libpak
 
 import (
-	"errors"
 	"fmt"
-	"reflect"
 	"sort"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/buildpacks/libcnb"
-	"github.com/mitchellh/mapstructure"
 )
-
-// BuildpackVersion is a semver complaint version.
-type BuildpackVersion struct {
-	*semver.Version
-}
-
-// NewBuildpackVersion creates a new instance of BuildpackVersion, panicing if the version is not semver compliant.
-func NewBuildpackVersion(v string) BuildpackVersion {
-	s, err := semver.NewVersion(v)
-	if err != nil {
-		panic(err)
-	}
-
-	return BuildpackVersion{s}
-}
-
-func (b BuildpackVersion) MarshalText() ([]byte, error) {
-	return []byte(b.Original()), nil
-}
-
-func (b *BuildpackVersion) UnmarshalText(text []byte) error {
-	var err error
-
-	b.Version, err = semver.NewVersion(string(text))
-	if err != nil && errors.Is(err, semver.ErrInvalidSemVer) {
-		b.Version, _ = semver.NewVersion("0.0.0")
-	} else if err != nil {
-		return fmt.Errorf("unable to parse version %s: %w", string(text), err)
-	}
-
-	return nil
-}
 
 // License represents a license that a BuildpackDependency is distributed under.  At least one of Name or URI MUST be
 // specified.
@@ -79,7 +43,7 @@ type BuildpackDependency struct {
 	Name string `toml:"name"`
 
 	// Version is the dependency version.
-	Version BuildpackVersion `toml:"version"`
+	Version string `toml:"version"`
 
 	// URI is the dependency URI.
 	URI string `toml:"uri"`
@@ -94,98 +58,92 @@ type BuildpackDependency struct {
 	Licenses []BuildpackDependencyLicense `toml:"licenses"`
 }
 
-// PlanEntry returns the dependency as a BuildpackPlanEntry suitable for addition to a BuildpackPlan.
-func (b BuildpackDependency) PlanEntry() libcnb.BuildpackPlanEntry {
-	return libcnb.BuildpackPlanEntry{
-		Name:    b.ID,
-		Version: b.Version.String(),
-		Metadata: map[string]interface{}{
-			"name":     b.Name,
-			"uri":      b.URI,
-			"sha256":   b.SHA256,
-			"stacks":   b.Stacks,
-			"licenses": b.Licenses,
-		},
-	}
-}
-
-// Metadata returns a simplified representation of the dependency for use in metadata comparison.
-func (b BuildpackDependency) Metadata() map[string]interface{} {
-	stacks := make([]interface{}, len(b.Stacks))
-	for i, s := range b.Stacks {
-		stacks[i] = s
-	}
-
-	licenses := make([]map[string]interface{}, len(b.Licenses))
-	for i, l := range b.Licenses {
-		licenses[i] = map[string]interface{}{
-			"type": l.Type,
-			"uri":  l.URI,
-		}
-	}
-
-	m := map[string]interface{}{
-		"id":       b.ID,
-		"name":     b.Name,
-		"version":  b.Version.String(),
-		"uri":      b.URI,
-		"sha256":   b.SHA256,
-		"stacks":   stacks,
-		"licenses": licenses,
-	}
-
-	return m
-}
-
 // BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
 type BuildpackMetadata struct {
 
 	// DefaultVersions represent the default versions for dependencies keyed by Dependency.Id.
-	DefaultVersions map[string]string `mapstructure:"default-versions"`
+	DefaultVersions map[string]string
 
 	// Dependencies are the dependencies known to the buildpack.
-	Dependencies []BuildpackDependency `mapstructure:"dependencies"`
+	Dependencies []BuildpackDependency
 
 	// IncludeFiles describes the files to include in the package.
-	IncludeFiles []string `mapstructure:"include_files"`
+	IncludeFiles []string
 
 	// PrePackage describes a command to invoke before packaging.
-	PrePackage string `mapstructure:"pre_package"`
+	PrePackage string
 }
 
 // NewBuildpackMetadata creates a new instance of BuildpackMetadata from the contents of libcnb.Buildpack.Metadata
 func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, error) {
-	var m BuildpackMetadata
-
-	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-			if f.Kind() != reflect.String {
-				return data, nil
-			}
-
-			if t != reflect.TypeOf(BuildpackVersion{}) {
-				return data, nil
-			}
-
-			v := BuildpackVersion{}
-			if err := v.UnmarshalText([]byte(data.(string))); err != nil {
-				return nil, err
-			}
-
-			return v, nil
-		},
-		Result: &m,
-	})
-	if err != nil {
-		return BuildpackMetadata{}, fmt.Errorf("unable to create decoder")
+	m := BuildpackMetadata{
+		DefaultVersions: map[string]string{},
 	}
 
-	if err := d.Decode(metadata); err != nil {
-		return BuildpackMetadata{}, fmt.Errorf("unable to unmarshal metadata %+v: %w", metadata, err)
+	if v, ok := metadata["default_versions"].(map[string]interface{}); ok {
+		for k, v := range v {
+			m.DefaultVersions[k] = v.(string)
+		}
 	}
 
-	if m.DefaultVersions == nil {
-		m.DefaultVersions = map[string]string{}
+	if v, ok := metadata["dependencies"]; ok {
+		for _, v := range v.([]map[string]interface{}) {
+			var d BuildpackDependency
+
+			if v, ok := v["id"].(string); ok {
+				d.ID = v
+			}
+
+			if v, ok := v["name"].(string); ok {
+				d.Name = v
+			}
+
+			if v, ok := v["version"].(string); ok {
+				d.Version = v
+			}
+
+			if v, ok := v["uri"].(string); ok {
+				d.URI = v
+			}
+
+			if v, ok := v["sha256"].(string); ok {
+				d.SHA256 = v
+			}
+
+			if v, ok := v["stacks"].([]interface{}); ok {
+				for _, v := range v {
+					d.Stacks = append(d.Stacks, v.(string))
+				}
+			}
+
+			if v, ok := v["licenses"].([]map[string]interface{}); ok {
+				for _, v := range v {
+					var l BuildpackDependencyLicense
+
+					if v, ok := v["type"].(string); ok {
+						l.Type = v
+					}
+
+					if v, ok := v["uri"].(string); ok {
+						l.URI = v
+					}
+
+					d.Licenses = append(d.Licenses, l)
+				}
+			}
+
+			m.Dependencies = append(m.Dependencies, d)
+		}
+	}
+
+	if v, ok := metadata["include_files"].([]interface{}); ok {
+		for _, v := range v {
+			m.IncludeFiles = append(m.IncludeFiles, v.(string))
+		}
+	}
+
+	if v, ok := metadata["pre_package"].(string); ok {
+		m.PrePackage = v
 	}
 
 	return m, nil
@@ -227,7 +185,12 @@ func (d *DependencyResolver) Resolve(constraint DependencyConstraint) (Buildpack
 
 	var candidates []BuildpackDependency
 	for _, c := range d.Dependencies {
-		if c.ID == constraint.ID && vc.Check(c.Version.Version) && d.contains(c.Stacks, constraint.StackID) {
+		v, err := semver.NewVersion(c.Version)
+		if err != nil {
+			return BuildpackDependency{}, fmt.Errorf("unable to parse version %s: %w", c.Version, err)
+		}
+
+		if c.ID == constraint.ID && vc.Check(v) && d.contains(c.Stacks, constraint.StackID) {
 			candidates = append(candidates, c)
 		}
 	}
@@ -238,7 +201,10 @@ func (d *DependencyResolver) Resolve(constraint DependencyConstraint) (Buildpack
 	}
 
 	sort.Slice(candidates, func(i int, j int) bool {
-		return candidates[i].Version.GreaterThan(candidates[j].Version.Version)
+		a, _ := semver.NewVersion(candidates[i].Version)
+		b, _ := semver.NewVersion(candidates[j].Version)
+
+		return a.GreaterThan(b)
 	})
 
 	return candidates[0], nil
