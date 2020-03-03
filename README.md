@@ -1,5 +1,5 @@
 # `libpak`
-`libpak` is a Go library with useful functionality for building Packeto-style buildpacks.
+`libpak` is a Go library with useful functionality for building Paketo-style buildpacks.
 
 ## License
 This library is released under version 2.0 of the [Apache License][a].
