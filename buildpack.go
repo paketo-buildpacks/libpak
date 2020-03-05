@@ -81,7 +81,7 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 		DefaultVersions: map[string]string{},
 	}
 
-	if v, ok := metadata["default_versions"].(map[string]interface{}); ok {
+	if v, ok := metadata["default-versions"].(map[string]interface{}); ok {
 		for k, v := range v {
 			m.DefaultVersions[k] = v.(string)
 		}
@@ -137,13 +137,13 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 		}
 	}
 
-	if v, ok := metadata["include_files"].([]interface{}); ok {
+	if v, ok := metadata["include-files"].([]interface{}); ok {
 		for _, v := range v {
 			m.IncludeFiles = append(m.IncludeFiles, v.(string))
 		}
 	}
 
-	if v, ok := metadata["pre_package"].(string); ok {
+	if v, ok := metadata["pre-package"].(string); ok {
 		m.PrePackage = v
 	}
 
@@ -168,6 +168,16 @@ func NewDependencyResolver(context libcnb.BuildContext) (DependencyResolver, err
 	}
 
 	return DependencyResolver{Dependencies: md.Dependencies, StackID: context.StackID}, nil
+}
+
+// NoValidDependenciesError is returned when the resolver cannot find any valid dependencies given the constraints.
+type NoValidDependenciesError struct {
+	// Message is the error message
+	Message string
+}
+
+func (n NoValidDependenciesError) Error() string {
+	return n.Message
 }
 
 // Resolve returns the latest version of a dependency within the collection of Dependencies.  The candidate set is first
@@ -196,8 +206,10 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 	}
 
 	if len(candidates) == 0 {
-		return BuildpackDependency{}, fmt.Errorf("no valid dependencies for %s, %s, and %s in %s",
-			id, version, d.StackID, DependenciesFormatter(d.Dependencies))
+		return BuildpackDependency{}, NoValidDependenciesError{
+			Message: fmt.Sprintf("no valid dependencies for %s, %s, and %s in %s",
+				id, version, d.StackID, DependenciesFormatter(d.Dependencies)),
+		}
 	}
 
 	sort.Slice(candidates, func(i int, j int) bool {

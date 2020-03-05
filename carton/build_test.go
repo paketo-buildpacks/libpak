@@ -80,8 +80,8 @@ stacks  = [ "test-stack" ]
   uri  = "test-uri"
 
 [metadata]
-pre_package   = "test-pre-package"
-include_files = [
+pre-package   = "test-pre-package"
+include-files = [
   "test-include-files",
   "buildpack.toml",
 ]
@@ -153,8 +153,8 @@ stacks  = [ "test-stack" ]
   uri  = "test-uri"
 
 [metadata]
-pre_package   = "test-pre-package"
-include_files = [
+pre-package   = "test-pre-package"
+include-files = [
   "test-include-files",
   "buildpack.toml",
 ]

@@ -32,7 +32,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	context("NewBuildpackMetadata", func() {
 		it("deserializes metadata", func() {
 			actual := map[string]interface{}{
-				"default_versions": map[string]interface{}{
+				"default-versions": map[string]interface{}{
 					"test-key": "test-value",
 				},
 				"dependencies": []map[string]interface{}{
@@ -51,8 +51,8 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						},
 					},
 				},
-				"include_files": []interface{}{"test-include-file"},
-				"pre_package":   "test-pre-package",
+				"include-files": []interface{}{"test-include-file"},
+				"pre-package":   "test-pre-package",
 			}
 
 			expected := libpak.BuildpackMetadata{
@@ -317,7 +317,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 				_, err := resolver.Resolve("test-id-2", "1.0")
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError("no valid dependencies for test-id-2, 1.0, and test-stack-1 in [(test-id, 1.0, [test-stack-1 test-stack-2]) (test-id, 1.0, [test-stack-1 test-stack-3]) (test-id-2, 1.1, [test-stack-1 test-stack-3])]"))
+				Expect(err).To(MatchError(libpak.NoValidDependenciesError{Message: "no valid dependencies for test-id-2, 1.0, and test-stack-1 in [(test-id, 1.0, [test-stack-1 test-stack-2]) (test-id, 1.0, [test-stack-1 test-stack-3]) (test-id-2, 1.1, [test-stack-1 test-stack-3])]"}))
 			})
 
 			it("substitutes all wildcard for unspecified version constraint", func() {
