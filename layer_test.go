@@ -35,7 +35,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		path string
+		layer libcnb.Layer
+		path  string
 	)
 
 	it.Before(func() {
@@ -55,8 +56,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			lc.Layer.Metadata = map[string]interface{}{}
-			lc.Layer.Path = path
+			layer.Metadata = map[string]interface{}{}
+			layer.Path = path
 			lc.ExpectedMetadata = map[string]interface{}{
 				"alpha": "test-alpha",
 				"bravo": map[string]interface{}{
@@ -69,7 +70,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("calls function with no existing metadata", func() {
 			var called bool
 
-			_, err := lc.Contribute(func(layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				called = true
 				return layer, nil
 			})
@@ -79,11 +80,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("calls function with non-matching metadata", func() {
-			lc.Layer.Metadata["alpha"] = "test-alpha"
+			layer.Metadata["alpha"] = "test-alpha"
 
 			var called bool
 
-			_, err := lc.Contribute(func(layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				called = true
 				return layer, nil
 			})
@@ -93,7 +94,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("does not call function with matching metadata", func() {
-			lc.Layer.Metadata = map[string]interface{}{
+			layer.Metadata = map[string]interface{}{
 				"alpha": "test-alpha",
 				"bravo": map[string]interface{}{
 					"bravo-1": "test-bravo-1",
@@ -103,7 +104,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			_, err := lc.Contribute(func(layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				called = true
 				return layer, nil
 			})
@@ -113,14 +114,14 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns function error", func() {
-			_, err := lc.Contribute(func(layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				return libcnb.Layer{}, fmt.Errorf("test-error")
 			})
 			Expect(err).To(MatchError("test-error"))
 		})
 
 		it("adds expected metadata to layer", func() {
-			layer, err := lc.Contribute(func(layer libcnb.Layer) (libcnb.Layer, error) {
+			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				return layer, nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -161,7 +162,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				},
 			}
 
-			dlc.LayerContributor.Layer.Metadata = map[string]interface{}{}
+			layer.Metadata = map[string]interface{}{}
 
 			dlc.LayerContributor.ExpectedMetadata = map[string]interface{}{
 				"id":       dependency.ID,
@@ -181,7 +182,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 					})
 			}
 
-			dlc.LayerContributor.Layer.Path = path
+			layer.Path = path
 			dlc.Dependency = dependency
 			dlc.DependencyCache.CachePath = path
 			dlc.DependencyCache.DownloadPath = path
@@ -196,7 +197,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			_, err := dlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				called = true
@@ -208,13 +209,13 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("calls function with non-matching metadata", func() {
-			dlc.LayerContributor.Layer.Metadata["alpha"] = "test-alpha"
+			layer.Metadata["alpha"] = "test-alpha"
 
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
 			var called bool
 
-			_, err := dlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				called = true
@@ -226,7 +227,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("does not call function with matching metadata", func() {
-			dlc.LayerContributor.Layer.Metadata = map[string]interface{}{
+			layer.Metadata = map[string]interface{}{
 				"id":      dependency.ID,
 				"name":    dependency.Name,
 				"version": dependency.Version,
@@ -243,7 +244,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			_, err := dlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				called = true
@@ -257,7 +258,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("returns function error", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
-			_, err := dlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				return libcnb.Layer{}, fmt.Errorf("test-error")
@@ -268,7 +269,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("adds expected metadata to layer", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
-			layer, err := dlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			layer, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 				return layer, nil
 			})
@@ -293,7 +294,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("contributes to buildpack plan", func() {
 			plan := libcnb.BuildpackPlan{}
 
-			_ = libpak.NewDependencyLayerContributor(dependency, libpak.DependencyCache{}, libcnb.Layer{}, &plan)
+			_ = libpak.NewDependencyLayerContributor(dependency, libpak.DependencyCache{}, &plan)
 
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
 				Name:    dependency.ID,
@@ -328,22 +329,22 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Version: "test-version",
 			}
 
-			hlc.LayerContributor.Layer.Metadata = map[string]interface{}{}
+			layer.Metadata = map[string]interface{}{}
+			layer.Path = path
+
 			hlc.LayerContributor.ExpectedMetadata = map[string]interface{}{
 				"id":        info.ID,
 				"name":      info.Name,
 				"version":   info.Version,
 				"clear-env": info.ClearEnvironment,
 			}
-
-			hlc.LayerContributor.Layer.Path = path
 			hlc.Path = helper.Name()
 		})
 
 		it("calls function with no existing metadata", func() {
 			var called bool
 
-			_, err := hlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				called = true
@@ -355,11 +356,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("calls function with non-matching metadata", func() {
-			hlc.LayerContributor.Layer.Metadata["alpha"] = "other-alpha"
+			layer.Metadata["alpha"] = "other-alpha"
 
 			var called bool
 
-			_, err := hlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				called = true
@@ -371,7 +372,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("does not call function with matching metadata", func() {
-			hlc.LayerContributor.Layer.Metadata = map[string]interface{}{
+			layer.Metadata = map[string]interface{}{
 				"id":        info.ID,
 				"name":      info.Name,
 				"version":   info.Version,
@@ -380,7 +381,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			_, err := hlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				called = true
@@ -392,7 +393,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns function error", func() {
-			_, err := hlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 
 				return libcnb.Layer{}, fmt.Errorf("test-error")
@@ -401,7 +402,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("adds expected metadata to layer", func() {
-			layer, err := hlc.Contribute(func(artifact *os.File, layer libcnb.Layer) (libcnb.Layer, error) {
+			layer, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
 				return layer, nil
 			})
@@ -418,7 +419,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("contributes to buildpack plan", func() {
 			plan := libcnb.BuildpackPlan{}
 
-			_ = libpak.NewHelperLayerContributor(helper.Name(), "test-name", info, libcnb.Layer{}, &plan)
+			_ = libpak.NewHelperLayerContributor(helper.Name(), "test-name", info, &plan)
 
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
 				Name:    filepath.Base(helper.Name()),
