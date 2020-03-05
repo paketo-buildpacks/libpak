@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/paketoio/libpak/bard"
 	"github.com/paketoio/libpak/carton"
@@ -31,11 +30,11 @@ func main() {
 	context := carton.Context{}
 
 	flagSet := pflag.NewFlagSet("Build Package", pflag.ExitOnError)
-	flagSet.StringVarP(&context.CacheLocation, "cache-location", "c", defaultCacheLocation(), "path to cache downloaded dependencies (default: $PWD/dependencies")
-	flagSet.StringVarP(&context.Destination, "destination", "d", "", "path to the build package destination directory")
-	flagSet.BoolVarP(&context.IncludeDependencies, "include-dependencies", "i", true, "whether to include dependencies (default: true)")
-	flagSet.StringVarP(&context.Source, "source", "s", defaultSource(), "path to build package source directory (default: $PWD)")
-	flagSet.StringVarP(&context.Version, "version", "v", "", "version to substitute into buildpack.toml")
+	flagSet.StringVar(&context.CacheLocation, "cache-location", "", "path to cache downloaded dependencies (default: $PWD/dependencies)")
+	flagSet.StringVar(&context.Destination, "destination", "", "path to the build package destination directory")
+	flagSet.BoolVar(&context.IncludeDependencies, "include-dependencies", true, "whether to include dependencies (default: true)")
+	flagSet.StringVar(&context.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
+	flagSet.StringVar(&context.Version, "version", "", "version to substitute into buildpack.toml")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags: %w", err))
@@ -47,15 +46,6 @@ func main() {
 
 	b := carton.Build{Logger: bard.NewLogger(os.Stdout)}
 	b.Build(context)
-}
-
-func defaultCacheLocation() string {
-	s, err := os.Getwd()
-	if err != nil {
-		log.Fatal(fmt.Errorf("unable to get working directory: %w", err))
-	}
-
-	return filepath.Join(s, "dependencies")
 }
 
 func defaultSource() string {

@@ -26,6 +26,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
+	"github.com/heroku/color"
 	"github.com/paketoio/libpak"
 	"github.com/paketoio/libpak/bard"
 	"github.com/paketoio/libpak/effect"
@@ -117,10 +118,6 @@ func (b Build) Build(context Context, options ...Option) {
 		entries["buildpack.toml"] = out.Name()
 	}
 
-	if context.IncludeDependencies {
-		// TODO: Include Dependencies
-	}
-
 	b.Logger.Title(buildpack)
 	b.Logger.Header("Creating package in %s", context.Destination)
 
@@ -140,6 +137,36 @@ func (b Build) Build(context Context, options ...Option) {
 
 	if err = config.executor.Execute(execution); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to execute pre-package script %s: %w", file, err))
+	}
+
+	if context.IncludeDependencies {
+		cache := libpak.DependencyCache{
+			Logger:    b.Logger,
+			UserAgent: fmt.Sprintf("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
+		}
+
+		if context.CacheLocation != "" {
+			cache.DownloadPath = context.CacheLocation
+		} else {
+			cache.DownloadPath = filepath.Join(context.Source, "dependencies")
+		}
+
+		for _, dep := range metadata.Dependencies {
+			b.Logger.Header("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
+
+			f, err := cache.Artifact(dep)
+			if err != nil {
+				config.exitHandler.Error(fmt.Errorf("unable to download %s: %w", dep.URI, err))
+				return
+			}
+			if err = f.Close(); err != nil {
+				config.exitHandler.Error(fmt.Errorf("unable to close %s: %w", f.Name(), err))
+				return
+			}
+
+			entries[fmt.Sprintf("dependencies/%s/%s", dep.SHA256, filepath.Base(f.Name()))] = f.Name()
+			entries[fmt.Sprintf("dependencies/%s.toml", dep.SHA256)] = fmt.Sprintf("%s.toml", filepath.Dir(f.Name()))
+		}
 	}
 
 	var files []string
