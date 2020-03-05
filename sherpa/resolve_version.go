@@ -14,19 +14,27 @@
  * limitations under the License.
  */
 
-package sherpa_test
+package sherpa
 
 import (
-	"testing"
+	"os"
 
-	"github.com/sclevine/spec"
-	"github.com/sclevine/spec/report"
+	"github.com/buildpacks/libcnb"
 )
 
-func TestUnit(t *testing.T) {
-	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
-	suite("CopyFile", testCopyFile)
-	suite("FileListing", testFileListing)
-	suite("ResolveVersion", testResolveVersion)
-	suite.Run(t)
+// ResolveVersion resolves a version declaration through four methods, in order of precedence.
+// 1. An environment variable ($<key>)
+// 2. Buildpack plan entry
+// 3. Buildpack default version
+// 4. Empty version ("")
+func ResolveVersion(key string, entry libcnb.BuildpackPlanEntry, id string, defaultVersions map[string]string) string {
+	if version, ok := os.LookupEnv(key); ok {
+		return version
+	}
+
+	if entry.Version != "" {
+		return entry.Version
+	}
+
+	return defaultVersions[id]
 }
