@@ -21,6 +21,7 @@ import (
 	"sort"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/buildpacks/libcnb"
 )
 
 // License represents a license that a BuildpackDependency is distributed under.  At least one of Name or URI MUST be
@@ -154,31 +155,30 @@ type DependencyResolver struct {
 
 	// Dependencies are the dependencies to resolve against.
 	Dependencies []BuildpackDependency
+
+	// StackID is the stack id of the build.
+	StackID string
 }
 
-// DependencyConstraint is the collection of constraints to use during resolution.
-type DependencyConstraint struct {
+// NewDependencyResolver creates a new instance from the buildpack metadata and stack id.
+func NewDependencyResolver(context libcnb.BuildContext) (DependencyResolver, error) {
+	md, err := NewBuildpackMetadata(context.Buildpack.Metadata)
+	if err != nil {
+		return DependencyResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata: %w", err)
+	}
 
-	// ID is the id of dependency.
-	ID string
-
-	// Version is the version constraint of the dependency. Value can contain wildcards and defaults to "*" if not
-	// specified.
-	Version string
-
-	// StackID is the stack ID of the dependency.
-	StackID string
+	return DependencyResolver{Dependencies: md.Dependencies, StackID: context.StackID}, nil
 }
 
 // Resolve returns the latest version of a dependency within the collection of Dependencies.  The candidate set is first
 // filtered by the constraints, then the remaining candidates are sorted for the latest result by semver semantics.
 // Version can contain wildcards and defaults to "*" if not specified.
-func (d *DependencyResolver) Resolve(constraint DependencyConstraint) (BuildpackDependency, error) {
-	if constraint.Version == "" {
-		constraint.Version = "*"
+func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDependency, error) {
+	if version == "" {
+		version = "*"
 	}
 
-	vc, err := semver.NewConstraint(constraint.Version)
+	vc, err := semver.NewConstraint(version)
 	if err != nil {
 		return BuildpackDependency{}, fmt.Errorf("invalid constraint %s: %w", vc, err)
 	}
@@ -190,14 +190,14 @@ func (d *DependencyResolver) Resolve(constraint DependencyConstraint) (Buildpack
 			return BuildpackDependency{}, fmt.Errorf("unable to parse version %s: %w", c.Version, err)
 		}
 
-		if c.ID == constraint.ID && vc.Check(v) && d.contains(c.Stacks, constraint.StackID) {
+		if c.ID == id && vc.Check(v) && d.contains(c.Stacks, d.StackID) {
 			candidates = append(candidates, c)
 		}
 	}
 
 	if len(candidates) == 0 {
 		return BuildpackDependency{}, fmt.Errorf("no valid dependencies for %s, %s, and %s in %s",
-			constraint.ID, constraint.Version, constraint.StackID, DependenciesFormatter(d.Dependencies))
+			id, version, d.StackID, DependenciesFormatter(d.Dependencies))
 	}
 
 	sort.Slice(candidates, func(i int, j int) bool {
@@ -213,8 +213,8 @@ func (d *DependencyResolver) Resolve(constraint DependencyConstraint) (Buildpack
 // Any indicates whether the collection of dependencies has any dependency that satisfies the constraints.  This is
 // used primarily to determine whether an optional dependency exists, before calling Resolve() which would throw an
 // error if one did not.
-func (d *DependencyResolver) Any(constraint DependencyConstraint) bool {
-	_, err := d.Resolve(constraint)
+func (d *DependencyResolver) Any(id string, version string) bool {
+	_, err := d.Resolve(id, version)
 	return err == nil
 }
 

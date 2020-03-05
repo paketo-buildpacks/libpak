@@ -107,7 +107,6 @@ type DependencyLayerContributor struct {
 
 // NewDependencyLayerContributor creates a new instance and adds the dependency to the Buildpack Plan.
 func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, plan *libcnb.BuildpackPlan) DependencyLayerContributor {
-
 	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
 		Name:    dependency.ID,
 		Version: dependency.Version,

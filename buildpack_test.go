@@ -110,10 +110,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-2"},
 					},
 				}
+				resolver.StackID = "test-stack-1"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id-2", Version: "1.0", StackID: "test-stack-1"}
-
-				Expect(resolver.Resolve(constraint)).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id-2", "1.0")).To(Equal(libpak.BuildpackDependency{
 					ID:      "test-id-2",
 					Name:    "test-name",
 					Version: "1.0",
@@ -142,10 +141,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-2"},
 					},
 				}
+				resolver.StackID = "test-stack-1"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id", Version: "2.0", StackID: "test-stack-1"}
-
-				Expect(resolver.Resolve(constraint)).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "2.0")).To(Equal(libpak.BuildpackDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "2.0",
@@ -174,10 +172,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-3"},
 					},
 				}
+				resolver.StackID = "test-stack-3"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id", Version: "1.0", StackID: "test-stack-3"}
-
-				Expect(resolver.Resolve(constraint)).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.0",
@@ -206,10 +203,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-3"},
 					},
 				}
+				resolver.StackID = "test-stack-1"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id", Version: "1.*", StackID: "test-stack-1"}
-
-				Expect(resolver.Resolve(constraint)).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "1.*")).To(Equal(libpak.BuildpackDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.1",
@@ -278,10 +274,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-2"},
 					},
 				}
+				resolver.StackID = "test-stack-2"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id-2", StackID: "test-stack-2"}
-
-				Expect(resolver.Resolve(constraint)).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id-2", "")).To(Equal(libpak.BuildpackDependency{
 					ID:      "test-id-2",
 					Name:    "test-name-2",
 					Version: "1.9.0",
@@ -318,10 +313,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-3"},
 					},
 				}
+				resolver.StackID = "test-stack-1"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id-2", Version: "1.0", StackID: "test-stack-1"}
-
-				_, err := resolver.Resolve(constraint)
+				_, err := resolver.Resolve("test-id-2", "1.0")
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError("no valid dependencies for test-id-2, 1.0, and test-stack-1 in [(test-id, 1.0, [test-stack-1 test-stack-2]) (test-id, 1.0, [test-stack-1 test-stack-3]) (test-id-2, 1.1, [test-stack-1 test-stack-3])]"))
 			})
@@ -337,10 +331,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-2"},
 					},
 				}
+				resolver.StackID = "test-stack-1"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id", StackID: "test-stack-1"}
-
-				Expect(resolver.Resolve(constraint)).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "")).To(Equal(libpak.BuildpackDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.1",
@@ -364,16 +357,13 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Stacks:  []string{"test-stack-1", "test-stack-2"},
 					},
 				}
+				resolver.StackID = "test-stack-1"
 
-				constraint := libpak.DependencyConstraint{ID: "test-id", StackID: "test-stack-1"}
-
-				Expect(resolver.Any(constraint)).To(BeTrue())
+				Expect(resolver.Any("test-id", "")).To(BeTrue())
 			})
 
 			it("indicates that dependency does not exist", func() {
-				constraint := libpak.DependencyConstraint{ID: "test-id"}
-
-				Expect(resolver.Any(constraint)).To(BeFalse())
+				Expect(resolver.Any("test-id", "")).To(BeFalse())
 			})
 		})
 

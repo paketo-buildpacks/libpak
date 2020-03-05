@@ -27,6 +27,7 @@ import (
 	"reflect"
 
 	"github.com/BurntSushi/toml"
+	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 	"github.com/paketoio/libpak/bard"
 )
@@ -46,6 +47,17 @@ type DependencyCache struct {
 
 	// UserAgent is the User-Agent string to use with requests.
 	UserAgent string
+}
+
+// NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
+// agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
+func NewDependencyCache(buildpack libcnb.Buildpack) DependencyCache {
+	return DependencyCache{
+		CachePath:    filepath.Join(buildpack.Path, "dependencies"),
+		DownloadPath: os.TempDir(),
+		Logger:       bard.NewLogger(os.Stdout),
+		UserAgent:    filepath.Join("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
+	}
 }
 
 // Artifact returns the path to the artifact.  Resolution of that path follows three tiers:
