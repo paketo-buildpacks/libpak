@@ -175,8 +175,8 @@ func NewHelperLayerContributor(path string, name string, info libcnb.BuildpackIn
 		Name:    filepath.Base(path),
 		Version: info.Version,
 		Metadata: map[string]interface{}{
-			"id":      info.ID,
-			"version": info.Version,
+			"buildpack-id":      info.ID,
+			"buildpack-version": info.Version,
 		},
 	})
 

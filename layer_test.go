@@ -425,8 +425,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Name:    filepath.Base(helper.Name()),
 				Version: info.Version,
 				Metadata: map[string]interface{}{
-					"id":      info.ID,
-					"version": info.Version,
+					"buildpack-id":      info.ID,
+					"buildpack-version": info.Version,
 				},
 			}))
 		})
