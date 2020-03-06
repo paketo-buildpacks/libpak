@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
-package sherpa_test
+package sherpa
 
 import (
-	"testing"
-
-	"github.com/sclevine/spec"
-	"github.com/sclevine/spec/report"
+	"github.com/buildpacks/libcnb"
 )
 
-func TestUnit(t *testing.T) {
-	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
-	suite("CopyFile", testCopyFile)
-	suite("FileListing", testFileListing)
-	suite("ResolveVersion", testResolveVersion)
-	suite("Sherpa", testSherpa)
-	suite.Run(t)
+// Config is an object that contains configurable properties for execution.
+type Config struct {
+	exitHandler libcnb.ExitHandler
+}
+
+// Option is a function for configuring a Config instance.
+type Option func(config Config) Config
+
+// WithExitHandler creates an Option that sets an ExitHandler implementation.
+func WithExitHandler(exitHandler libcnb.ExitHandler) Option {
+	return func(config Config) Config {
+		config.exitHandler = exitHandler
+		return config
+	}
 }

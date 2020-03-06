@@ -14,20 +14,27 @@
  * limitations under the License.
  */
 
-package sherpa_test
+package sherpa
 
 import (
-	"testing"
-
-	"github.com/sclevine/spec"
-	"github.com/sclevine/spec/report"
+	"github.com/paketoio/libpak/internal"
 )
 
-func TestUnit(t *testing.T) {
-	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
-	suite("CopyFile", testCopyFile)
-	suite("FileListing", testFileListing)
-	suite("ResolveVersion", testResolveVersion)
-	suite("Sherpa", testSherpa)
-	suite.Run(t)
+// ExecuteFunc is the callback function for buildpack helper application implementations.
+type ExecuteFunc func() error
+
+// Execute is called by the main function of a buildpack helper application, for execution.
+func Execute(f ExecuteFunc, options ...Option) {
+	config := Config{
+		exitHandler: internal.NewExitHandler(),
+	}
+
+	for _, option := range options {
+		config = option(config)
+	}
+
+	if err := f(); err != nil {
+		config.exitHandler.Error(err)
+		return
+	}
 }
