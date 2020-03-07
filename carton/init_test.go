@@ -25,6 +25,7 @@ import (
 
 func TestUnit(t *testing.T) {
 	suite := spec.New("libpak/carton", spec.Report(report.Terminal{}))
-	suite("Build", testBuild)
+	suite("Dependency", testDependency)
+	suite("Package", testPackage)
 	suite.Run(t)
 }

@@ -32,21 +32,19 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func testBuild(t *testing.T, context spec.G, it spec.S) {
+func testPackage(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		build       carton.Build
 		entryWriter *cMocks.EntryWriter
 		executor    *eMocks.Executor
 		exitHandler *mocks.ExitHandler
+		p           carton.Package
 		path        string
 	)
 
 	it.Before(func() {
 		var err error
-
-		build = carton.Build{}
 
 		entryWriter = &cMocks.EntryWriter{}
 		entryWriter.On("Write", mock.Anything, mock.Anything).Return(nil)
@@ -57,7 +55,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		path, err = ioutil.TempDir("", "carton-build")
+		path, err = ioutil.TempDir("", "carton-package")
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(ioutil.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
@@ -93,9 +91,9 @@ include-files = [
 	})
 
 	it("executes pre_package script", func() {
-		context := carton.Context{Source: path}
+		p.Source = path
 
-		build.Build(context,
+		p.Build(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -107,9 +105,10 @@ include-files = [
 	})
 
 	it("includes include_files", func() {
-		context := carton.Context{Source: path, Destination: "test-destination"}
+		p.Source = path
+		p.Destination = "test-destination"
 
-		build.Build(context,
+		p.Build(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -121,9 +120,11 @@ include-files = [
 	})
 
 	it("replaces .Version in buildpack.toml", func() {
-		context := carton.Context{Source: path, Destination: "test-destination", Version: "2.2.2"}
+		p.Source = path
+		p.Destination = "test-destination"
+		p.Version = "2.2.2"
 
-		build.Build(context,
+		p.Build(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))

@@ -33,8 +33,8 @@ import (
 	"github.com/paketoio/libpak/internal"
 )
 
-// Context is an object that contains the context for execution.
-type Context struct {
+// Package is an object that contains the configuration for building a package.
+type Package struct {
 
 	// CacheLocation is the location to cache downloaded dependencies.
 	CacheLocation string
@@ -52,12 +52,8 @@ type Context struct {
 	Version string
 }
 
-type Build struct {
-	Logger bard.Logger
-}
-
-// Build is the method called for packaging.
-func (b Build) Build(context Context, options ...Option) {
+// Build creates a package.
+func (p Package) Build(options ...Option) {
 	config := Config{
 		entryWriter: internal.EntryWriter{},
 		executor:    effect.NewExecutor(),
@@ -73,13 +69,15 @@ func (b Build) Build(context Context, options ...Option) {
 		file string
 	)
 
+	logger := bard.NewLogger(os.Stdout)
+
 	buildpack := libcnb.Buildpack{}
-	file = filepath.Join(context.Source, "buildpack.toml")
+	file = filepath.Join(p.Source, "buildpack.toml")
 	if _, err = toml.DecodeFile(file, &buildpack); err != nil && !os.IsNotExist(err) {
 		config.exitHandler.Error(fmt.Errorf("unable to decode buildpack %s: %w", file, err))
 		return
 	}
-	b.Logger.Debug("Buildpack: %+v", buildpack)
+	logger.Debug("Buildpack: %+v", buildpack)
 
 	metadata, err := libpak.NewBuildpackMetadata(buildpack.Metadata)
 	if err != nil {
@@ -90,14 +88,14 @@ func (b Build) Build(context Context, options ...Option) {
 	entries := map[string]string{}
 
 	for _, i := range metadata.IncludeFiles {
-		entries[i] = filepath.Join(context.Source, i)
+		entries[i] = filepath.Join(p.Source, i)
 	}
-	b.Logger.Debug("Include files: %+v", entries)
+	logger.Debug("Include files: %+v", entries)
 
-	if context.Version != "" {
-		buildpack.Info.Version = context.Version
+	if p.Version != "" {
+		buildpack.Info.Version = p.Version
 
-		file = filepath.Join(context.Source, "buildpack.toml")
+		file = filepath.Join(p.Source, "buildpack.toml")
 		t, err := template.ParseFiles(file)
 		if err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to parse template %s: %w", file, err))
@@ -110,49 +108,49 @@ func (b Build) Build(context Context, options ...Option) {
 		}
 		defer out.Close()
 
-		if err = t.Execute(out, map[string]string{"Version": context.Version}); err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to execute template %s with version %s: %w", file, context.Version, err))
+		if err = t.Execute(out, map[string]string{"Version": p.Version}); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to execute template %s with version %s: %w", file, p.Version, err))
 			return
 		}
 
 		entries["buildpack.toml"] = out.Name()
 	}
 
-	b.Logger.Title(buildpack)
-	b.Logger.Header("Creating package in %s", context.Destination)
+	logger.Title(buildpack)
+	logger.Header("Creating package in %s", p.Destination)
 
-	if err = os.RemoveAll(context.Destination); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to remove destination path %s: %w", context.Destination, err))
+	if err = os.RemoveAll(p.Destination); err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to remove destination path %s: %w", p.Destination, err))
 		return
 	}
 
 	file = metadata.PrePackage
-	b.Logger.Header("Pre-package with %s", file)
+	logger.Header("Pre-package with %s", file)
 	execution := effect.Execution{
 		Command: file,
-		Dir:     context.Source,
-		Stdout:  b.Logger.BodyWriter(),
-		Stderr:  b.Logger.BodyWriter(),
+		Dir:     p.Source,
+		Stdout:  logger.BodyWriter(),
+		Stderr:  logger.BodyWriter(),
 	}
 
 	if err = config.executor.Execute(execution); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to execute pre-package script %s: %w", file, err))
 	}
 
-	if context.IncludeDependencies {
+	if p.IncludeDependencies {
 		cache := libpak.DependencyCache{
-			Logger:    b.Logger,
+			Logger:    logger,
 			UserAgent: fmt.Sprintf("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
 		}
 
-		if context.CacheLocation != "" {
-			cache.DownloadPath = context.CacheLocation
+		if p.CacheLocation != "" {
+			cache.DownloadPath = p.CacheLocation
 		} else {
-			cache.DownloadPath = filepath.Join(context.Source, "dependencies")
+			cache.DownloadPath = filepath.Join(p.Source, "dependencies")
 		}
 
 		for _, dep := range metadata.Dependencies {
-			b.Logger.Header("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
+			logger.Header("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
 
 			f, err := cache.Artifact(dep)
 			if err != nil {
@@ -175,8 +173,8 @@ func (b Build) Build(context Context, options ...Option) {
 	}
 	sort.Strings(files)
 	for _, d := range files {
-		b.Logger.Body("Adding %s", d)
-		file = filepath.Join(context.Destination, d)
+		logger.Body("Adding %s", d)
+		file = filepath.Join(p.Destination, d)
 		if err = config.entryWriter.Write(entries[d], file); err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to write file %s to %s: %w", entries[d], file, err))
 			return

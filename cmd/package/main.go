@@ -21,31 +21,29 @@ import (
 	"log"
 	"os"
 
-	"github.com/paketoio/libpak/bard"
 	"github.com/paketoio/libpak/carton"
 	"github.com/spf13/pflag"
 )
 
 func main() {
-	context := carton.Context{}
+	p := carton.Package{}
 
 	flagSet := pflag.NewFlagSet("Build Package", pflag.ExitOnError)
-	flagSet.StringVar(&context.CacheLocation, "cache-location", "", "path to cache downloaded dependencies (default: $PWD/dependencies)")
-	flagSet.StringVar(&context.Destination, "destination", "", "path to the build package destination directory")
-	flagSet.BoolVar(&context.IncludeDependencies, "include-dependencies", true, "whether to include dependencies (default: true)")
-	flagSet.StringVar(&context.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
-	flagSet.StringVar(&context.Version, "version", "", "version to substitute into buildpack.toml")
+	flagSet.StringVar(&p.CacheLocation, "cache-location", "", "path to cache downloaded dependencies (default: $PWD/dependencies)")
+	flagSet.StringVar(&p.Destination, "destination", "", "path to the build package destination directory")
+	flagSet.BoolVar(&p.IncludeDependencies, "include-dependencies", true, "whether to include dependencies (default: true)")
+	flagSet.StringVar(&p.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
+	flagSet.StringVar(&p.Version, "version", "", "version to substitute into buildpack.toml")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags: %w", err))
 	}
 
-	if context.Destination == "" {
+	if p.Destination == "" {
 		log.Fatal("destination must be set")
 	}
 
-	b := carton.Build{Logger: bard.NewLogger(os.Stdout)}
-	b.Build(context)
+	p.Build()
 }
 
 func defaultSource() string {
