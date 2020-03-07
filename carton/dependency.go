@@ -68,6 +68,11 @@ func (d Dependency) Build(options ...Option) {
 		return
 	}
 
+	if !r.Match(c) {
+		config.exitHandler.Error(fmt.Errorf("unable to match '%s' '%s'", d.ID, d.VersionPattern))
+		return
+	}
+
 	s = fmt.Sprintf(DependencySubstitution, d.Version, d.URI, d.SHA256)
 	c = r.ReplaceAll(c, []byte(s))
 
