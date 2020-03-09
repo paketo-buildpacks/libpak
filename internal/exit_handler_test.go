@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/packeto-buildpacks/libpak/bard"
-	"github.com/packeto-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/internal"
 	"github.com/sclevine/spec"
 )
 

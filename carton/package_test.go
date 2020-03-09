@@ -24,10 +24,10 @@ import (
 
 	"github.com/buildpacks/libcnb/mocks"
 	. "github.com/onsi/gomega"
-	"github.com/packeto-buildpacks/libpak/carton"
-	cMocks "github.com/packeto-buildpacks/libpak/carton/mocks"
-	"github.com/packeto-buildpacks/libpak/effect"
-	eMocks "github.com/packeto-buildpacks/libpak/effect/mocks"
+	"github.com/paketo-buildpacks/libpak/carton"
+	cMocks "github.com/paketo-buildpacks/libpak/carton/mocks"
+	"github.com/paketo-buildpacks/libpak/effect"
+	eMocks "github.com/paketo-buildpacks/libpak/effect/mocks"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )

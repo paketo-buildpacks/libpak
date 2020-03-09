@@ -23,7 +23,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
-	"github.com/packeto-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/bard"
 )
 
 // TOMLWriter is an implementation of the libcnb.TOMLWriter interface.

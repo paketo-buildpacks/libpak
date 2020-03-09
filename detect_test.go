@@ -26,7 +26,7 @@ import (
 	"github.com/buildpacks/libcnb"
 	"github.com/buildpacks/libcnb/mocks"
 	. "github.com/onsi/gomega"
-	"github.com/packeto-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )

@@ -22,7 +22,7 @@ import (
 
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
-	"github.com/packeto-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/sclevine/spec"
 )
 

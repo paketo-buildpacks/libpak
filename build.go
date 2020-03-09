@@ -25,8 +25,8 @@ import (
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 	"github.com/imdario/mergo"
-	"github.com/packeto-buildpacks/libpak/bard"
-	"github.com/packeto-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/internal"
 )
 
 // Build is called by the main function of a buildpack, for build.

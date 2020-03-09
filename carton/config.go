@@ -18,7 +18,7 @@ package carton
 
 import (
 	"github.com/buildpacks/libcnb"
-	"github.com/packeto-buildpacks/libpak/effect"
+	"github.com/paketo-buildpacks/libpak/effect"
 )
 
 //go:generate mockery -name EntryWriter -case=underscore

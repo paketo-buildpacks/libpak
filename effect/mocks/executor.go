@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	effect "github.com/packeto-buildpacks/libpak/effect"
+	effect "github.com/paketo-buildpacks/libpak/effect"
 	mock "github.com/stretchr/testify/mock"
 )
 

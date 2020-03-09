@@ -28,7 +28,7 @@ import (
 	"github.com/BurntSushi/toml"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/packeto-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak"
 	"github.com/sclevine/spec"
 )
 
