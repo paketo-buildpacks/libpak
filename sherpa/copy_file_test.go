@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketoio/libpak/sherpa"
+	"github.com/packeto-buildpacks/libpak/sherpa"
 	"github.com/sclevine/spec"
 )
 

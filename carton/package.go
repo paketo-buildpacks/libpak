@@ -27,10 +27,10 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/paketoio/libpak"
-	"github.com/paketoio/libpak/bard"
-	"github.com/paketoio/libpak/effect"
-	"github.com/paketoio/libpak/internal"
+	"github.com/packeto-buildpacks/libpak"
+	"github.com/packeto-buildpacks/libpak/bard"
+	"github.com/packeto-buildpacks/libpak/effect"
+	"github.com/packeto-buildpacks/libpak/internal"
 )
 
 // Package is an object that contains the configuration for building a package.

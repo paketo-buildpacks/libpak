@@ -21,7 +21,7 @@ import (
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
-	"github.com/paketoio/libpak"
+	"github.com/packeto-buildpacks/libpak"
 	"github.com/sclevine/spec"
 )
 

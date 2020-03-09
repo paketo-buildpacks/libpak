@@ -29,7 +29,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/paketoio/libpak/bard"
+	"github.com/packeto-buildpacks/libpak/bard"
 )
 
 // DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download, or to download

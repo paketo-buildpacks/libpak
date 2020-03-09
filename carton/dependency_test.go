@@ -23,7 +23,7 @@ import (
 
 	"github.com/buildpacks/libcnb/mocks"
 	. "github.com/onsi/gomega"
-	"github.com/paketoio/libpak/carton"
+	"github.com/packeto-buildpacks/libpak/carton"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )

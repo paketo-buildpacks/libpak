@@ -25,8 +25,8 @@ import (
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
-	"github.com/paketoio/libpak/bard"
-	"github.com/paketoio/libpak/internal"
+	"github.com/packeto-buildpacks/libpak/bard"
+	"github.com/packeto-buildpacks/libpak/internal"
 	"github.com/sclevine/spec"
 )
 

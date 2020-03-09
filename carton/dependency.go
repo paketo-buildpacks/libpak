@@ -22,8 +22,8 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/paketoio/libpak/bard"
-	"github.com/paketoio/libpak/internal"
+	"github.com/packeto-buildpacks/libpak/bard"
+	"github.com/packeto-buildpacks/libpak/internal"
 )
 
 const (

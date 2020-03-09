@@ -23,7 +23,7 @@ import (
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
-	"github.com/paketoio/libpak/internal"
+	"github.com/packeto-buildpacks/libpak/internal"
 	"github.com/sclevine/spec"
 )
 

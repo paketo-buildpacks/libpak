@@ -17,7 +17,7 @@
 package sherpa
 
 import (
-	"github.com/paketoio/libpak/internal"
+	"github.com/packeto-buildpacks/libpak/internal"
 )
 
 // ExecuteFunc is the callback function for buildpack helper application implementations.

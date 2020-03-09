@@ -21,7 +21,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/paketoio/libpak/carton"
+	"github.com/packeto-buildpacks/libpak/carton"
 	"github.com/spf13/pflag"
 )
 

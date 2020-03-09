@@ -1,4 +1,4 @@
-module github.com/paketoio/libpak
+module github.com/packeto-buildpacks/libpak
 
 go 1.14
 

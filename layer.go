@@ -25,7 +25,7 @@ import (
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 	"github.com/mitchellh/mapstructure"
-	"github.com/paketoio/libpak/bard"
+	"github.com/packeto-buildpacks/libpak/bard"
 )
 
 // LayerContributor is a helper for implementing a libcnb.LayerContributor in order to get consistent logging and

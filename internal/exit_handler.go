@@ -21,7 +21,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/paketoio/libpak/bard"
+	"github.com/packeto-buildpacks/libpak/bard"
 )
 
 const (
