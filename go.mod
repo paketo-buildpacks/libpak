@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/semver/v3 v3.0.3
-	github.com/buildpacks/libcnb v1.1.1
+	github.com/buildpacks/libcnb v1.1.2
 	github.com/creack/pty v1.1.9
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.8
