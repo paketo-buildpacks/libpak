@@ -104,7 +104,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 		it("writes body log", func() {
 			l.Body("test-%s\ntest-%s", "message-1", "message-2")
-			Expect(b.String()).To(Equal("\x1b[2m    test-message-1\n    test-message-2\x1b[0m\n"))
+			Expect(b.String()).To(Equal("\x1b[2m    test-message-1\x1b[0m\n\x1b[2m    test-message-2\x1b[0m\n"))
 		})
 
 		it("returns body writer", func() {
@@ -143,7 +143,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 		it("writes terminal error", func() {
 			l.TerminalError(bard.IdentifiableError{Name: "test-name", Description: "test-description", Err: fmt.Errorf("test-error")})
-			Expect(b.String()).To(Equal("\x1b[31m\n\x1b[1mtest-name\x1b[0m\x1b[31m test-description\x1b[0m\n\x1b[31;1m  test-error\x1b[0m\n"))
+			Expect(b.String()).To(Equal("\x1b[31m\x1b[0m\n\x1b[31m\x1b[1mtest-name\x1b[0m\x1b[31m test-description\x1b[0m\n\x1b[31;1m  test-error\x1b[0m\n"))
 		})
 
 		it("returns terminal error writer", func() {
@@ -156,7 +156,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 		it("writes title log", func() {
 			l.Title(libcnb.Buildpack{Info: libcnb.BuildpackInfo{Name: "test-name", Version: "test-version"}})
-			Expect(b.String()).To(Equal("\x1b[34m\n\x1b[1mtest-name\x1b[0m\x1b[34m test-version\x1b[0m\n"))
+			Expect(b.String()).To(Equal("\x1b[34m\x1b[0m\n\x1b[34m\x1b[1mtest-name\x1b[0m\x1b[34m test-version\x1b[0m\n"))
 		})
 
 		it("returns title writer", func() {

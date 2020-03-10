@@ -90,7 +90,7 @@ func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(b.String()).To(Equal("\x1b[2m    Writing env/other-name\n    Writing env/some-name\x1b[0m\n"))
+			Expect(b.String()).To(Equal("\x1b[2m    Writing env/other-name\x1b[0m\n\x1b[2m    Writing env/some-name\x1b[0m\n"))
 		})
 	})
 }

@@ -74,16 +74,17 @@ func (w Writer) Write(b []byte) (int, error) {
 		for i := 0; i < w.indent; i++ {
 			line = append([]byte("  "), line...)
 		}
+
+		if w.color != nil {
+			s := string(line)
+			s = strings.ReplaceAll(s, colorReset, colorReset+w.code)
+			line = []byte(w.color.Sprint(s))
+		}
+
 		indentedLines = append(indentedLines, line)
 	}
 
 	b = bytes.Join(indentedLines, newline)
-
-	if w.color != nil {
-		s := string(b)
-		s = strings.ReplaceAll(s, colorReset, colorReset+w.code)
-		b = []byte(w.color.Sprint(s))
-	}
 
 	if prefix != nil {
 		b = append(prefix, b...)
@@ -158,4 +159,3 @@ func toCodes(attrs []color.Attribute) []string {
 
 	return codes
 }
-
