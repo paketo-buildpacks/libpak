@@ -32,16 +32,16 @@ import (
 type FileEntry struct {
 
 	// Path is the path of a file.
-	Path string `toml:"path"`
+	Path string
 
 	// Mode is the mode of the source file.
-	Mode string `toml:"mode"`
+	Mode string
 
 	// ModificationTime is the modification time of the file.
-	ModificationTime time.Time `toml:"modification-time"`
+	ModificationTime time.Time
 
 	// SHA256 is the SHA256 has of the source file.
-	SHA256 string `toml:"sha256,omitempty"`
+	SHA256 string
 }
 
 type result struct {
@@ -50,7 +50,7 @@ type result struct {
 }
 
 // NewFileListing generates a listing of all entries under root.
-func NewFileListing(root string) ([]FileEntry, error) {
+func NewFileListing(root string) ([]map[string]interface{}, error) {
 	ch := make(chan result)
 	var wg sync.WaitGroup
 
@@ -106,16 +106,25 @@ func NewFileListing(root string) ([]FileEntry, error) {
 		close(ch)
 	}()
 
-	var e []FileEntry
+	var e []map[string]interface{}
 	for r := range ch {
 		if r.err != nil {
 			return nil, fmt.Errorf("unable to create file listing: %s", r.err)
 		}
 
-		e = append(e, r.value)
+		v := map[string]interface{}{
+			"path":              r.value.Path,
+			"mode":              r.value.Mode,
+			"modification-time": r.value.ModificationTime.Format(time.RFC3339),
+		}
+		if r.value.SHA256 != "" {
+			v["sha256"] = r.value.SHA256
+		}
+
+		e = append(e, v)
 	}
 	sort.Slice(e, func(i, j int) bool {
-		return e[i].Path < e[j].Path
+		return e[i]["path"].(string) < e[j]["path"].(string)
 	})
 
 	return e, nil
