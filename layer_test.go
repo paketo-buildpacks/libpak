@@ -164,23 +164,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			layer.Metadata = map[string]interface{}{}
 
-			dlc.LayerContributor.ExpectedMetadata = map[string]interface{}{
-				"id":       dependency.ID,
-				"name":     dependency.Name,
-				"version":  dependency.Version,
-				"uri":      dependency.URI,
-				"sha256":   dependency.SHA256,
-				"stacks":   dependency.Stacks,
-				"licenses": []map[string]interface{}{},
-			}
-			for _, l := range dependency.Licenses {
-				dlc.LayerContributor.ExpectedMetadata["licenses"] = append(
-					dlc.LayerContributor.ExpectedMetadata["licenses"].([]map[string]interface{}),
-					map[string]interface{}{
-						"type": l.Type,
-						"uri":  l.URI,
-					})
-			}
+			dlc.LayerContributor.ExpectedMetadata = dependency
 
 			layer.Path = path
 			dlc.Dependency = dependency
@@ -282,10 +266,10 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"uri":     dependency.URI,
 				"sha256":  dependency.SHA256,
 				"stacks":  dependency.Stacks,
-				"licenses": []map[string]interface{}{
+				"licenses": []libpak.BuildpackDependencyLicense{
 					{
-						"type": dependency.Licenses[0].Type,
-						"uri":  dependency.Licenses[0].URI,
+						Type: dependency.Licenses[0].Type,
+						URI:  dependency.Licenses[0].URI,
 					},
 				},
 			}))
@@ -332,12 +316,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			layer.Metadata = map[string]interface{}{}
 			layer.Path = path
 
-			hlc.LayerContributor.ExpectedMetadata = map[string]interface{}{
-				"id":        info.ID,
-				"name":      info.Name,
-				"version":   info.Version,
-				"clear-env": info.ClearEnvironment,
-			}
+			hlc.LayerContributor.ExpectedMetadata = info
 			hlc.Path = helper.Name()
 		})
 
@@ -424,10 +403,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
 				Name:    filepath.Base(helper.Name()),
 				Version: info.Version,
-				Metadata: map[string]interface{}{
-					"buildpack-id":      info.ID,
-					"buildpack-version": info.Version,
-				},
 			}))
 		})
 	})

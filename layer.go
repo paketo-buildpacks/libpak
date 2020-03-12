@@ -33,7 +33,7 @@ import (
 type LayerContributor struct {
 
 	// ExpectedMetadata is the metadata to compare against any existing layer metadata.
-	ExpectedMetadata map[string]interface{}
+	ExpectedMetadata interface{}
 
 	// Logger is the logger to use.
 	Logger bard.Logger
@@ -43,7 +43,7 @@ type LayerContributor struct {
 }
 
 // NewLayerContributor creates a new instance.
-func NewLayerContributor(name string, expectedMetadata map[string]interface{}) LayerContributor {
+func NewLayerContributor(name string, expectedMetadata interface{}) LayerContributor {
 	return LayerContributor{
 		ExpectedMetadata: expectedMetadata,
 		Logger:           bard.NewLogger(os.Stdout),
@@ -119,26 +119,10 @@ func NewDependencyLayerContributor(dependency BuildpackDependency, cache Depende
 		},
 	})
 
-	expected := map[string]interface{}{
-		"id":       dependency.ID,
-		"name":     dependency.Name,
-		"version":  dependency.Version,
-		"uri":      dependency.URI,
-		"sha256":   dependency.SHA256,
-		"stacks":   dependency.Stacks,
-		"licenses": []map[string]interface{}{},
-	}
-	for _, l := range dependency.Licenses {
-		expected["licenses"] = append(expected["licenses"].([]map[string]interface{}), map[string]interface{}{
-			"type": l.Type,
-			"uri":  l.URI,
-		})
-	}
-
 	return DependencyLayerContributor{
 		Dependency:       dependency,
 		DependencyCache:  cache,
-		LayerContributor: NewLayerContributor(fmt.Sprintf("%s %s", dependency.Name, dependency.Version), expected),
+		LayerContributor: NewLayerContributor(fmt.Sprintf("%s %s", dependency.Name, dependency.Version), dependency),
 	}
 }
 
@@ -170,26 +154,14 @@ type HelperLayerContributor struct {
 
 // NewHelperLayerContributor creates a new instance and adds the helper to the Buildpack Plan.
 func NewHelperLayerContributor(path string, name string, info libcnb.BuildpackInfo, plan *libcnb.BuildpackPlan) HelperLayerContributor {
-
 	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
 		Name:    filepath.Base(path),
 		Version: info.Version,
-		Metadata: map[string]interface{}{
-			"buildpack-id":      info.ID,
-			"buildpack-version": info.Version,
-		},
 	})
-
-	expected := map[string]interface{}{
-		"id":        info.ID,
-		"name":      info.Name,
-		"version":   info.Version,
-		"clear-env": info.ClearEnvironment,
-	}
 
 	return HelperLayerContributor{
 		Path:             path,
-		LayerContributor: NewLayerContributor(fmt.Sprintf("%s %s", name, info.Version), expected),
+		LayerContributor: NewLayerContributor(name, info),
 	}
 }
 

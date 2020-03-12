@@ -29,34 +29,34 @@ import (
 type BuildpackDependencyLicense struct {
 
 	// Type is the type of the license.  This is typically the SPDX short identifier.
-	Type string `toml:"type"`
+	Type string `mapstructure:"type" toml:"type"`
 
 	// URI is the location where the license can be found.
-	URI string `toml:"uri"`
+	URI string `mapstructure:"uri" toml:"uri"`
 }
 
 // BuildpackDependency describes a dependency known to the buildpack.
 type BuildpackDependency struct {
 	// ID is the dependency ID.
-	ID string `toml:"id"`
+	ID string `mapstructure:"id" toml:"id"`
 
 	// Name is the dependency name.
-	Name string `toml:"name"`
+	Name string `mapstructure:"name" toml:"name"`
 
 	// Version is the dependency version.
-	Version string `toml:"version"`
+	Version string `mapstructure:"version" toml:"version"`
 
 	// URI is the dependency URI.
-	URI string `toml:"uri"`
+	URI string `mapstructure:"uri" toml:"uri"`
 
 	// SHA256 is the hash of the dependency.
-	SHA256 string `toml:"sha256"`
+	SHA256 string `mapstructure:"sha256" toml:"sha256"`
 
 	// Stacks are the stacks the dependency is compatible with.
-	Stacks []string `toml:"stacks"`
+	Stacks []string `mapstructure:"stacks" toml:"stacks"`
 
 	// Licenses are the stacks the dependency is distributed under.
-	Licenses []BuildpackDependencyLicense `toml:"licenses"`
+	Licenses []BuildpackDependencyLicense `mapstructure:"licenses" toml:"licenses"`
 }
 
 // BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
