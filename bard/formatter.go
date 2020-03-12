@@ -33,9 +33,9 @@ func FormatIdentity(name string, description string) string {
 	return s
 }
 
-// FormatLaunchConfig formats a name and default value, and an optional reason in the form
+// FormatUserConfig formats a name and default value, and an optional reason in the form
 // 'Set $name to configure[ reason]. Default <i>def</i>.
-func FormatLaunchConfig(name string, reason string, def string) string {
+func FormatUserConfig(name string, reason string, def string) string {
 	s := fmt.Sprintf("Set $%s to configure", name)
 
 	if reason != "" {
