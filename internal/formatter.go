@@ -25,23 +25,6 @@ import (
 	"github.com/heroku/color"
 )
 
-// LaunchFormatter is the formatter for a collection of environment variables.
-type EnvironmentFormatter struct {
-	Path        string
-	Environment map[string]string
-}
-
-func (e EnvironmentFormatter) String() string {
-	var s []string
-
-	for k, _ := range e.Environment {
-		s = append(s, fmt.Sprintf("Writing %s/%s", e.Path, k))
-	}
-
-	sort.Strings(s)
-	return strings.Join(s, "\n")
-}
-
 // LaunchFormatter is the formatter for a libcnb.Launch.
 type LaunchFormatter libcnb.Launch
 

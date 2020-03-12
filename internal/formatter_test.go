@@ -32,18 +32,6 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 		Expect = NewWithT(t).Expect
 	)
 
-	context("EnvironmentFormatter", func() {
-		it("formats contents", func() {
-			env := map[string]string{
-				"test-key-1": "test-value-1",
-				"test-key-2": "test-value-2",
-			}
-
-			Expect(internal.EnvironmentFormatter{Path: "test-path", Environment: env}.String()).
-				To(Equal("Writing test-path/test-key-1\nWriting test-path/test-key-2"))
-		})
-	})
-
 	context("LaunchFormatter", func() {
 
 		it("is empty without slices or processes", func() {

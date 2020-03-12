@@ -144,7 +144,7 @@ func (l Logger) TerminalError(err IdentifiableError) {
 		return
 	}
 
-	l.printf(l.terminalHeader, "\n%s", IdentityFormatter{Name: err.Name, Description: err.Description})
+	l.printf(l.terminalHeader, "\n%s", FormatIdentity(err.Name, err.Description))
 	l.printf(l.terminalBody, "%s", err.Err)
 }
 
@@ -164,7 +164,7 @@ func (l Logger) Title(buildpack libcnb.Buildpack) {
 		return
 	}
 
-	l.printf(l.title, "\n%s", IdentityFormatter{Name: buildpack.Info.Name, Description: buildpack.Info.Version})
+	l.printf(l.title, "\n%s", FormatIdentity(buildpack.Info.Name, buildpack.Info.Version))
 }
 
 // TitleWriter returns the configured title writer.

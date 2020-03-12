@@ -34,12 +34,12 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	context("IdentityFormatter", func() {
 
 		it("it formats name", func() {
-			Expect(bard.IdentityFormatter{Name: "test-name"}.String()).
+			Expect(bard.FormatIdentity("test-name", "")).
 				To(Equal(color.New(color.Bold).Sprint("test-name")))
 		})
 
 		it("formats name and description", func() {
-			Expect(bard.IdentityFormatter{Name: "test-name", Description: "test-description"}.String()).
+			Expect(bard.FormatIdentity("test-name", "test-description")).
 				To(Equal(fmt.Sprintf("%s test-description", color.New(color.Bold).Sprint("test-name"))))
 		})
 	})
@@ -47,9 +47,15 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	context("LaunchConfigFormatter", func() {
 
 		it("formats launch configuration", func() {
-			l := bard.LaunchConfigFormatter{Name: "TEST_NAME", Default: "test-default"}
-			Expect(l.String()).To(Equal(fmt.Sprintf("Set $TEST_NAME to configure. Default %s.", color.New(color.Italic).Sprint("test-default"))))
+			Expect(bard.FormatLaunchConfig("TEST_NAME", "", "test-default")).
+				To(Equal(fmt.Sprintf("Set $TEST_NAME to configure. Default %s.", color.New(color.Italic).Sprint("test-default"))))
 		})
+
+		it("formats launch configuration with reason", func() {
+			Expect(bard.FormatLaunchConfig("TEST_NAME", "test-reason", "test-default")).
+				To(Equal(fmt.Sprintf("Set $TEST_NAME to configure test-reason. Default %s.", color.New(color.Italic).Sprint("test-default"))))
+		})
+
 	})
 
 }

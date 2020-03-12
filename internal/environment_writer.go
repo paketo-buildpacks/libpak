@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -60,15 +61,21 @@ func (w EnvironmentWriter) Write(path string, environment map[string]string) err
 		return nil
 	}
 
-	w.logger.Body("%s", EnvironmentFormatter{Path: filepath.Base(path), Environment: environment})
-
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return fmt.Errorf("unable to mkdir %s: %w", path, err)
 	}
 
-	for key, value := range environment {
-		f := filepath.Join(path, key)
-		if err := ioutil.WriteFile(f, []byte(value), 0644); err != nil {
+	var keys []string
+	for k, _ := range environment {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	base := filepath.Base(path)
+	for _, k := range keys {
+		w.logger.Body("Writing %s/%s", base, k)
+		f := filepath.Join(path, k)
+		if err := ioutil.WriteFile(f, []byte(environment[k]), 0644); err != nil {
 			return fmt.Errorf("unable to write file %s: %w", f, err)
 		}
 	}

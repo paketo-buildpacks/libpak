@@ -18,45 +18,31 @@ package bard
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/heroku/color"
 )
 
-// Identity is the formatter for an identifiable object.
-type IdentityFormatter struct {
+// FormatIdentity formats a name and an optional description in the form '<b>name</b>[ description]'.
+func FormatIdentity(name string, description string) string {
+	s := color.New(color.Bold).Sprint(name)
 
-	// Name is the name of the identified object.
-	Name string
-
-	// Description is the description of the identified object.
-	Description string
-}
-
-func (i IdentityFormatter) String() string {
-	var sb strings.Builder
-
-	_, _ = sb.WriteString(color.New(color.Bold).Sprint(i.Name))
-
-	if i.Description != "" {
-		_, _ = sb.WriteString(fmt.Sprintf(" %s", i.Description))
+	if description != "" {
+		s += fmt.Sprintf(" %s", description)
 	}
 
-	return sb.String()
+	return s
 }
 
-var launchConfigDefault = color.New(color.Italic).SprintFunc()
+// FormatLaunchConfig formats a name and default value, and an optional reason in the form
+// 'Set $name to configure[ reason]. Default <i>def</i>.
+func FormatLaunchConfig(name string, reason string, def string) string {
+	s := fmt.Sprintf("Set $%s to configure", name)
 
-// LaunchConfigFormatter is the logging formatter for a user configuration and its default value.
-type LaunchConfigFormatter struct {
+	if reason != "" {
+		s += fmt.Sprintf(" %s", reason)
+	}
 
-	// Name is the name of the launch configuration environment variable.
-	Name string
+	s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(def))
 
-	// Default is the default value of the the configuration.
-	Default string
-}
-
-func (l LaunchConfigFormatter) String() string {
-	return fmt.Sprintf("Set $%s to configure. Default %s.", l.Name, launchConfigDefault(l.Default))
+	return s
 }

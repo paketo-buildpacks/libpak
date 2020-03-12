@@ -50,7 +50,7 @@ func (d Dependency) Build(options ...Option) {
 	}
 
 	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.IdentityFormatter{Name: d.ID, Description: d.VersionPattern})
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(d.ID, d.VersionPattern))
 	logger.Header("Version: %s", d.Version)
 	logger.Header("URI:     %s", d.URI)
 	logger.Header("SHA256:  %s", d.SHA256)
