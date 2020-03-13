@@ -55,7 +55,6 @@ func NewDependencyCache(buildpack libcnb.Buildpack) DependencyCache {
 	return DependencyCache{
 		CachePath:    filepath.Join(buildpack.Path, "dependencies"),
 		DownloadPath: os.TempDir(),
-		Logger:       bard.NewLogger(os.Stdout),
 		UserAgent:    filepath.Join("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
 	}
 }

@@ -46,7 +46,6 @@ type LayerContributor struct {
 func NewLayerContributor(name string, expectedMetadata interface{}) LayerContributor {
 	return LayerContributor{
 		ExpectedMetadata: expectedMetadata,
-		Logger:           bard.NewLogger(os.Stdout),
 		Name:             name,
 	}
 }
@@ -103,6 +102,9 @@ type DependencyLayerContributor struct {
 
 	// LayerContributor is the contained LayerContributor used for the actual contribution.
 	LayerContributor LayerContributor
+
+	// Logger is the logger to use.
+	Logger bard.Logger
 }
 
 // NewDependencyLayerContributor creates a new instance and adds the dependency to the Buildpack Plan.
@@ -131,6 +133,8 @@ type DependencyLayerFunc func(artifact *os.File) (libcnb.Layer, error)
 
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
 func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc) (libcnb.Layer, error) {
+	d.LayerContributor.Logger = d.Logger
+
 	return d.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		artifact, err := d.DependencyCache.Artifact(d.Dependency)
 		if err != nil {
@@ -150,6 +154,9 @@ type HelperLayerContributor struct {
 
 	// LayerContributor is the contained LayerContributor used for the actual contribution.
 	LayerContributor LayerContributor
+
+	// Logger is the logger to use.
+	Logger bard.Logger
 }
 
 // NewHelperLayerContributor creates a new instance and adds the helper to the Buildpack Plan.
@@ -170,6 +177,8 @@ type HelperLayerFunc func(artifact *os.File) (libcnb.Layer, error)
 
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
 func (h *HelperLayerContributor) Contribute(layer libcnb.Layer, f HelperLayerFunc) (libcnb.Layer, error) {
+	h.LayerContributor.Logger = h.Logger
+
 	return h.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		in, err := os.Open(h.Path)
 		if err != nil {
