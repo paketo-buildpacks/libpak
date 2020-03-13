@@ -31,7 +31,6 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		crush crush.Crush
 		path  string
 	)
 

@@ -29,10 +29,8 @@ import (
 	"github.com/xi2/xz"
 )
 
-type Crush struct{}
-
 // CreateTar writes a TAR to the destination io.Writer containing the directories and files in the source folder.
-func (c *Crush) CreateTar(destination io.Writer, source string) error {
+func CreateTar(destination io.Writer, source string) error {
 	t := tar.NewWriter(destination)
 	defer t.Close()
 
@@ -87,16 +85,16 @@ func (c *Crush) CreateTar(destination io.Writer, source string) error {
 
 // CreateTarGz writes a GZIP'd TAR to the destination io.Writer containing the directories and files in the source
 // folder.
-func (c *Crush) CreateTarGz(destination io.Writer, source string) error {
+func CreateTarGz(destination io.Writer, source string) error {
 	gz := gzip.NewWriter(destination)
 	defer gz.Close()
 
-	return c.CreateTar(gz, source)
+	return CreateTar(gz, source)
 }
 
 // ExtractTar extracts source TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func (c *Crush) ExtractTar(source io.Reader, destination string, stripComponents int) error {
+func ExtractTar(source io.Reader, destination string, stripComponents int) error {
 	t := tar.NewReader(source)
 
 	for {
@@ -107,7 +105,7 @@ func (c *Crush) ExtractTar(source io.Reader, destination string, stripComponents
 			return fmt.Errorf("unable to read TAR file: %w", err)
 		}
 
-		target := c.strippedPath(f.Name, destination, stripComponents)
+		target := strippedPath(f.Name, destination, stripComponents)
 		if target == "" {
 			continue
 		}
@@ -118,11 +116,11 @@ func (c *Crush) ExtractTar(source io.Reader, destination string, stripComponents
 				return fmt.Errorf("unable to make directory %s: %w", target, err)
 			}
 		} else if info.Mode()&os.ModeSymlink != 0 {
-			if err := c.writeSymlink(f.Linkname, target); err != nil {
+			if err := writeSymlink(f.Linkname, target); err != nil {
 				return err
 			}
 		} else {
-			if err := c.writeFile(t, target, info.Mode()); err != nil {
+			if err := writeFile(t, target, info.Mode()); err != nil {
 				return err
 			}
 		}
@@ -133,30 +131,30 @@ func (c *Crush) ExtractTar(source io.Reader, destination string, stripComponents
 
 // ExtractTarGz extracts source GZIP'd TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func (c *Crush) ExtractTarGz(source io.Reader, destination string, stripComponents int) error {
+func ExtractTarGz(source io.Reader, destination string, stripComponents int) error {
 	gz, err := gzip.NewReader(source)
 	if err != nil {
 		return fmt.Errorf("unable to create GZIP reader: %w", err)
 	}
 	defer gz.Close()
 
-	return c.ExtractTar(gz, destination, stripComponents)
+	return ExtractTar(gz, destination, stripComponents)
 }
 
 // ExtractTarXz extracts source XZ'd TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func (c *Crush) ExtractTarXz(source io.Reader, destination string, stripComponents int) error {
+func ExtractTarXz(source io.Reader, destination string, stripComponents int) error {
 	xz, err := xz.NewReader(source, 0)
 	if err != nil {
 		return fmt.Errorf("unable to create XZ reader: %w", err)
 	}
 
-	return c.ExtractTar(xz, destination, stripComponents)
+	return ExtractTar(xz, destination, stripComponents)
 }
 
 // ExtractZip extracts source ZIP file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func (c *Crush) ExtractZip(source *os.File, destination string, stripComponents int) error {
+func ExtractZip(source *os.File, destination string, stripComponents int) error {
 	stat, err := source.Stat()
 	if err != nil {
 		return fmt.Errorf("unable to stat %s: %w", source.Name(), err)
@@ -168,7 +166,7 @@ func (c *Crush) ExtractZip(source *os.File, destination string, stripComponents 
 	}
 
 	for _, f := range z.File {
-		target := c.strippedPath(f.Name, destination, stripComponents)
+		target := strippedPath(f.Name, destination, stripComponents)
 		if target == "" {
 			continue
 		}
@@ -178,7 +176,7 @@ func (c *Crush) ExtractZip(source *os.File, destination string, stripComponents 
 				return err
 			}
 		} else {
-			if err := c.writeZipEntry(f, target); err != nil {
+			if err := writeZipEntry(f, target); err != nil {
 				return err
 			}
 		}
@@ -187,7 +185,7 @@ func (c *Crush) ExtractZip(source *os.File, destination string, stripComponents 
 	return nil
 }
 
-func (Crush) strippedPath(source string, destination string, stripComponents int) string {
+func strippedPath(source string, destination string, stripComponents int) string {
 	components := strings.Split(source, string(filepath.Separator))
 
 	if len(components) <= stripComponents {
@@ -197,7 +195,7 @@ func (Crush) strippedPath(source string, destination string, stripComponents int
 	return filepath.Join(append([]string{destination}, components[stripComponents:]...)...)
 }
 
-func (Crush) writeFile(source io.Reader, path string, perm os.FileMode) error {
+func writeFile(source io.Reader, path string, perm os.FileMode) error {
 	file := filepath.Dir(path)
 	if err := os.MkdirAll(file, 0755); err != nil {
 		return fmt.Errorf("unable to create directory %s: %w", file, err)
@@ -216,17 +214,17 @@ func (Crush) writeFile(source io.Reader, path string, perm os.FileMode) error {
 	return nil
 }
 
-func (c Crush) writeZipEntry(file *zip.File, path string) error {
+func writeZipEntry(file *zip.File, path string) error {
 	in, err := file.Open()
 	if err != nil {
 		return fmt.Errorf("unable to open %s: %w", file.Name, err)
 	}
 	defer in.Close()
 
-	return c.writeFile(in, path, file.Mode())
+	return writeFile(in, path, file.Mode())
 }
 
-func (Crush) writeSymlink(oldName string, newName string) error {
+func writeSymlink(oldName string, newName string) error {
 	file := filepath.Dir(newName)
 	if err := os.MkdirAll(file, 0755); err != nil {
 		return fmt.Errorf("unable to create directory %s: %w", file, err)
