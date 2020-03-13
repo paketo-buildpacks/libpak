@@ -17,43 +17,34 @@
 package libpak
 
 import (
-	"fmt"
-
 	"github.com/buildpacks/libcnb"
-	"github.com/imdario/mergo"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
 )
 
 // Detect is called by the main function of a buildpack, for detection.
-func Detect(f libcnb.DetectFunc, options ...libcnb.Option) {
-	libcnb.Detect(
-		func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
-
-			// TODO: Remove once pack supports bindings natively
-			bindings, err := libcnb.NewBindingsFromEnvironment("CNB_BINDINGS")
-			if err != nil {
-				return libcnb.DetectResult{}, fmt.Errorf("unable to get bindings from $CNB_BINDINGS: %w", err)
-			}
-			if err := mergo.Merge(&context.Platform.Bindings, bindings); err != nil {
-				return libcnb.DetectResult{}, fmt.Errorf("unable to merge bindings %+v and %+v: %w", context.Platform.Bindings, bindings, err)
-			}
-
-			result, err := f(context)
-			if err != nil {
-				err = bard.IdentifiableError{
-					Name:        context.Buildpack.Info.Name,
-					Description: context.Buildpack.Info.Version,
-					Err:         err,
-				}
-			}
-
-			return result, err
-		},
+func Detect(detector libcnb.Detector, options ...libcnb.Option) {
+	libcnb.Detect(detectDelegate{delegate: detector},
 		append([]libcnb.Option{
 			libcnb.WithExitHandler(internal.NewExitHandler()),
 			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
 		}, options...)...,
 	)
+}
 
+type detectDelegate struct {
+	delegate libcnb.Detector
+}
+
+func (d detectDelegate) Detect(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+	result, err := d.delegate.Detect(context)
+	if err != nil {
+		err = bard.IdentifiableError{
+			Name:        context.Buildpack.Info.Name,
+			Description: context.Buildpack.Info.Version,
+			Err:         err,
+		}
+	}
+
+	return result, err
 }

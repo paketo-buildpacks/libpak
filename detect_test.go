@@ -27,6 +27,7 @@ import (
 	"github.com/buildpacks/libcnb/mocks"
 	. "github.com/onsi/gomega"
 	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )
@@ -39,6 +40,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		buildpackPath   string
 		buildPlanPath   string
 		commandPath     string
+		detector        *mocks.Detector
 		exitHandler     *mocks.ExitHandler
 		platformPath    string
 		tomlWriter      *mocks.TOMLWriter
@@ -64,6 +66,8 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		commandPath = filepath.Join(buildpackPath, "bin", "detect")
 
+		detector = &mocks.Detector{}
+
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 		exitHandler.On("Fail")
@@ -71,27 +75,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		platformPath, err = ioutil.TempDir("", "detect-platform-path")
 		Expect(err).NotTo(HaveOccurred())
-
-		Expect(os.MkdirAll(filepath.Join(platformPath, "bindings", "alpha", "metadata"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(
-			filepath.Join(platformPath, "bindings", "alpha", "metadata", "test-metadata-key"),
-			[]byte("test-metadata-value"),
-			0644,
-		)).To(Succeed())
-		Expect(os.MkdirAll(filepath.Join(platformPath, "bindings", "alpha", "secret"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(
-			filepath.Join(platformPath, "bindings", "alpha", "secret", "test-secret-key"),
-			[]byte("test-secret-value"),
-			0644,
-		)).To(Succeed())
-		Expect(os.Setenv("CNB_BINDINGS", `
-[bravo]
-[bravo.metadata]
-test-metadata-key = "test-metadata-value"
-
-[bravo.secret]
-test-secret-key = "test-secret-value"
-`))
 
 		tomlWriter = &mocks.TOMLWriter{}
 		tomlWriter.On("Write", mock.Anything, mock.Anything).Return(nil)
@@ -114,50 +97,22 @@ test-secret-key = "test-secret-value"
 		Expect(os.RemoveAll(platformPath)).To(Succeed())
 	})
 
-	it("adds contents of CNB_BINDINGS to platform", func() {
-		var ctx libcnb.DetectContext
-		libpak.Detect(
-			func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
-				ctx = context
-				return libcnb.DetectResult{}, nil
-			},
+	it("handles error from Detector", func() {
+		Expect(ioutil.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`[buildpack]
+name    = "test-name"
+version = "test-version"`),
+			0644)).To(Succeed())
+		detector.On("Detect", mock.Anything).Return(libcnb.DetectResult{}, fmt.Errorf("test-error"))
+
+		libpak.Detect(detector,
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),
 			libcnb.WithExitHandler(exitHandler),
 		)
 
-		Expect(ctx.Platform).To(Equal(libcnb.Platform{
-			Bindings: libcnb.Bindings{
-				"alpha": libcnb.Binding{
-					Metadata: map[string]string{
-						"test-metadata-key": "test-metadata-value",
-					},
-					Secret: map[string]string{
-						"test-secret-key": "test-secret-value",
-					},
-				},
-				"bravo": libcnb.Binding{
-					Metadata: map[string]string{
-						"test-metadata-key": "test-metadata-value",
-					},
-					Secret: map[string]string{
-						"test-secret-key": "test-secret-value",
-					},
-				},
-			},
-			Environment: map[string]string{},
-			Path:        platformPath,
+		Expect(exitHandler.Calls[0].Arguments.Get(0)).To(MatchError(bard.IdentifiableError{
+			Name:        "test-name",
+			Description: "test-version",
+			Err:         fmt.Errorf("test-error"),
 		}))
-	})
-
-	it("handles error from DetectFunc", func() {
-		libcnb.Detect(
-			func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
-				return libcnb.DetectResult{}, fmt.Errorf("test-error")
-			},
-			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),
-			libcnb.WithExitHandler(exitHandler),
-		)
-
-		Expect(exitHandler.Calls[0].Arguments.Get(0)).To(MatchError("test-error"))
 	})
 }
