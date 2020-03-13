@@ -93,13 +93,13 @@ func (t TTYExecutor) Execute(execution Execution) error {
 
 	f, err := pty.Start(cmd)
 	if err != nil {
-		return fmt.Errorf("unable to start PTY: %w", err)
+		return fmt.Errorf("unable to start PTY\n%w", err)
 	}
 	defer f.Close()
 
 	if _, err := io.Copy(execution.Stdout, f); err != nil {
 		if !t.isEIO(err) {
-			return fmt.Errorf("unable to write output: %w", err)
+			return fmt.Errorf("unable to write output\n%w", err)
 		}
 	}
 

@@ -28,12 +28,12 @@ type EntryWriter struct{}
 func (e EntryWriter) Write(source string, destination string) error {
 	p := filepath.Dir(destination)
 	if err := os.MkdirAll(p, 0755); err != nil {
-		return fmt.Errorf("unable to create destination directory %s: %w", p, err)
+		return fmt.Errorf("unable to create destination directory %s\n%w", p, err)
 	}
 
 	var perm os.FileMode
 	if x, err := e.isExecutable(source); err != nil {
-		return fmt.Errorf("unable to determine if %s is executable: %w", source, err)
+		return fmt.Errorf("unable to determine if %s is executable\n%w", source, err)
 	} else if x {
 		perm = 0755
 	} else {
@@ -42,18 +42,18 @@ func (e EntryWriter) Write(source string, destination string) error {
 
 	in, err := os.OpenFile(source, os.O_RDONLY, 0)
 	if err != nil {
-		return fmt.Errorf("unable to open source file %s: %w", source, err)
+		return fmt.Errorf("unable to open source file %s\n%w", source, err)
 	}
 	defer in.Close()
 
 	out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
 	if err != nil {
-		return fmt.Errorf("unable to open destination file %s: %w", destination, err)
+		return fmt.Errorf("unable to open destination file %s\n%w", destination, err)
 	}
 	defer out.Close()
 
 	if _, err := io.Copy(out, in); err != nil {
-		return fmt.Errorf("unable to copy %s to %s: %w", source, destination, err)
+		return fmt.Errorf("unable to copy %s to %s\n%w", source, destination, err)
 	}
 
 	return nil
@@ -62,7 +62,7 @@ func (e EntryWriter) Write(source string, destination string) error {
 func (EntryWriter) isExecutable(path string) (bool, error) {
 	s, err := os.Stat(path)
 	if err != nil {
-		return false, fmt.Errorf("unable to stat file %s: %w", path, err)
+		return false, fmt.Errorf("unable to stat file %s\n%w", path, err)
 	}
 
 	return s.Mode()&0100 == 0100, nil

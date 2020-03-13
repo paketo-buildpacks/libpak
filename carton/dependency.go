@@ -57,14 +57,14 @@ func (d Dependency) Build(options ...Option) {
 
 	c, err := ioutil.ReadFile(d.BuildpackPath)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to read %s: %w", d.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", d.BuildpackPath, err))
 		return
 	}
 
 	s := fmt.Sprintf(DependencyPattern, d.ID, d.VersionPattern)
 	r, err := regexp.Compile(s)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s: %w", s, err))
+		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (d Dependency) Build(options ...Option) {
 	c = r.ReplaceAll(c, []byte(s))
 
 	if err := ioutil.WriteFile(d.BuildpackPath, c, 0644); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to write %s: %w", d.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", d.BuildpackPath, err))
 		return
 	}
 }

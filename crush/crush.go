@@ -41,7 +41,7 @@ func CreateTar(destination io.Writer, source string) error {
 
 		rel, err := filepath.Rel(source, path)
 		if err != nil {
-			return fmt.Errorf("uanble to calculate relative path %s -> %s: %w", source, path, err)
+			return fmt.Errorf("uanble to calculate relative path %s -> %s\n%w", source, path, err)
 		}
 		if info.IsDir() {
 			rel = fmt.Sprintf("%s/", rel)
@@ -53,12 +53,12 @@ func CreateTar(destination io.Writer, source string) error {
 
 		h, err := tar.FileInfoHeader(info, info.Name())
 		if err != nil {
-			return fmt.Errorf("unable to create TAR header from %+v: %w", info, err)
+			return fmt.Errorf("unable to create TAR header from %+v\n%w", info, err)
 		}
 		h.Name = rel
 
 		if err := t.WriteHeader(h); err != nil {
-			return fmt.Errorf("unable to write header %+v: %w", h, err)
+			return fmt.Errorf("unable to write header %+v\n%w", h, err)
 		}
 
 		if info.IsDir() {
@@ -67,17 +67,17 @@ func CreateTar(destination io.Writer, source string) error {
 
 		in, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("unable to open %s: %w", path, err)
+			return fmt.Errorf("unable to open %s\n%w", path, err)
 		}
 		defer in.Close()
 
 		if _, err := io.Copy(t, in); err != nil {
-			return fmt.Errorf("unable to copy %s to %s: %w", path, h.Name, err)
+			return fmt.Errorf("unable to copy %s to %s\n%w", path, h.Name, err)
 		}
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("unable to create tar from %s: %w", source, err)
+		return fmt.Errorf("unable to create tar from %s\n%w", source, err)
 	}
 
 	return nil
@@ -102,7 +102,7 @@ func ExtractTar(source io.Reader, destination string, stripComponents int) error
 		if err != nil && err == io.EOF {
 			break
 		} else if err != nil {
-			return fmt.Errorf("unable to read TAR file: %w", err)
+			return fmt.Errorf("unable to read TAR file\n%w", err)
 		}
 
 		target := strippedPath(f.Name, destination, stripComponents)
@@ -113,7 +113,7 @@ func ExtractTar(source io.Reader, destination string, stripComponents int) error
 		info := f.FileInfo()
 		if info.IsDir() {
 			if err := os.MkdirAll(target, 0755); err != nil {
-				return fmt.Errorf("unable to make directory %s: %w", target, err)
+				return fmt.Errorf("unable to make directory %s\n%w", target, err)
 			}
 		} else if info.Mode()&os.ModeSymlink != 0 {
 			if err := writeSymlink(f.Linkname, target); err != nil {
@@ -134,7 +134,7 @@ func ExtractTar(source io.Reader, destination string, stripComponents int) error
 func ExtractTarGz(source io.Reader, destination string, stripComponents int) error {
 	gz, err := gzip.NewReader(source)
 	if err != nil {
-		return fmt.Errorf("unable to create GZIP reader: %w", err)
+		return fmt.Errorf("unable to create GZIP reader\n%w", err)
 	}
 	defer gz.Close()
 
@@ -146,7 +146,7 @@ func ExtractTarGz(source io.Reader, destination string, stripComponents int) err
 func ExtractTarXz(source io.Reader, destination string, stripComponents int) error {
 	xz, err := xz.NewReader(source, 0)
 	if err != nil {
-		return fmt.Errorf("unable to create XZ reader: %w", err)
+		return fmt.Errorf("unable to create XZ reader\n%w", err)
 	}
 
 	return ExtractTar(xz, destination, stripComponents)
@@ -157,7 +157,7 @@ func ExtractTarXz(source io.Reader, destination string, stripComponents int) err
 func ExtractZip(source *os.File, destination string, stripComponents int) error {
 	stat, err := source.Stat()
 	if err != nil {
-		return fmt.Errorf("unable to stat %s: %w", source.Name(), err)
+		return fmt.Errorf("unable to stat %s\n%w", source.Name(), err)
 	}
 
 	z, err := zip.NewReader(source, stat.Size())
@@ -198,17 +198,17 @@ func strippedPath(source string, destination string, stripComponents int) string
 func writeFile(source io.Reader, path string, perm os.FileMode) error {
 	file := filepath.Dir(path)
 	if err := os.MkdirAll(file, 0755); err != nil {
-		return fmt.Errorf("unable to create directory %s: %w", file, err)
+		return fmt.Errorf("unable to create directory %s\n%w", file, err)
 	}
 
 	out, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
 	if err != nil {
-		return fmt.Errorf("unable to open file %s: %w", path, err)
+		return fmt.Errorf("unable to open file %s\n%w", path, err)
 	}
 	defer out.Close()
 
 	if _, err := io.Copy(out, source); err != nil {
-		return fmt.Errorf("unable to write data to %s: %w", path, err)
+		return fmt.Errorf("unable to write data to %s\n%w", path, err)
 	}
 
 	return nil
@@ -217,7 +217,7 @@ func writeFile(source io.Reader, path string, perm os.FileMode) error {
 func writeZipEntry(file *zip.File, path string) error {
 	in, err := file.Open()
 	if err != nil {
-		return fmt.Errorf("unable to open %s: %w", file.Name, err)
+		return fmt.Errorf("unable to open %s\n%w", file.Name, err)
 	}
 	defer in.Close()
 
@@ -227,7 +227,7 @@ func writeZipEntry(file *zip.File, path string) error {
 func writeSymlink(oldName string, newName string) error {
 	file := filepath.Dir(newName)
 	if err := os.MkdirAll(file, 0755); err != nil {
-		return fmt.Errorf("unable to create directory %s: %w", file, err)
+		return fmt.Errorf("unable to create directory %s\n%w", file, err)
 	}
 
 	if err := os.Symlink(oldName, newName); err != nil {

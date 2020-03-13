@@ -74,14 +74,14 @@ func (p Package) Build(options ...Option) {
 	buildpack := libcnb.Buildpack{}
 	file = filepath.Join(p.Source, "buildpack.toml")
 	if _, err = toml.DecodeFile(file, &buildpack); err != nil && !os.IsNotExist(err) {
-		config.exitHandler.Error(fmt.Errorf("unable to decode buildpack %s: %w", file, err))
+		config.exitHandler.Error(fmt.Errorf("unable to decode buildpack %s\n%w", file, err))
 		return
 	}
 	logger.Debug("Buildpack: %+v", buildpack)
 
 	metadata, err := libpak.NewBuildpackMetadata(buildpack.Metadata)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to decode metadata %s: %w", buildpack.Metadata, err))
+		config.exitHandler.Error(fmt.Errorf("unable to decode metadata %s\n%w", buildpack.Metadata, err))
 		return
 	}
 
@@ -98,18 +98,18 @@ func (p Package) Build(options ...Option) {
 		file = filepath.Join(p.Source, "buildpack.toml")
 		t, err := template.ParseFiles(file)
 		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to parse template %s: %w", file, err))
+			config.exitHandler.Error(fmt.Errorf("unable to parse template %s\n%w", file, err))
 			return
 		}
 
 		out, err := ioutil.TempFile("", "buildpack-*.toml")
 		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to open temporary buildpack.toml file: %w", err))
+			config.exitHandler.Error(fmt.Errorf("unable to open temporary buildpack.toml file\n%w", err))
 		}
 		defer out.Close()
 
 		if err = t.Execute(out, map[string]string{"Version": p.Version}); err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to execute template %s with version %s: %w", file, p.Version, err))
+			config.exitHandler.Error(fmt.Errorf("unable to execute template %s with version %s\n%w", file, p.Version, err))
 			return
 		}
 
@@ -120,7 +120,7 @@ func (p Package) Build(options ...Option) {
 	logger.Header("Creating package in %s", p.Destination)
 
 	if err = os.RemoveAll(p.Destination); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to remove destination path %s: %w", p.Destination, err))
+		config.exitHandler.Error(fmt.Errorf("unable to remove destination path %s\n%w", p.Destination, err))
 		return
 	}
 
@@ -134,7 +134,7 @@ func (p Package) Build(options ...Option) {
 	}
 
 	if err = config.executor.Execute(execution); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to execute pre-package script %s: %w", file, err))
+		config.exitHandler.Error(fmt.Errorf("unable to execute pre-package script %s\n%w", file, err))
 	}
 
 	if p.IncludeDependencies {
@@ -154,11 +154,11 @@ func (p Package) Build(options ...Option) {
 
 			f, err := cache.Artifact(dep)
 			if err != nil {
-				config.exitHandler.Error(fmt.Errorf("unable to download %s: %w", dep.URI, err))
+				config.exitHandler.Error(fmt.Errorf("unable to download %s\n%w", dep.URI, err))
 				return
 			}
 			if err = f.Close(); err != nil {
-				config.exitHandler.Error(fmt.Errorf("unable to close %s: %w", f.Name(), err))
+				config.exitHandler.Error(fmt.Errorf("unable to close %s\n%w", f.Name(), err))
 				return
 			}
 
@@ -176,7 +176,7 @@ func (p Package) Build(options ...Option) {
 		logger.Body("Adding %s", d)
 		file = filepath.Join(p.Destination, d)
 		if err = config.entryWriter.Write(entries[d], file); err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to write file %s to %s: %w", entries[d], file, err))
+			config.exitHandler.Error(fmt.Errorf("unable to write file %s to %s\n%w", entries[d], file, err))
 			return
 		}
 	}

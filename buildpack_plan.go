@@ -44,7 +44,7 @@ func (p *PlanEntryResolver) ResolveWithMerge(name string, f MergeFunc) (libcnb.B
 	for _, e := range p.Plan.Entries {
 		if e.Name == name {
 			if m, err = f(m, e); err != nil {
-				return libcnb.BuildpackPlanEntry{}, false, fmt.Errorf("error merging %+v and %+v: %w", m, e, err)
+				return libcnb.BuildpackPlanEntry{}, false, fmt.Errorf("error merging %+v and %+v\n%w", m, e, err)
 			}
 		}
 	}
@@ -68,7 +68,7 @@ func ShallowMerge(a, b libcnb.BuildpackPlanEntry) (libcnb.BuildpackPlanEntry, er
 	}
 
 	if err := mergo.Merge(&b, a); err != nil {
-		return libcnb.BuildpackPlanEntry{}, fmt.Errorf("unable to merge %+v and %+v: %w", a, b, err)
+		return libcnb.BuildpackPlanEntry{}, fmt.Errorf("unable to merge %+v and %+v\n%w", a, b, err)
 	}
 
 	b.Version = strings.Join(v, ",")

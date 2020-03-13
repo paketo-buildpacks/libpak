@@ -36,7 +36,7 @@ func main() {
 	flagSet.StringVar(&p.Version, "version", "", "version to substitute into buildpack.toml")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
-		log.Fatal(fmt.Errorf("unable to parse flags: %w", err))
+		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
 	if p.Destination == "" {
@@ -49,7 +49,7 @@ func main() {
 func defaultSource() string {
 	s, err := os.Getwd()
 	if err != nil {
-		log.Fatal(fmt.Errorf("unable to get working directory: %w", err))
+		log.Fatal(fmt.Errorf("unable to get working directory\n%w", err))
 	}
 
 	return s

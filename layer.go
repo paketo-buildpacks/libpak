@@ -60,7 +60,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 
 	actual := reflect.New(reflect.TypeOf(l.ExpectedMetadata)).Interface()
 	if err := mapstructure.Decode(layer.Metadata, &actual); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata into %s: %w", reflect.TypeOf(l.ExpectedMetadata), err)
+		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata into %s\n%w", reflect.TypeOf(l.ExpectedMetadata), err)
 	}
 
 	if reflect.DeepEqual(expected.Interface(), actual) {
@@ -71,11 +71,11 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 	l.Logger.Header("%s: %s to layer", color.BlueString(l.Name), color.YellowString("Contributing"))
 
 	if err := os.RemoveAll(layer.Path); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to remove existing layer directory %s: %w", layer.Path, err)
+		return libcnb.Layer{}, fmt.Errorf("unable to remove existing layer directory %s\n%w", layer.Path, err)
 	}
 
 	if err := os.MkdirAll(layer.Path, 0755); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to create layer directory %s: %w", layer.Path, err)
+		return libcnb.Layer{}, fmt.Errorf("unable to create layer directory %s\n%w", layer.Path, err)
 	}
 
 	layer, err := f()
@@ -84,7 +84,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 	}
 
 	if err := mapstructure.Decode(l.ExpectedMetadata, &layer.Metadata); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata into %+v: %w", l.ExpectedMetadata, err)
+		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata into %+v\n%w", l.ExpectedMetadata, err)
 	}
 
 	return layer, nil
@@ -138,7 +138,7 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 	return d.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		artifact, err := d.DependencyCache.Artifact(d.Dependency)
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s: %w", d.Dependency.ID, err)
+			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
 		}
 
 		return f(artifact)
@@ -182,7 +182,7 @@ func (h *HelperLayerContributor) Contribute(layer libcnb.Layer, f HelperLayerFun
 	return h.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		in, err := os.Open(h.Path)
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to open %s: %w", h.Path, err)
+			return libcnb.Layer{}, fmt.Errorf("unable to open %s\n%w", h.Path, err)
 		}
 
 		return f(in)

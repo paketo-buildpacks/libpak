@@ -37,7 +37,7 @@ func main() {
 	flagSet.StringVar(&d.VersionPattern, "version-pattern", "", "the version pattern of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
-		log.Fatal(fmt.Errorf("unable to parse flags: %w", err))
+		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
 	if d.BuildpackPath == "" {

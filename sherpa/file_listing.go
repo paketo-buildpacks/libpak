@@ -82,13 +82,13 @@ func NewFileListing(root string) ([]FileEntry, error) {
 
 			in, err := os.Open(path)
 			if err != nil {
-				ch <- result{err: fmt.Errorf("unable to open file %s: %w", path, err)}
+				ch <- result{err: fmt.Errorf("unable to open file %s\n%w", path, err)}
 				return
 			}
 			defer in.Close()
 
 			if _, err := io.Copy(s, in); err != nil {
-				ch <- result{err: fmt.Errorf("unable to hash file %s: %w", path, err)}
+				ch <- result{err: fmt.Errorf("unable to hash file %s\n%w", path, err)}
 				return
 			}
 
@@ -98,7 +98,7 @@ func NewFileListing(root string) ([]FileEntry, error) {
 
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("error walking path %s: %w", root, err)
+		return nil, fmt.Errorf("error walking path %s\n%w", root, err)
 	}
 
 	go func() {

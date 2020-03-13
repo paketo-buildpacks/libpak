@@ -81,7 +81,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 		d.Logger.Body("%s from %s", color.YellowString("Downloading"), dependency.URI)
 		artifact = filepath.Join(d.DownloadPath, filepath.Base(dependency.URI))
 		if err := d.download(dependency.URI, artifact); err != nil {
-			return nil, fmt.Errorf("unable to download %s: %w", dependency.URI, err)
+			return nil, fmt.Errorf("unable to download %s\n%w", dependency.URI, err)
 		}
 
 		return os.Open(artifact)
@@ -89,7 +89,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
 	if _, err := toml.DecodeFile(file, &actual); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("unable to decode download metadata %s: %w", file, err)
+		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
 	}
 
 	if reflect.DeepEqual(dependency, actual) {
@@ -99,7 +99,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
 	if _, err := toml.DecodeFile(file, &actual); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("unable to decode download metadata %s: %w", file, err)
+		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
 	}
 
 	if reflect.DeepEqual(dependency, actual) {
@@ -110,7 +110,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 	d.Logger.Body("%s from %s", color.YellowString("Downloading"), dependency.URI)
 	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(dependency.URI))
 	if err := d.download(dependency.URI, artifact); err != nil {
-		return nil, fmt.Errorf("unable to download %s: %w", dependency.URI, err)
+		return nil, fmt.Errorf("unable to download %s\n%w", dependency.URI, err)
 	}
 
 	d.Logger.Body("Verifying checksum")
@@ -120,17 +120,17 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
 	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
-		return nil, fmt.Errorf("unable to make directory %s: %w", filepath.Dir(file), err)
+		return nil, fmt.Errorf("unable to make directory %s\n%w", filepath.Dir(file), err)
 	}
 
 	out, err := os.OpenFile(file, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0755)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open file %s: %w", file, err)
+		return nil, fmt.Errorf("unable to open file %s\n%w", file, err)
 	}
 	defer out.Close()
 
 	if err := toml.NewEncoder(out).Encode(dependency); err != nil {
-		return nil, fmt.Errorf("unable to write metadata %s: %w", file, err)
+		return nil, fmt.Errorf("unable to write metadata %s\n%w", file, err)
 	}
 
 	return os.Open(artifact)
@@ -139,7 +139,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 func (d DependencyCache) download(uri string, destination string) error {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		return fmt.Errorf("unable to create new GET request for %s: %w", uri, err)
+		return fmt.Errorf("unable to create new GET request for %s\n%w", uri, err)
 	}
 
 	if d.UserAgent != "" {
@@ -152,7 +152,7 @@ func (d DependencyCache) download(uri string, destination string) error {
 	client := http.Client{Transport: t}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("unable to request %s: %w", uri, err)
+		return fmt.Errorf("unable to request %s\n%w", uri, err)
 	}
 	defer resp.Body.Close()
 
@@ -161,17 +161,17 @@ func (d DependencyCache) download(uri string, destination string) error {
 	}
 
 	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
-		return fmt.Errorf("unable to make directory %s: %w", filepath.Dir(destination), err)
+		return fmt.Errorf("unable to make directory %s\n%w", filepath.Dir(destination), err)
 	}
 
 	out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("unable to open file %s: %w", destination, err)
+		return fmt.Errorf("unable to open file %s\n%w", destination, err)
 	}
 	defer out.Close()
 
 	if _, err := io.Copy(out, resp.Body); err != nil {
-		return fmt.Errorf("unable to copy from %s to %s: %w", uri, destination, err)
+		return fmt.Errorf("unable to copy from %s to %s\n%w", uri, destination, err)
 	}
 
 	return nil
@@ -182,12 +182,12 @@ func (DependencyCache) verify(path string, expected string) error {
 
 	in, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("unable to verify %s: %w", path, err)
+		return fmt.Errorf("unable to verify %s\n%w", path, err)
 	}
 	defer in.Close()
 
 	if _, err := io.Copy(s, in); err != nil {
-		return fmt.Errorf("unable to read %s: %w", path, err)
+		return fmt.Errorf("unable to read %s\n%w", path, err)
 	}
 
 	actual := hex.EncodeToString(s.Sum(nil))

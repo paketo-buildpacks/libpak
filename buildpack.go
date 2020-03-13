@@ -164,7 +164,7 @@ type DependencyResolver struct {
 func NewDependencyResolver(context libcnb.BuildContext) (DependencyResolver, error) {
 	md, err := NewBuildpackMetadata(context.Buildpack.Metadata)
 	if err != nil {
-		return DependencyResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata: %w", err)
+		return DependencyResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
 	}
 
 	return DependencyResolver{Dependencies: md.Dependencies, StackID: context.StackID}, nil
@@ -190,14 +190,14 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 
 	vc, err := semver.NewConstraint(version)
 	if err != nil {
-		return BuildpackDependency{}, fmt.Errorf("invalid constraint %s: %w", vc, err)
+		return BuildpackDependency{}, fmt.Errorf("invalid constraint %s\n%w", vc, err)
 	}
 
 	var candidates []BuildpackDependency
 	for _, c := range d.Dependencies {
 		v, err := semver.NewVersion(c.Version)
 		if err != nil {
-			return BuildpackDependency{}, fmt.Errorf("unable to parse version %s: %w", c.Version, err)
+			return BuildpackDependency{}, fmt.Errorf("unable to parse version %s\n%w", c.Version, err)
 		}
 
 		if c.ID == id && vc.Check(v) && d.contains(c.Stacks, d.StackID) {
