@@ -180,6 +180,13 @@ func (n NoValidDependenciesError) Error() string {
 	return n.Message
 }
 
+
+// IsNoValidDependencies indicates whether an error is a NoValidDependenciesError.
+func IsNoValidDependencies(err error) bool {
+	_, ok := err.(NoValidDependenciesError)
+	return ok
+}
+
 // Resolve returns the latest version of a dependency within the collection of Dependencies.  The candidate set is first
 // filtered by the constraints, then the remaining candidates are sorted for the latest result by semver semantics.
 // Version can contain wildcards and defaults to "*" if not specified.

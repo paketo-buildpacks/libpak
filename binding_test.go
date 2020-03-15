@@ -37,82 +37,88 @@ func testBinding(t *testing.T, context spec.G, it spec.S) {
 		resolver.Bindings = libcnb.Bindings{}
 	})
 
-	it("returns error if binding does not exist", func() {
-		_, ok, err := resolver.Resolve(libpak.BindingConstraint{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeFalse())
+	context("Resolve", func() {
+
+		it("returns error if binding does not exist", func() {
+			_, err := resolver.Resolve("", "")
+			Expect(err).To(MatchError(libpak.NoValidBindingError{Message: "no valid binding for , , and [] in map[]"}))
+		})
+
+		it("returns error if multiple bindings exist", func() {
+			resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
+
+			_, err := resolver.Resolve("", "")
+			Expect(err).To(MatchError(libpak.NoValidBindingError{Message: fmt.Sprintf("no valid binding for , , and [] in %s", resolver.Bindings)}))
+		})
+
+		it("filters on kind", func() {
+			resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingKind] = "test-kind"
+			resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
+
+			expected := libcnb.NewBinding()
+			expected.Metadata[libcnb.BindingKind] = "test-kind"
+			expected.Metadata["test-key"] = "test-value"
+
+			b, err := resolver.Resolve("test-kind", "")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(b).To(Equal(expected))
+
+		})
+
+		it("filters on provider", func() {
+			resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingProvider] = "test-provider"
+			resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
+
+			expected := libcnb.NewBinding()
+			expected.Metadata[libcnb.BindingProvider] = "test-provider"
+			expected.Metadata["test-key"] = "test-value"
+
+			b, err := resolver.Resolve("", "test-provider")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(b).To(Equal(expected))
+
+		})
+
+		it("filters on all tags", func() {
+			resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingTags] = "test-tag-1\ntest-tag-2\ntest-tag-3"
+			resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
+
+			expected := libcnb.NewBinding()
+			expected.Metadata[libcnb.BindingTags] = "test-tag-1\ntest-tag-2\ntest-tag-3"
+			expected.Metadata["test-key"] = "test-value"
+
+			b, err := resolver.Resolve("", "", "test-tag-1", "test-tag-2")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(b).To(Equal(expected))
+		})
 	})
 
-	it("returns error if multiple bindings exist", func() {
-		resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
+	context("Any", func() {
 
-		_, _, err := resolver.Resolve(libpak.BindingConstraint{})
-		Expect(err).To(MatchError(fmt.Errorf("multiple bindings found for %+v in %+v",
-			libpak.BindingConstraint{}, resolver.Bindings)))
+		it("indicates that binding exists", func() {
+			resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
+			resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingKind] = "test-kind"
+			resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
+
+			Expect(resolver.Any("test-kind", "")).To(BeTrue())
+		})
+
+		it("indicates that binding does not exist", func() {
+			Expect(resolver.Any("test-kind", "")).To(BeFalse())
+		})
 	})
 
-	it("filters on name", func() {
-		resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
-
-		expected := libcnb.NewBinding()
-		expected.Metadata["test-key"] = "test-value"
-
-		b, ok, err := resolver.Resolve(libpak.BindingConstraint{Name: "test-binding-2"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
-		Expect(b).To(Equal(expected))
-	})
-
-	it("filters on kind", func() {
-		resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingKind] = "test-kind"
-		resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
-
-		expected := libcnb.NewBinding()
-		expected.Metadata[libcnb.BindingKind] = "test-kind"
-		expected.Metadata["test-key"] = "test-value"
-
-		b, ok, err := resolver.Resolve(libpak.BindingConstraint{Kind: "test-kind"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
-		Expect(b).To(Equal(expected))
-
-	})
-
-	it("filters on provider", func() {
-		resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingProvider] = "test-provider"
-		resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
-
-		expected := libcnb.NewBinding()
-		expected.Metadata[libcnb.BindingProvider] = "test-provider"
-		expected.Metadata["test-key"] = "test-value"
-
-		b, ok, err := resolver.Resolve(libpak.BindingConstraint{Provider: "test-provider"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
-		Expect(b).To(Equal(expected))
-
-	})
-
-	it("filters on all tags", func() {
-		resolver.Bindings["test-binding-1"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"] = libcnb.NewBinding()
-		resolver.Bindings["test-binding-2"].Metadata[libcnb.BindingTags] = "test-tag-1\ntest-tag-2\ntest-tag-3"
-		resolver.Bindings["test-binding-2"].Metadata["test-key"] = "test-value"
-
-		expected := libcnb.NewBinding()
-		expected.Metadata[libcnb.BindingTags] = "test-tag-1\ntest-tag-2\ntest-tag-3"
-		expected.Metadata["test-key"] = "test-value"
-
-		b, ok, err := resolver.Resolve(libpak.BindingConstraint{Tags: []string{"test-tag-1", "test-tag-2"}})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
-		Expect(b).To(Equal(expected))
+	it("indicates whether error is NoValidBindingError", func() {
+		Expect(libpak.IsNoValidBinding(nil)).To(BeFalse())
+		Expect(libpak.IsNoValidBinding(fmt.Errorf("test-error"))).To(BeFalse())
+		Expect(libpak.IsNoValidBinding(libpak.NoValidBindingError{})).To(BeTrue())
 	})
 }

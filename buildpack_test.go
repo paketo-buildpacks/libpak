@@ -17,6 +17,7 @@
 package libpak_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -365,6 +366,11 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				Expect(resolver.Any("test-id", "")).To(BeFalse())
 			})
 		})
+	})
 
+	it("indicates whether error is NoValidDependenciesError", func() {
+		Expect(libpak.IsNoValidDependencies(nil)).To(BeFalse())
+		Expect(libpak.IsNoValidDependencies(fmt.Errorf("test-error"))).To(BeFalse())
+		Expect(libpak.IsNoValidDependencies(libpak.NoValidDependenciesError{})).To(BeTrue())
 	})
 }

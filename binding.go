@@ -30,39 +30,46 @@ type BindingResolver struct {
 	Bindings libcnb.Bindings
 }
 
-// BindingConstraint is the collection of constraints to use during resolution.
-type BindingConstraint struct {
+// NoValidBindingError is returned when the resolver cannot find any valid binding given the constraints.
+type NoValidBindingError struct {
+	// Message is the error message
+	Message string
+}
 
-	// Name is the name of the binding.
-	Name string
+func (n NoValidBindingError) Error() string {
+	return n.Message
+}
 
-	// Kind is the kind of the binding.
-	Kind string
-
-	// Provider is the provider of the binding.
-	Provider string
-
-	// Tags are the tags of the binding.  The contents of Tags must be a strict subset of the binding's tags.
-	Tags []string
+// IsNoValidBinding indicates whether an error is a NoValidBindingError.
+func IsNoValidBinding(err error) bool {
+	_, ok := err.(NoValidBindingError)
+	return ok
 }
 
 // Resolve returns the matching binding within the collection of Bindings.  The candidate set is filtered by the
 // constraints.
-func (b *BindingResolver) Resolve(constraint BindingConstraint) (libcnb.Binding, bool, error) {
-	var m []libcnb.Binding
-	for name, binding := range b.Bindings {
-		if b.matches(name, binding, constraint) {
+func (b *BindingResolver) Resolve(kind string, provider string, tags ...string) (libcnb.Binding, error) {
+	m := make([]libcnb.Binding, 0)
+	for _, binding := range b.Bindings {
+		if b.matches(binding, kind, provider, tags) {
 			m = append(m, binding)
 		}
 	}
 
-	if len(m) < 1 {
-		return libcnb.Binding{}, false, nil
-	} else if len(m) > 1 {
-		return libcnb.Binding{}, false, fmt.Errorf("multiple bindings found for %+v in %+v", constraint, b.Bindings)
+	if len(m) != 1 {
+		return libcnb.Binding{}, NoValidBindingError{
+			Message: fmt.Sprintf("no valid binding for %s, %s, and %s in %s",
+				kind, provider, tags, b.Bindings),
+		}
 	}
 
-	return m[0], true, nil
+	return m[0], nil
+}
+
+// Any indicates whether the collection of Bindings has any binding that satisfies the constraints.
+func (b *BindingResolver) Any(kind string, provider string, tags ...string) bool {
+	_, err := b.Resolve(kind, provider, tags...)
+	return err == nil
 }
 
 func (BindingResolver) contains(candidates []string, value string) bool {
@@ -75,22 +82,18 @@ func (BindingResolver) contains(candidates []string, value string) bool {
 	return false
 }
 
-func (b BindingResolver) matches(name string, binding libcnb.Binding, constraint BindingConstraint) bool {
-	if constraint.Name != "" && constraint.Name != name {
+func (b BindingResolver) matches(binding libcnb.Binding, kind string, provider string, tags []string) bool {
+	if kind != "" && kind != binding.Metadata[libcnb.BindingKind] {
 		return false
 	}
 
-	if constraint.Kind != "" && constraint.Kind != binding.Metadata[libcnb.BindingKind] {
+	if provider != "" && provider != binding.Metadata[libcnb.BindingProvider] {
 		return false
 	}
 
-	if constraint.Provider != "" && constraint.Provider != binding.Metadata[libcnb.BindingProvider] {
-		return false
-	}
-
-	tags := strings.Split(binding.Metadata[libcnb.BindingTags], "\n")
-	for _, t := range constraint.Tags {
-		if !b.contains(tags, t) {
+	candidates := strings.Split(binding.Metadata[libcnb.BindingTags], "\n")
+	for _, t := range tags {
+		if !b.contains(candidates, t) {
 			return false
 		}
 	}
