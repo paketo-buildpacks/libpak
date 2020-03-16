@@ -17,7 +17,6 @@
 package libpak_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/buildpacks/libcnb"
@@ -179,24 +178,26 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				return b, nil
 			}
 
-			it("returns error with no matches", func() {
-				_, err := resolver.ResolveWithMerge("test-name-0", f)
-				Expect(err).To(MatchError(libpak.NoValidEntryError{Message: fmt.Sprintf("no valid entries for test-name-0 in %s", resolver.Plan.Entries)}))
+			it("returns false with no matches", func() {
+				_, ok, err := resolver.ResolveWithMerge("test-name-0", f)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ok).To(BeFalse())
 			})
 
 			it("returns merged with single match", func() {
-				e, err := resolver.ResolveWithMerge("test-name-1", f)
+				e, ok, err := resolver.ResolveWithMerge("test-name-1", f)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(ok).To(BeTrue())
 				Expect(e).To(Equal(libcnb.BuildpackPlanEntry{
 					Name: "test-name-1",
 				}))
 			})
 
 			it("returns merged with multiple matches", func() {
-				e, err := resolver.ResolveWithMerge("test-name-2", f)
+				e, ok, err := resolver.ResolveWithMerge("test-name-2", f)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(ok).To(BeTrue())
 				Expect(e).To(Equal(libcnb.BuildpackPlanEntry{
-
 					Name:    "test-name-2",
 					Version: "test-version-2b",
 				}))
@@ -214,8 +215,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				}
 				expected := libcnb.BuildpackPlanEntry{Name: "test-name"}
 
-				e, err := resolver.Resolve("test-name")
+				e, ok, err := resolver.Resolve("test-name")
 				Expect(err).NotTo(HaveOccurred())
+				Expect(ok).To(BeTrue())
 				Expect(e).To(Equal(expected))
 			})
 
@@ -229,8 +231,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 					}
 					expected := libcnb.BuildpackPlanEntry{Name: "test-name"}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 
@@ -243,8 +246,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 					}
 					expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 
@@ -257,8 +261,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 					}
 					expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 
@@ -271,8 +276,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 					}
 					expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-1,test-version-2"}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 			})
@@ -293,8 +299,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 						Metadata: map[string]interface{}{"test-key-1": "test-value-1"},
 					}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 
@@ -313,8 +320,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 						Metadata: map[string]interface{}{"test-key-1": "test-value-1"},
 					}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 
@@ -336,8 +344,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 						Metadata: map[string]interface{}{"test-key-1": "test-value-1", "test-key-2": "test-value-2"},
 					}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 
@@ -359,36 +368,12 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 						Metadata: map[string]interface{}{"test-key-1": "test-value-2"},
 					}
 
-					e, err := resolver.Resolve("test-name")
+					e, ok, err := resolver.Resolve("test-name")
 					Expect(err).NotTo(HaveOccurred())
+					Expect(ok).To(BeTrue())
 					Expect(e).To(Equal(expected))
 				})
 			})
-		})
-
-		context("Any", func() {
-
-			it("indicates that dependency exists", func() {
-				a := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-				resolver := libpak.PlanEntryResolver{
-					Plan: libcnb.BuildpackPlan{Entries: []libcnb.BuildpackPlanEntry{a}},
-				}
-
-				Expect(resolver.Any("test-name")).To(BeTrue())
-			})
-
-			it("indicates that dependency does not exist", func() {
-				resolver := libpak.PlanEntryResolver{}
-
-				Expect(resolver.Any("test-name")).To(BeFalse())
-			})
-		})
-
-		it("indicates whether error is NoValidEntryError", func() {
-			Expect(libpak.IsNoValidEntry(nil)).To(BeFalse())
-			Expect(libpak.IsNoValidEntry(fmt.Errorf("test-error"))).To(BeFalse())
-			Expect(libpak.IsNoValidEntry(libpak.NoValidEntryError{})).To(BeTrue())
 		})
 	})
 }

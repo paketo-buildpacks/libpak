@@ -35,43 +35,25 @@ type PlanEntryResolver struct {
 // MergeFunc takes two BuildpackPlanEntry's and returns a merged entry.
 type MergeFunc func(a, b libcnb.BuildpackPlanEntry) (libcnb.BuildpackPlanEntry, error)
 
-// NoValidEntryError is returned when the resolver cannot find any valid entry.
-type NoValidEntryError struct {
-	// Message is the error message
-	Message string
-}
-
-func (n NoValidEntryError) Error() string {
-	return n.Message
-}
-
-// IsNoValidEntry indicates whether an error is a NoValidEntryError.
-func IsNoValidEntry(err error) bool {
-	_, ok := err.(NoValidEntryError)
-	return ok
-}
-
 // ResolveWithMerge returns a single BuildpackPlanEntry that is a merged version of all entries that have a given name.
 // A merge function is used to describe how two entries are merged together.
-func (p *PlanEntryResolver) ResolveWithMerge(name string, f MergeFunc) (libcnb.BuildpackPlanEntry, error) {
+func (p *PlanEntryResolver) ResolveWithMerge(name string, f MergeFunc) (libcnb.BuildpackPlanEntry, bool, error) {
 	m := libcnb.BuildpackPlanEntry{}
 
 	var err error
 	for _, e := range p.Plan.Entries {
 		if e.Name == name {
 			if m, err = f(m, e); err != nil {
-				return libcnb.BuildpackPlanEntry{}, fmt.Errorf("error merging %+v and %+v\n%w", m, e, err)
+				return libcnb.BuildpackPlanEntry{}, false, fmt.Errorf("error merging %+v and %+v\n%w", m, e, err)
 			}
 		}
 	}
 
 	if reflect.DeepEqual(m, libcnb.BuildpackPlanEntry{}) {
-		return libcnb.BuildpackPlanEntry{}, NoValidEntryError{
-			Message: fmt.Sprintf("no valid entries for %s in %s", name, p.Plan.Entries),
-		}
+		return libcnb.BuildpackPlanEntry{}, false, nil
 	}
 
-	return m, nil
+	return m, true, nil
 }
 
 // ShallowMerge merges two BuildpackPlanEntry's together.  Declared versions are combined with a comma delimiter and
@@ -94,12 +76,6 @@ func ShallowMerge(a, b libcnb.BuildpackPlanEntry) (libcnb.BuildpackPlanEntry, er
 }
 
 // Resolve calls ResolveWithMerge function passing in the ShallowMerge function as the merge strategy.
-func (p *PlanEntryResolver) Resolve(name string) (libcnb.BuildpackPlanEntry, error) {
+func (p *PlanEntryResolver) Resolve(name string) (libcnb.BuildpackPlanEntry, bool, error) {
 	return p.ResolveWithMerge(name, ShallowMerge)
-}
-
-// Any indicates whether the collection of entries has any entry with the given name.
-func (p *PlanEntryResolver) Any(name string) bool {
-	_, err := p.Resolve(name)
-	return err == nil
 }
