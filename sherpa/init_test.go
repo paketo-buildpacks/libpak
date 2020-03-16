@@ -28,6 +28,7 @@ func TestUnit(t *testing.T) {
 	suite("CopyFile", testCopyFile)
 	suite("FileListing", testFileListing)
 	suite("ResolveVersion", testResolveVersion)
+	suite("NodeJS", testNodeJS)
 	suite("Sherpa", testSherpa)
 	suite.Run(t)
 }

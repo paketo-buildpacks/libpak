@@ -140,6 +140,7 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
 		}
+		defer artifact.Close()
 
 		return f(artifact)
 	})
