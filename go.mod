@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/semver/v3 v3.0.3
-	github.com/buildpacks/libcnb v1.4.0
+	github.com/buildpacks/libcnb v1.4.1
 	github.com/creack/pty v1.1.9
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.8
@@ -16,4 +16,5 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
+	golang.org/x/sys v0.0.0-20200316202146-9a0dfc3c5568 // indirect
 )
