@@ -18,7 +18,6 @@ package libpak
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/buildpacks/libcnb"
 )
@@ -61,15 +60,15 @@ func (BindingResolver) contains(candidates []string, value string) bool {
 }
 
 func (b BindingResolver) matches(binding libcnb.Binding, kind string, provider string, tags []string) bool {
-	if kind != "" && kind != binding.Metadata[libcnb.BindingKind] {
+	if kind != "" && kind != binding.Kind() {
 		return false
 	}
 
-	if provider != "" && provider != binding.Metadata[libcnb.BindingProvider] {
+	if provider != "" && provider != binding.Provider() {
 		return false
 	}
 
-	candidates := strings.Split(binding.Metadata[libcnb.BindingTags], "\n")
+	candidates := binding.Tags()
 	for _, t := range tags {
 		if !b.contains(candidates, t) {
 			return false
