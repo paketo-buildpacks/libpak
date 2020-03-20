@@ -10,7 +10,7 @@ require (
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.8
 	github.com/mattn/go-colorable v0.1.6 // indirect
-	github.com/mitchellh/mapstructure v1.2.1
+	github.com/mitchellh/mapstructure v1.2.2
 	github.com/onsi/gomega v1.9.0
 	github.com/sclevine/spec v1.4.0
 	github.com/spf13/pflag v1.0.5
