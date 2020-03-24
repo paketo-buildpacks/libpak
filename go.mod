@@ -8,7 +8,7 @@ require (
 	github.com/buildpacks/libcnb v1.5.0
 	github.com/creack/pty v1.1.9
 	github.com/heroku/color v0.0.6
-	github.com/imdario/mergo v0.3.8
+	github.com/imdario/mergo v0.3.9
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mitchellh/mapstructure v1.2.2
 	github.com/onsi/gomega v1.9.0
@@ -16,5 +16,5 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d // indirect
+	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
 )
