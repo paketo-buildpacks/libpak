@@ -27,7 +27,6 @@ func TestUnit(t *testing.T) {
 	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
 	suite("CopyFile", testCopyFile)
 	suite("FileListing", testFileListing)
-	suite("ResolveVersion", testResolveVersion)
 	suite("NodeJS", testNodeJS)
 	suite("Sherpa", testSherpa)
 	suite.Run(t)
