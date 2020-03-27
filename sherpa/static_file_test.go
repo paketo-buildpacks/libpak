@@ -19,16 +19,25 @@ package sherpa_test
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
+	"github.com/paketo-buildpacks/libpak/sherpa"
 	"github.com/sclevine/spec"
-	"github.com/sclevine/spec/report"
+
+	_ "github.com/paketo-buildpacks/libpak/sherpa/testdata/statik"
 )
 
-func TestUnit(t *testing.T) {
-	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
-	suite("CopyFile", testCopyFile)
-	suite("FileListing", testFileListing)
-	suite("NodeJS", testNodeJS)
-	suite("Sherpa", testSherpa)
-	suite("StaticFile", testStaticFile)
-	suite.Run(t)
+//go:generate statik -src testdata -dest testdata -include *.txt
+
+func testStaticFile(t *testing.T, context spec.G, it spec.S) {
+	var (
+		Expect = NewWithT(t).Expect
+	)
+
+	it("reads static file", func() {
+		Expect(sherpa.StaticFile("/test-file.txt")).To(Equal("fixture-marker-{{.value}}\n"))
+	})
+
+	it("reads template file", func() {
+		Expect(sherpa.TemplateFile("/test-file.txt", map[string]string{"value": "alpha"})).To(Equal("fixture-marker-alpha\n"))
+	})
 }
