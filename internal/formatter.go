@@ -32,7 +32,7 @@ func (l LaunchFormatter) String() string {
 	var s []string
 
 	if len(l.Slices) > 0 {
-		s = append(s, fmt.Sprintf("%s", SlicesFormatter(l.Slices)))
+		s = append(s, fmt.Sprint(SlicesFormatter(l.Slices)))
 	}
 
 	if len(l.Processes) > 0 {

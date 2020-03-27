@@ -64,10 +64,10 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 
 	switch v := value.(type) {
 	case libcnb.Launch:
-		t.logger.Header("%s", LaunchFormatter(v))
+		t.logger.Header(LaunchFormatter(v))
 	case libcnb.Store:
 		if len(v.Metadata) > 0 {
-			t.logger.Header("%s", StoreFormatter(v))
+			t.logger.Header(StoreFormatter(v))
 		}
 	}
 

@@ -51,9 +51,9 @@ func (d Dependency) Build(options ...Option) {
 
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(d.ID, d.VersionPattern))
-	logger.Header("Version: %s", d.Version)
-	logger.Header("URI:     %s", d.URI)
-	logger.Header("SHA256:  %s", d.SHA256)
+	logger.Headerf("Version: %s", d.Version)
+	logger.Headerf("URI:     %s", d.URI)
+	logger.Headerf("SHA256:  %s", d.SHA256)
 
 	c, err := ioutil.ReadFile(d.BuildpackPath)
 	if err != nil {

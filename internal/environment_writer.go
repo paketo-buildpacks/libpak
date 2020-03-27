@@ -73,7 +73,7 @@ func (w EnvironmentWriter) Write(path string, environment map[string]string) err
 
 	base := filepath.Base(path)
 	for _, k := range keys {
-		w.logger.Body("Writing %s/%s", base, k)
+		w.logger.Bodyf("Writing %s/%s", base, k)
 		f := filepath.Join(path, k)
 		if err := ioutil.WriteFile(f, []byte(environment[k]), 0644); err != nil {
 			return fmt.Errorf("unable to write file %s\n%w", f, err)

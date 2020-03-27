@@ -64,11 +64,11 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 	}
 
 	if reflect.DeepEqual(expected.Interface(), actual) {
-		l.Logger.Header("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
+		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
 		return layer, nil
 	}
 
-	l.Logger.Header("%s: %s to layer", color.BlueString(l.Name), color.YellowString("Contributing"))
+	l.Logger.Headerf("%s: %s to layer", color.BlueString(l.Name), color.YellowString("Contributing"))
 
 	if err := os.RemoveAll(layer.Path); err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to remove existing layer directory %s\n%w", layer.Path, err)

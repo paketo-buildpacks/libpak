@@ -75,10 +75,10 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 	)
 
 	if dependency.SHA256 == "" {
-		d.Logger.Header("%s Dependency has no SHA256. Skipping cache.",
+		d.Logger.Headerf("%s Dependency has no SHA256. Skipping cache.",
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
-		d.Logger.Body("%s from %s", color.YellowString("Downloading"), dependency.URI)
+		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), dependency.URI)
 		artifact = filepath.Join(d.DownloadPath, filepath.Base(dependency.URI))
 		if err := d.download(dependency.URI, artifact); err != nil {
 			return nil, fmt.Errorf("unable to download %s\n%w", dependency.URI, err)
@@ -93,7 +93,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 	}
 
 	if reflect.DeepEqual(dependency, actual) {
-		d.Logger.Body("%s cached download from buildpack", color.GreenString("Reusing"))
+		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(dependency.URI)))
 	}
 
@@ -103,11 +103,11 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 	}
 
 	if reflect.DeepEqual(dependency, actual) {
-		d.Logger.Body("%s previously cached download", color.GreenString("Reusing"))
+		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(dependency.URI)))
 	}
 
-	d.Logger.Body("%s from %s", color.YellowString("Downloading"), dependency.URI)
+	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), dependency.URI)
 	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(dependency.URI))
 	if err := d.download(dependency.URI, artifact); err != nil {
 		return nil, fmt.Errorf("unable to download %s\n%w", dependency.URI, err)

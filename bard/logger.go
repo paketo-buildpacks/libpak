@@ -83,8 +83,18 @@ func NewLogger(writer io.Writer) Logger {
 	return NewLoggerWithOptions(writer, options...)
 }
 
-// Body logs a message to the configured body writer.
-func (l Logger) Body(format string, a ...interface{}) {
+// Body formats using the default formats for its operands and logs a message to the configured body writer. Spaces
+// are added between operands when neither is a string.
+func (l Logger) Body(a ...interface{}) {
+	if !l.IsBodyEnabled() {
+		return
+	}
+
+	l.print(l.body, a...)
+}
+
+// Bodyf formats according to a format specifier and logs a message to the configured body writer.
+func (l Logger) Bodyf(format string, a ...interface{}) {
 	if !l.IsBodyEnabled() {
 		return
 	}
@@ -102,8 +112,18 @@ func (l Logger) IsBodyEnabled() bool {
 	return l.body != nil
 }
 
-// Header logs a message to the configured header writer.
-func (l Logger) Header(format string, a ...interface{}) {
+// Header formats using the default formats for its operands and logs a message to the configured header writer. Spaces
+// are added between operands when neither is a string.
+func (l Logger) Header(a ...interface{}) {
+	if !l.IsHeaderEnabled() {
+		return
+	}
+
+	l.print(l.header, a...)
+}
+
+// Headerf formats according to a format specifier and logs a message to the configured header writer.
+func (l Logger) Headerf(format string, a ...interface{}) {
 	if !l.IsHeaderEnabled() {
 		return
 	}
@@ -145,7 +165,7 @@ func (l Logger) TerminalError(err IdentifiableError) {
 	}
 
 	l.printf(l.terminalHeader, "\n%s", FormatIdentity(err.Name, err.Description))
-	l.printf(l.terminalBody, "%s", err.Err)
+	l.print(l.terminalBody, err.Err)
 }
 
 // TerminalErrorWriter returns the configured terminal error writer.
@@ -175,6 +195,16 @@ func (l Logger) TitleWriter() io.Writer {
 // IsTitleEnabled indicates whether title logging is enabled.
 func (l Logger) IsTitleEnabled() bool {
 	return l.title != nil
+}
+
+func (Logger) print(writer io.Writer, a ...interface{}) {
+	s := fmt.Sprint(a...)
+
+	if !strings.HasSuffix(s, "\n") {
+		s = s + "\n"
+	}
+
+	_, _ = fmt.Fprint(writer, s)
 }
 
 func (Logger) printf(writer io.Writer, format string, a ...interface{}) {

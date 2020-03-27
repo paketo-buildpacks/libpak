@@ -108,7 +108,7 @@ func (p Package) Build(options ...Option) {
 		}
 		defer out.Close()
 
-		if err = t.Execute(out, map[string]string{"Version": p.Version}); err != nil {
+		if err = t.Execute(out, map[string]string{"version": p.Version}); err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to execute template %s with version %s\n%w", file, p.Version, err))
 			return
 		}
@@ -117,7 +117,7 @@ func (p Package) Build(options ...Option) {
 	}
 
 	logger.Title(buildpack)
-	logger.Header("Creating package in %s", p.Destination)
+	logger.Headerf("Creating package in %s", p.Destination)
 
 	if err = os.RemoveAll(p.Destination); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to remove destination path %s\n%w", p.Destination, err))
@@ -125,7 +125,7 @@ func (p Package) Build(options ...Option) {
 	}
 
 	file = metadata.PrePackage
-	logger.Header("Pre-package with %s", file)
+	logger.Headerf("Pre-package with %s", file)
 	execution := effect.Execution{
 		Command: file,
 		Dir:     p.Source,
@@ -150,7 +150,7 @@ func (p Package) Build(options ...Option) {
 		}
 
 		for _, dep := range metadata.Dependencies {
-			logger.Header("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
+			logger.Headerf("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
 
 			f, err := cache.Artifact(dep)
 			if err != nil {
@@ -173,7 +173,7 @@ func (p Package) Build(options ...Option) {
 	}
 	sort.Strings(files)
 	for _, d := range files {
-		logger.Body("Adding %s", d)
+		logger.Bodyf("Adding %s", d)
 		file = filepath.Join(p.Destination, d)
 		if err = config.entryWriter.Write(entries[d], file); err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to write file %s to %s\n%w", entries[d], file, err))

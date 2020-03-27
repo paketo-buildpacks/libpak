@@ -63,7 +63,7 @@ api = "0.0.0"
 
 [buildpack]
 name    = "test-name"
-version = "{{.Version}}"
+version = "{{.version}}"
 
 [[metadata.dependencies]]
 id      = "test-id"
@@ -119,7 +119,7 @@ include-files = [
 		Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
 	})
 
-	it("replaces .Version in buildpack.toml", func() {
+	it("replaces .version in buildpack.toml", func() {
 		p.Source = path
 		p.Destination = "test-destination"
 		p.Version = "2.2.2"
