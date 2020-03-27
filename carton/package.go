@@ -108,7 +108,7 @@ func (p Package) Build(options ...Option) {
 		}
 		defer out.Close()
 
-		if err = t.Execute(out, map[string]string{"version": p.Version}); err != nil {
+		if err = t.Execute(out, map[string]interface{}{"version": p.Version}); err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to execute template %s with version %s\n%w", file, p.Version, err))
 			return
 		}
