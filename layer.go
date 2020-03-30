@@ -109,17 +109,7 @@ type DependencyLayerContributor struct {
 
 // NewDependencyLayerContributor creates a new instance and adds the dependency to the Buildpack Plan.
 func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, plan *libcnb.BuildpackPlan) DependencyLayerContributor {
-	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
-		Name:    dependency.ID,
-		Version: dependency.Version,
-		Metadata: map[string]interface{}{
-			"name":     dependency.Name,
-			"uri":      dependency.URI,
-			"sha256":   dependency.SHA256,
-			"stacks":   dependency.Stacks,
-			"licenses": dependency.Licenses,
-		},
-	})
+	plan.Entries = append(plan.Entries, dependency.AsBuildpackPlanEntry())
 
 	return DependencyLayerContributor{
 		Dependency:       dependency,

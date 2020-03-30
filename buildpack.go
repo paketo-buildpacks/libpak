@@ -59,6 +59,21 @@ type BuildpackDependency struct {
 	Licenses []BuildpackDependencyLicense `mapstructure:"licenses" toml:"licenses"`
 }
 
+// AsBuildpackPlanEntry renders the dependency as a BuildpackPlanEntry.
+func (b BuildpackDependency) AsBuildpackPlanEntry() libcnb.BuildpackPlanEntry {
+	return libcnb.BuildpackPlanEntry{
+		Name:    b.ID,
+		Version: b.Version,
+		Metadata: map[string]interface{}{
+			"name":     b.Name,
+			"uri":      b.URI,
+			"sha256":   b.SHA256,
+			"stacks":   b.Stacks,
+			"licenses": b.Licenses,
+		},
+	}
+}
+
 // BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
 type BuildpackMetadata struct {
 
@@ -180,7 +195,6 @@ func (n NoValidDependenciesError) Error() string {
 	return n.Message
 }
 
-
 // IsNoValidDependencies indicates whether an error is a NoValidDependenciesError.
 func IsNoValidDependencies(err error) bool {
 	_, ok := err.(NoValidDependenciesError)
@@ -227,14 +241,6 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 	})
 
 	return candidates[0], nil
-}
-
-// Any indicates whether the collection of dependencies has any dependency that satisfies the constraints.  This is
-// used primarily to determine whether an optional dependency exists, before calling Resolve() which would throw an
-// error if one did not.
-func (d *DependencyResolver) Any(id string, version string) bool {
-	_, err := d.Resolve(id, version)
-	return err == nil
 }
 
 func (DependencyResolver) contains(candidates []string, value string) bool {

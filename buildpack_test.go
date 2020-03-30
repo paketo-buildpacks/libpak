@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/sclevine/spec"
@@ -29,6 +30,35 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 	)
+
+	it("renders dependency as an BuildpackPlanEntry", func() {
+		dependency := libpak.BuildpackDependency{
+			ID:      "test-id",
+			Name:    "test-name",
+			Version: "1.1.1",
+			URI:     "test-uri",
+			SHA256:  "test-sha256",
+			Stacks:  []string{"test-stack"},
+			Licenses: []libpak.BuildpackDependencyLicense{
+				{
+					Type: "test-type",
+					URI:  "test-uri",
+				},
+			},
+		}
+
+		Expect(dependency.AsBuildpackPlanEntry()).To(Equal(libcnb.BuildpackPlanEntry{
+			Name:    dependency.ID,
+			Version: dependency.Version,
+			Metadata: map[string]interface{}{
+				"name":     dependency.Name,
+				"uri":      dependency.URI,
+				"sha256":   dependency.SHA256,
+				"stacks":   dependency.Stacks,
+				"licenses": dependency.Licenses,
+			},
+		}))
+	})
 
 	context("NewBuildpackMetadata", func() {
 		it("deserializes metadata", func() {
@@ -344,33 +374,10 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("Any", func() {
-
-			it("indicates that dependency exists", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
-					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
-					},
-				}
-				resolver.StackID = "test-stack-1"
-
-				Expect(resolver.Any("test-id", "")).To(BeTrue())
-			})
-
-			it("indicates that dependency does not exist", func() {
-				Expect(resolver.Any("test-id", "")).To(BeFalse())
-			})
+		it("indicates whether error is NoValidDependenciesError", func() {
+			Expect(libpak.IsNoValidDependencies(nil)).To(BeFalse())
+			Expect(libpak.IsNoValidDependencies(fmt.Errorf("test-error"))).To(BeFalse())
+			Expect(libpak.IsNoValidDependencies(libpak.NoValidDependenciesError{})).To(BeTrue())
 		})
-	})
-
-	it("indicates whether error is NoValidDependenciesError", func() {
-		Expect(libpak.IsNoValidDependencies(nil)).To(BeFalse())
-		Expect(libpak.IsNoValidDependencies(fmt.Errorf("test-error"))).To(BeFalse())
-		Expect(libpak.IsNoValidDependencies(libpak.NoValidDependenciesError{})).To(BeTrue())
 	})
 }
