@@ -320,6 +320,10 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			hlc.Path = helper.Name()
 		})
 
+		it.After(func() {
+			Expect(os.RemoveAll(hlc.Path)).To(Succeed())
+		})
+
 		it("calls function with no existing metadata", func() {
 			var called bool
 

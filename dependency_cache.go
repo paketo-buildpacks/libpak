@@ -54,7 +54,7 @@ type DependencyCache struct {
 func NewDependencyCache(buildpack libcnb.Buildpack) DependencyCache {
 	return DependencyCache{
 		CachePath:    filepath.Join(buildpack.Path, "dependencies"),
-		DownloadPath: os.TempDir(),
+		DownloadPath: filepath.Join(buildpack.Path, "dependencies"),
 		UserAgent:    filepath.Join("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
 	}
 }
