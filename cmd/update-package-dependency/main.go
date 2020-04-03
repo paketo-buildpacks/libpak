@@ -26,43 +26,43 @@ import (
 )
 
 func main() {
-	d := carton.Dependency{}
+	p := carton.PackageDependency{}
 
 	flagSet := pflag.NewFlagSet("Update Package Dependency", pflag.ExitOnError)
-	flagSet.StringVar(&d.BuildpackPath, "buildpack-toml", "", "path to buildpack.toml")
-	flagSet.StringVar(&d.ID, "id", "", "the id of the dependency")
-	flagSet.StringVar(&d.SHA256, "sha256", "", "the new sha256 of the dependency")
-	flagSet.StringVar(&d.URI, "uri", "", "the new uri of the dependency")
-	flagSet.StringVar(&d.Version, "version", "", "the new version of the dependency")
-	flagSet.StringVar(&d.VersionPattern, "version-pattern", "", "the version pattern of the dependency")
+	flagSet.StringVar(&p.BuildpackPath, "buildpack-toml", "", "path to buildpack.toml")
+	flagSet.StringVar(&p.ID, "id", "", "the id of the dependency")
+	flagSet.StringVar(&p.SHA256, "sha256", "", "the new sha256 of the dependency")
+	flagSet.StringVar(&p.URI, "uri", "", "the new uri of the dependency")
+	flagSet.StringVar(&p.Version, "version", "", "the new version of the dependency")
+	flagSet.StringVar(&p.VersionPattern, "version-pattern", "", "the version pattern of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
-	if d.BuildpackPath == "" {
+	if p.BuildpackPath == "" {
 		log.Fatal("buildpack-toml must be set")
 	}
 
-	if d.ID == "" {
+	if p.ID == "" {
 		log.Fatal("id must be set")
 	}
 
-	if d.SHA256 == "" {
+	if p.SHA256 == "" {
 		log.Fatal("sha256 must be set")
 	}
 
-	if d.URI == "" {
+	if p.URI == "" {
 		log.Fatal("uri must be set")
 	}
 
-	if d.Version == "" {
+	if p.Version == "" {
 		log.Fatal("version must be set")
 	}
 
-	if d.VersionPattern == "" {
+	if p.VersionPattern == "" {
 		log.Fatal("version-pattern must be set")
 	}
 
-	d.Build()
+	p.Update()
 }

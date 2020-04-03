@@ -93,7 +93,7 @@ include-files = [
 	it("executes pre_package script", func() {
 		p.Source = path
 
-		p.Build(
+		p.Create(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -108,7 +108,7 @@ include-files = [
 		p.Source = path
 		p.Destination = "test-destination"
 
-		p.Build(
+		p.Create(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -124,7 +124,7 @@ include-files = [
 		p.Destination = "test-destination"
 		p.Version = "2.2.2"
 
-		p.Build(
+		p.Create(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))

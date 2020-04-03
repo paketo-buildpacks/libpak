@@ -27,11 +27,11 @@ import (
 )
 
 const (
-	DependencyPattern      = `(?m)(.*id[\s]+=[\s]+"%s"\n.*\nversion[\s]+=[\s]+")%s("\nuri[\s]+=[\s]+").*("\nsha256[\s]+=[\s]+").*(".*)`
-	DependencySubstitution = "${1}%s${2}%s${3}%s${4}"
+	PackageDependencyPattern      = `(?m)(.*id[\s]+=[\s]+"%s"\n.*\nversion[\s]+=[\s]+")%s("\nuri[\s]+=[\s]+").*("\nsha256[\s]+=[\s]+").*(".*)`
+	PackageDependencySubstitution = "${1}%s${2}%s${3}%s${4}"
 )
 
-type Dependency struct {
+type PackageDependency struct {
 	BuildpackPath  string
 	ID             string
 	SHA256         string
@@ -40,7 +40,7 @@ type Dependency struct {
 	VersionPattern string
 }
 
-func (d Dependency) Build(options ...Option) {
+func (p PackageDependency) Update(options ...Option) {
 	config := Config{
 		exitHandler: internal.NewExitHandler(),
 	}
@@ -50,18 +50,18 @@ func (d Dependency) Build(options ...Option) {
 	}
 
 	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(d.ID, d.VersionPattern))
-	logger.Headerf("Version: %s", d.Version)
-	logger.Headerf("URI:     %s", d.URI)
-	logger.Headerf("SHA256:  %s", d.SHA256)
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(p.ID, p.VersionPattern))
+	logger.Headerf("Version: %s", p.Version)
+	logger.Headerf("URI:     %s", p.URI)
+	logger.Headerf("SHA256:  %s", p.SHA256)
 
-	c, err := ioutil.ReadFile(d.BuildpackPath)
+	c, err := ioutil.ReadFile(p.BuildpackPath)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", d.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", p.BuildpackPath, err))
 		return
 	}
 
-	s := fmt.Sprintf(DependencyPattern, d.ID, d.VersionPattern)
+	s := fmt.Sprintf(PackageDependencyPattern, p.ID, p.VersionPattern)
 	r, err := regexp.Compile(s)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
@@ -69,15 +69,15 @@ func (d Dependency) Build(options ...Option) {
 	}
 
 	if !r.Match(c) {
-		config.exitHandler.Error(fmt.Errorf("unable to match '%s' '%s'", d.ID, d.VersionPattern))
+		config.exitHandler.Error(fmt.Errorf("unable to match '%s' '%s'", p.ID, p.VersionPattern))
 		return
 	}
 
-	s = fmt.Sprintf(DependencySubstitution, d.Version, d.URI, d.SHA256)
+	s = fmt.Sprintf(PackageDependencySubstitution, p.Version, p.URI, p.SHA256)
 	c = r.ReplaceAll(c, []byte(s))
 
-	if err := ioutil.WriteFile(d.BuildpackPath, c, 0644); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", d.BuildpackPath, err))
+	if err := ioutil.WriteFile(p.BuildpackPath, c, 0644); err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", p.BuildpackPath, err))
 		return
 	}
 }

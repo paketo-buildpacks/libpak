@@ -52,8 +52,8 @@ type Package struct {
 	Version string
 }
 
-// Build creates a package.
-func (p Package) Build(options ...Option) {
+// Create creates a package.
+func (p Package) Create(options ...Option) {
 	config := Config{
 		entryWriter: internal.EntryWriter{},
 		executor:    effect.NewExecutor(),

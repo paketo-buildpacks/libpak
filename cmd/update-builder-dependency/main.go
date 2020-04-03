@@ -26,31 +26,27 @@ import (
 )
 
 func main() {
-	p := carton.Package{}
+	b := carton.BuilderDependency{}
 
-	flagSet := pflag.NewFlagSet("Create Package", pflag.ExitOnError)
-	flagSet.StringVar(&p.CacheLocation, "cache-location", "", "path to cache downloaded dependencies (default: $PWD/dependencies)")
-	flagSet.StringVar(&p.Destination, "destination", "", "path to the build package destination directory")
-	flagSet.BoolVar(&p.IncludeDependencies, "include-dependencies", true, "whether to include dependencies (default: true)")
-	flagSet.StringVar(&p.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
-	flagSet.StringVar(&p.Version, "version", "", "version to substitute into buildpack.toml")
+	flagSet := pflag.NewFlagSet("Update Builder Dependency", pflag.ExitOnError)
+	flagSet.StringVar(&b.BuilderPath, "builder-toml", "", "path to builder.toml")
+	flagSet.StringVar(&b.ID, "id", "", "the id of the dependency")
+	flagSet.StringVar(&b.Version, "version", "", "the new version of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
-	if p.Destination == "" {
-		log.Fatal("destination must be set")
+	if b.BuilderPath == "" {
+		log.Fatal("builder-toml must be set")
 	}
 
-	p.Create()
-}
-
-func defaultSource() string {
-	s, err := os.Getwd()
-	if err != nil {
-		log.Fatal(fmt.Errorf("unable to get working directory\n%w", err))
+	if b.ID == "" {
+		log.Fatal("id must be set")
+	}
+	if b.Version == "" {
+		log.Fatal("version must be set")
 	}
 
-	return s
+	b.Update()
 }

@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func testDependency(t *testing.T, context spec.G, it spec.S) {
+func testBuilderDependency(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -42,15 +42,11 @@ func testDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-dependency")
+		f, err := ioutil.TempFile("", "carton-builder-dependency")
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = f.WriteString(`id      = "test-id"
-name    = "Test Name"
-version = "test-version-1"
-uri     = "test-uri-1"
-sha256  = "test-sha256-1"
-stacks  = [ "test-stack" ]
+		_, err = f.WriteString(`{ id = "test-id-1", image = "test-id-1:test-version-1" },
+{ id = "test-id-2", image = "test-id-2:test-version-2" },
 `)
 		Expect(err).To(Succeed())
 		Expect(f.Close()).To(Succeed())
@@ -62,23 +58,17 @@ stacks  = [ "test-stack" ]
 	})
 
 	it("updates dependency", func() {
-		d := carton.Dependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
+		d := carton.BuilderDependency{
+			BuilderPath:  path,
+			ID:             "test-id-1",
+			Version:        "test-version-3",
 		}
 
-		d.Build()
+		d.Update()
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`{ id = "test-id-1", image = "test-id-1:test-version-3" },
+{ id = "test-id-2", image = "test-id-2:test-version-2" },
 `)))
 	})
 }
+
