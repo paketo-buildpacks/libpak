@@ -17,5 +17,5 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/sys v0.0.0-20200406113430-c6e801f48ba2 // indirect
+	golang.org/x/sys v0.0.0-20200406155108-e3b113bbe6a4 // indirect
 )
