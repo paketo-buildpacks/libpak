@@ -19,6 +19,7 @@ package crush
 import (
 	"archive/tar"
 	"archive/zip"
+	"compress/bzip2"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -127,6 +128,12 @@ func ExtractTar(source io.Reader, destination string, stripComponents int) error
 	}
 
 	return nil
+}
+
+// ExtractTarBz2 extracts source BZIP2'd TAR file to a destination directory.  An arbitrary number of top-level
+// directory components can be stripped from each path.
+func ExtractTarBz2(source io.Reader, destination string, stripComponents int) error {
+	return ExtractTar(bzip2.NewReader(source), destination, stripComponents)
 }
 
 // ExtractTarGz extracts source GZIP'd TAR file to a destination directory.  An arbitrary number of top-level directory
