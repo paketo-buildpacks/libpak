@@ -192,6 +192,24 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(called).To(BeTrue())
 		})
 
+		it("modifies request", func() {
+			server.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyHeaderKV("Test-Key", "test-value"),
+				ghttp.RespondWith(http.StatusOK, "test-fixture"),
+			))
+
+			dlc.RequestModifierFunc = func(request *http.Request) (*http.Request, error) {
+				request.Header.Add("Test-Key", "test-value")
+				return request, nil
+			}
+
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		it("calls function with non-matching metadata", func() {
 			layer.Metadata["alpha"] = "test-alpha"
 

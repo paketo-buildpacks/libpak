@@ -169,4 +169,20 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
 	})
 
+	it("modifies request", func() {
+		server.AppendHandlers(ghttp.CombineHandlers(
+			ghttp.VerifyHeaderKV("User-Agent", "test-user-agent"),
+			ghttp.VerifyHeaderKV("Test-Key", "test-value"),
+			ghttp.RespondWith(http.StatusOK, "test-fixture"),
+		))
+
+		a, err := dependencyCache.ArtifactWithRequestModification(dependency, func(request *http.Request) (*http.Request, error) {
+			request.Header.Add("Test-Key", "test-value")
+			return request, nil
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+	})
+
 }
