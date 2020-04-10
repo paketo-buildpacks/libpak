@@ -70,7 +70,7 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 // 3. Download from URI
 //
 // If the BuildpackDependency's SHA256 is not set, the download can never be verified to be up to date and will always
-// download, skipping all of the caches.
+// download, skipping all the caches.
 func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, error) {
 	return d.ArtifactWithRequestModification(dependency, nil)
 }
@@ -82,7 +82,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, er
 // 3. Download from URI
 //
 // If the BuildpackDependency's SHA256 is not set, the download can never be verified to be up to date and will always
-// download, skipping all of the caches.
+// download, skipping all the caches.
 func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDependency, f RequestModifierFunc) (*os.File, error) {
 
 	var (
