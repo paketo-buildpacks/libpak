@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
+func testLifecycleDependency(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -42,15 +42,15 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-package-dependency")
+		f, err := ioutil.TempFile("", "carton-builder-dependency")
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = f.WriteString(`id      = "test-id"
-name    = "Test Name"
-version = "test-version-1"
-uri     = "test-uri-1"
-sha256  = "test-sha256-1"
-stacks  = [ "test-stack" ]
+		_, err = f.WriteString(`test-prologue
+
+[lifecycle]
+uri = "test-uri"
+
+test-epilogue
 `)
 		Expect(err).To(Succeed())
 		Expect(f.Close()).To(Succeed())
@@ -62,23 +62,19 @@ stacks  = [ "test-stack" ]
 	})
 
 	it("updates dependency", func() {
-		d := carton.PackageDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
+		d := carton.LifecycleDependency{
+			BuilderPath: path,
+			Version:     "test-version-3",
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`test-prologue
+
+[lifecycle]
+uri = "https://github.com/buildpacks/lifecycle/releases/download/vtest-version-3/lifecycle-vtest-version-3+linux.x86-64.tgz"
+
+test-epilogue
 `)))
 	})
 }

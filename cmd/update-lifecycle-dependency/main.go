@@ -26,11 +26,10 @@ import (
 )
 
 func main() {
-	b := carton.BuilderDependency{}
+	b := carton.LifecycleDependency{}
 
-	flagSet := pflag.NewFlagSet("Update Builder Dependency", pflag.ExitOnError)
+	flagSet := pflag.NewFlagSet("Update Lifecycle Dependency", pflag.ExitOnError)
 	flagSet.StringVar(&b.BuilderPath, "builder-toml", "", "path to builder.toml")
-	flagSet.StringVar(&b.ID, "id", "", "the id of the dependency")
 	flagSet.StringVar(&b.Version, "version", "", "the new version of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
@@ -39,10 +38,6 @@ func main() {
 
 	if b.BuilderPath == "" {
 		log.Fatal("builder-toml must be set")
-	}
-
-	if b.ID == "" {
-		log.Fatal("id must be set")
 	}
 
 	if b.Version == "" {

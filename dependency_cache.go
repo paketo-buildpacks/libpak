@@ -170,10 +170,7 @@ func (d DependencyCache) download(uri string, destination string, f RequestModif
 		}
 	}
 
-	t := &http.Transport{Proxy: http.ProxyFromEnvironment}
-	t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
-
-	client := http.Client{Transport: t}
+	client := http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to request %s\n%w", uri, err)

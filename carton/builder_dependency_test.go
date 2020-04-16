@@ -64,7 +64,7 @@ func testBuilderDependency(t *testing.T, context spec.G, it spec.S) {
 			Version:        "test-version-3",
 		}
 
-		d.Update()
+		d.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`{ id = "test-id-1", image = "test-id-1:test-version-3" },
 { id = "test-id-2", image = "test-id-2:test-version-2" },
