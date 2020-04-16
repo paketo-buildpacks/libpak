@@ -49,7 +49,7 @@ func (i ImageDependency) Update(options ...Option) {
 
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n",
-		bard.FormatIdentity(fmt.Sprintf("%s Image", strings.ToTitle(i.Type)), i.Version))
+		bard.FormatIdentity(fmt.Sprintf("%s Image", strings.Title(i.Type)), i.Version))
 
 	c, err := ioutil.ReadFile(i.BuilderPath)
 	if err != nil {
