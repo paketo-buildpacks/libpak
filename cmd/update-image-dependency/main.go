@@ -26,23 +26,28 @@ import (
 )
 
 func main() {
-	l := carton.LifecycleDependency{}
+	i := carton.ImageDependency{}
 
-	flagSet := pflag.NewFlagSet("Update Lifecycle Dependency", pflag.ExitOnError)
-	flagSet.StringVar(&l.BuilderPath, "builder-toml", "", "path to builder.toml")
-	flagSet.StringVar(&l.Version, "version", "", "the new version of the dependency")
+	flagSet := pflag.NewFlagSet("Update Image Dependency", pflag.ExitOnError)
+	flagSet.StringVar(&i.BuilderPath, "builder-toml", "", "path to builder.toml")
+	flagSet.StringVar(&i.Type, "type", "", "the type of the dependency")
+	flagSet.StringVar(&i.Version, "version", "", "the new version of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
-	if l.BuilderPath == "" {
+	if i.BuilderPath == "" {
 		log.Fatal("builder-toml must be set")
 	}
 
-	if l.Version == "" {
+	if i.Type == "" {
+		log.Fatal("type must be set")
+	}
+
+	if i.Version == "" {
 		log.Fatal("version must be set")
 	}
 
-	l.Update()
+	i.Update()
 }

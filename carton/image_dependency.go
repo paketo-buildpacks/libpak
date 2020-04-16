@@ -21,22 +21,24 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
 )
 
 const (
-	LifecycleDependencyPattern      = `(?m)(.*\[lifecycle\]\nuri[\s]+=[\s]+")[^"]+(".*)`
-	LifecycleDependencySubstitution = "${1}https://github.com/buildpacks/lifecycle/releases/download/v%[1]s/lifecycle-v%[1]s+linux.x86-64.tgz${2}"
+	ImageDependencyPattern      = `(?m)(.*%s-image[\s]+=[\s]+"[^"]+:)[^"]+(".*)`
+	ImageDependencySubstitution = "${1}%s${2}"
 )
 
-type LifecycleDependency struct {
+type ImageDependency struct {
 	BuilderPath string
+	Type        string
 	Version     string
 }
 
-func (l LifecycleDependency) Update(options ...Option) {
+func (i ImageDependency) Update(options ...Option) {
 	config := Config{
 		exitHandler: internal.NewExitHandler(),
 	}
@@ -46,26 +48,32 @@ func (l LifecycleDependency) Update(options ...Option) {
 	}
 
 	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity("Lifecycle", l.Version))
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n",
+		bard.FormatIdentity(fmt.Sprintf("%s Image", strings.ToTitle(i.Type)), i.Version))
 
-	c, err := ioutil.ReadFile(l.BuilderPath)
+	c, err := ioutil.ReadFile(i.BuilderPath)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", l.BuilderPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", i.BuilderPath, err))
 		return
 	}
 
-	r := regexp.MustCompile(LifecycleDependencyPattern)
+	s := fmt.Sprintf(ImageDependencyPattern, i.Type)
+	r, err := regexp.Compile(s)
+	if err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
+		return
+	}
 
 	if !r.Match(c) {
-		config.exitHandler.Error(fmt.Errorf("unable to match '%s'", LifecycleDependencyPattern))
+		config.exitHandler.Error(fmt.Errorf("unable to match '%s'", i.Type))
 		return
 	}
 
-	s := fmt.Sprintf(LifecycleDependencySubstitution, l.Version)
+	s = fmt.Sprintf(ImageDependencySubstitution, i.Version)
 	c = r.ReplaceAll(c, []byte(s))
 
-	if err := ioutil.WriteFile(l.BuilderPath, c, 0644); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", l.BuilderPath, err))
+	if err := ioutil.WriteFile(i.BuilderPath, c, 0644); err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", i.BuilderPath, err))
 		return
 	}
 
