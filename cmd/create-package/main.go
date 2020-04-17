@@ -31,7 +31,7 @@ func main() {
 	flagSet := pflag.NewFlagSet("Create Package", pflag.ExitOnError)
 	flagSet.StringVar(&p.CacheLocation, "cache-location", "", "path to cache downloaded dependencies (default: $PWD/dependencies)")
 	flagSet.StringVar(&p.Destination, "destination", "", "path to the build package destination directory")
-	flagSet.BoolVar(&p.IncludeDependencies, "include-dependencies", true, "whether to include dependencies (default: true)")
+	flagSet.BoolVar(&p.IncludeDependencies, "include-dependencies", false, "whether to include dependencies (default: false)")
 	flagSet.StringVar(&p.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
 	flagSet.StringVar(&p.Version, "version", "", "version to substitute into buildpack.toml")
 
