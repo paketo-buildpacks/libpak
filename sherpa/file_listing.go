@@ -40,7 +40,7 @@ type FileEntry struct {
 	// ModificationTime is the modification time of the file.
 	ModificationTime string `mapstructure:"modification-time" toml:"modification-time"`
 
-	// SHA256 is the SHA256 has of the source file.
+	// SHA256 is the SHA256 hash of the source file.
 	SHA256 string `mapstructure:",omitempty" toml:"sha256,omitempty"`
 }
 
