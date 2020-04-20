@@ -49,65 +49,57 @@ type result struct {
 	value FileEntry
 }
 
-// NewFileListing generates a listing of all entries under root.
-func NewFileListing(root string) ([]FileEntry, error) {
-	ch := make(chan result)
-	var wg sync.WaitGroup
-
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if path == root {
-			return nil
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			e := FileEntry{
-				Path:             path,
-				Mode:             info.Mode().String(),
-				ModificationTime: info.ModTime().Format(time.RFC3339),
-			}
-
-			if info.IsDir() {
-				ch <- result{value: e}
-				return
-			}
-
-			s := sha256.New()
-
-			in, err := os.Open(path)
-			if err != nil {
-				ch <- result{err: fmt.Errorf("unable to open file %s\n%w", path, err)}
-				return
-			}
-			defer in.Close()
-
-			if _, err := io.Copy(s, in); err != nil {
-				ch <- result{err: fmt.Errorf("unable to hash file %s\n%w", path, err)}
-				return
-			}
-
-			e.SHA256 = hex.EncodeToString(s.Sum(nil))
-			ch <- result{value: e}
-		}()
-
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("error walking path %s\n%w", root, err)
-	}
+// NewFileListing generates a listing of all entries under the roots.
+func NewFileListing(roots ...string) ([]FileEntry, error) {
+	entries := make(chan FileEntry)
+	results := make(chan result)
 
 	go func() {
-		wg.Wait()
-		close(ch)
+		for _, root := range roots {
+			if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				if path == root {
+					return nil
+				}
+
+				e := FileEntry{
+					Path:             path,
+					Mode:             info.Mode().String(),
+					ModificationTime: info.ModTime().Format(time.RFC3339),
+				}
+
+				if info.IsDir() {
+					results <- result{value: e}
+					return nil
+				}
+
+				entries <- e
+				return nil
+			}); err != nil && !os.IsNotExist(err) {
+				results <- result{err: fmt.Errorf("error walking path %s\n%w", root, err)}
+				return
+			}
+		}
+
+		close(entries)
+	}()
+
+	go func() {
+		var workers sync.WaitGroup
+		for i := 0; i < 128; i++ {
+			workers.Add(1)
+			go worker(entries, results, &workers)
+		}
+
+		workers.Wait()
+		close(results)
 	}()
 
 	var e []FileEntry
-	for r := range ch {
+	for r := range results {
 		if r.err != nil {
 			return nil, fmt.Errorf("unable to create file listing: %s", r.err)
 		}
@@ -118,4 +110,30 @@ func NewFileListing(root string) ([]FileEntry, error) {
 	})
 
 	return e, nil
+}
+
+func worker(entries chan FileEntry, results chan result, wg *sync.WaitGroup) {
+	for entry := range entries {
+		e, err := process(entry)
+		results <- result{value: e, err: err}
+	}
+
+	wg.Done()
+}
+
+func process(entry FileEntry) (FileEntry, error) {
+	s := sha256.New()
+
+	in, err := os.Open(entry.Path)
+	if err != nil {
+		return FileEntry{}, fmt.Errorf("unable to open file %s\n%w", entry.Path, err)
+	}
+	defer in.Close()
+
+	if _, err := io.Copy(s, in); err != nil {
+		return FileEntry{}, fmt.Errorf("unable to hash file %s\n%w", entry.Path, err)
+	}
+
+	entry.SHA256 = hex.EncodeToString(s.Sum(nil))
+	return entry, nil
 }
