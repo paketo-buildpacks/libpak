@@ -57,7 +57,9 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 	go func() {
 		for _, root := range roots {
 			p, err := filepath.EvalSymlinks(root)
-			if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			} else if err != nil {
 				results <- result{err: fmt.Errorf("unable to resolve %s\n%w", root, err)}
 				return
 			}
@@ -84,7 +86,7 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 
 				entries <- e
 				return nil
-			}); err != nil && !os.IsNotExist(err) {
+			}); err != nil {
 				results <- result{err: fmt.Errorf("error walking path %s\n%w", root, err)}
 				return
 			}
