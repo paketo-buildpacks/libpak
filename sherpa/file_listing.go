@@ -56,18 +56,18 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 
 	go func() {
 		for _, root := range roots {
-			path, err := filepath.EvalSymlinks(root)
+			p, err := filepath.EvalSymlinks(root)
 			if err != nil {
 				results <- result{err: fmt.Errorf("unable to resolve %s\n%w", root, err)}
 				return
 			}
 
-			if err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			if err := filepath.Walk(p, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
 
-				if path == root {
+				if path == p {
 					return nil
 				}
 

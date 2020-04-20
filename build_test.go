@@ -108,7 +108,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 name    = "test-name"
 version = "test-version"`),
 			0644)).To(Succeed())
-		builder.On("Build", mock.Anything).Return(libcnb.BuildResult{}, fmt.Errorf("test-error"))
+		builder.On("Build", mock.Anything).Return(libcnb.NewBuildResult(), fmt.Errorf("test-error"))
 
 		libpak.Build(builder,
 			libcnb.WithArguments([]string{commandPath, layersPath, platformPath, buildpackPlanPath}),
