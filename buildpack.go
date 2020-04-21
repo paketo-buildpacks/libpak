@@ -165,7 +165,7 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 	return m, nil
 }
 
-// DependencyResolver provides functionality for resolving a dependency fiven a collection of constraints.
+// DependencyResolver provides functionality for resolving a dependency given a collection of constraints.
 type DependencyResolver struct {
 
 	// Dependencies are the dependencies to resolve against.
