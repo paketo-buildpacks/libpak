@@ -326,9 +326,10 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(helper.Close()).To(Succeed())
 
 			info = libcnb.BuildpackInfo{
-				ID:      "test-id",
-				Name:    "test-name",
-				Version: "test-version",
+				ID:       "test-id",
+				Name:     "test-name",
+				Version:  "test-version",
+				Homepage: "test-homepage",
 			}
 
 			layer.Metadata = map[string]interface{}{}
@@ -377,6 +378,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"id":        info.ID,
 				"name":      info.Name,
 				"version":   info.Version,
+				"homepage":  info.Homepage,
 				"clear-env": info.ClearEnvironment,
 			}
 
@@ -413,6 +415,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"id":        info.ID,
 				"name":      info.Name,
 				"version":   info.Version,
+				"homepage":  info.Homepage,
 				"clear-env": info.ClearEnvironment,
 			}))
 		})
