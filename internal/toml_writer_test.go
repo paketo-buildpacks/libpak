@@ -18,12 +18,14 @@ package internal_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/buildpacks/libcnb"
+	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
@@ -79,15 +81,83 @@ other-field = "other-value"`))
 				"other-field": "other-value",
 			})
 			Expect(err).NotTo(HaveOccurred())
+
 			Expect(b.String()).To(Equal(""))
 		})
 
-		it("logs libcnb.Launch", func() {
+		it("logs []libcnb.Slice", func() {
 			err := tomlWriter.Write(path, libcnb.Launch{
-				Slices: []libcnb.Slice{{}, {}},
+				Slices: []libcnb.Slice{
+					{},
+					{},
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(b.String()).To(Equal("  2 application slices\n"))
+
+			Expect(b.String()).To(Equal(`  2 application slices
+`))
+		})
+
+		it("logs []libcnb.Label", func() {
+			err := tomlWriter.Write(path, libcnb.Launch{
+				Labels: []libcnb.Label{
+					{Key: "test-key-1"},
+					{Key: "test-key-2"},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(b.String()).To(Equal(`  Image labels:
+    test-key-1
+    test-key-2
+`))
+		})
+
+		context("[]libcnb.Process", func() {
+
+			it("aligns process types", func() {
+				err := tomlWriter.Write(path, libcnb.Launch{
+					Processes: []libcnb.Process{
+						{Type: "short", Command: "test-command-1"},
+						{Type: "a-very-long-type", Command: "test-command-2"},
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(b.String()).To(Equal(fmt.Sprintf(`  Process types:
+    %s: test-command-2
+    %s:            test-command-1
+`,
+					color.CyanString("a-very-long-type"), color.CyanString("short"))))
+			})
+
+			it("appends arguments", func() {
+				err := tomlWriter.Write(path, libcnb.Launch{
+					Processes: []libcnb.Process{
+						{Type: "test-type", Command: "test-command", Arguments: []string{"test-arg-1", "test-arg-2"}},
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(b.String()).To(Equal(fmt.Sprintf(`  Process types:
+    %s: test-command test-arg-1 test-arg-2
+`,
+					color.CyanString("test-type"))))
+			})
+
+			it("indicates direct", func() {
+				err := tomlWriter.Write(path, libcnb.Launch{
+					Processes: []libcnb.Process{
+						{Type: "test-type", Command: "test-command", Direct: true},
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(b.String()).To(Equal(fmt.Sprintf(`  Process types:
+    %s: test-command (direct)
+`,
+					color.CyanString("test-type"))))
+			})
 		})
 
 		it("logs libcnb.Store", func() {
@@ -98,7 +168,11 @@ other-field = "other-value"`))
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(b.String()).To(Equal("  Writing persistent metadata: test-key-1, test-key-2\n"))
+
+			Expect(b.String()).To(Equal(`  Persistent metadata:
+    test-key-1
+    test-key-2
+`))
 		})
 	})
 }

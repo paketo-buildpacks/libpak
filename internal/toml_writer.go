@@ -20,9 +20,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
+	"github.com/heroku/color"
 	"github.com/paketo-buildpacks/libpak/bard"
 )
 
@@ -64,10 +67,52 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 
 	switch v := value.(type) {
 	case libcnb.Launch:
-		t.logger.Header(LaunchFormatter(v))
+		if len(v.Slices) > 0 {
+			t.logger.Headerf("%d application slices", len(v.Slices))
+		}
+
+		if len(v.Labels) > 0 {
+			t.logger.Header("Image labels:")
+			for _, l := range v.Labels {
+				t.logger.Headerf("  %s", l.Key)
+			}
+		}
+
+		if len(v.Processes) > 0 {
+			t.logger.Header("Process types:")
+
+			sort.Slice(v.Processes, func(i int, j int) bool {
+				return v.Processes[i].Type < v.Processes[j].Type
+			})
+
+			max := t.maxTypeLength(v.Processes)
+			for _, p := range v.Processes {
+				sb := strings.Builder{}
+				sb.WriteString(fmt.Sprintf("  %s: ", color.CyanString(p.Type)))
+
+				for i := 0; i < max-len(p.Type); i++ {
+					sb.WriteString(" ")
+				}
+
+				sb.WriteString(p.Command)
+
+				for _, a := range p.Arguments {
+					sb.WriteString(fmt.Sprintf(" %s", a))
+				}
+
+				if p.Direct {
+					sb.WriteString(" (direct)")
+				}
+
+				t.logger.Header(sb.String())
+			}
+		}
 	case libcnb.Store:
 		if len(v.Metadata) > 0 {
-			t.logger.Header(StoreFormatter(v))
+			t.logger.Header("Persistent metadata:")
+			for k, _ := range v.Metadata {
+				t.logger.Headerf("  %s", k)
+			}
 		}
 	}
 
@@ -83,4 +128,16 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 	defer file.Close()
 
 	return toml.NewEncoder(file).Encode(value)
+}
+
+func (TOMLWriter) maxTypeLength(processes []libcnb.Process) int {
+	max := 0
+
+	for _, p := range processes {
+		if l := len(p.Type); l > max {
+			max = l
+		}
+	}
+
+	return max
 }
