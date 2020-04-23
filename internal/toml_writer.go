@@ -73,6 +73,11 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 
 		if len(v.Labels) > 0 {
 			t.logger.Header("Image labels:")
+
+			sort.Slice(v.Labels, func(i, j int) bool {
+				return v.Labels[i].Key < v.Labels[j].Key
+			})
+
 			for _, l := range v.Labels {
 				t.logger.Headerf("  %s", l.Key)
 			}
@@ -110,8 +115,14 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 	case libcnb.Store:
 		if len(v.Metadata) > 0 {
 			t.logger.Header("Persistent metadata:")
+
+			var names []string
 			for k, _ := range v.Metadata {
-				t.logger.Headerf("  %s", k)
+				names = append(names, k)
+			}
+
+			for _, n := range names {
+				t.logger.Headerf("  %s", n)
 			}
 		}
 	}
