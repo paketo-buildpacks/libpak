@@ -27,11 +27,11 @@ import (
 )
 
 const (
-	PackageDependencyPattern      = `(?m)(.*id[\s]+=[\s]+"%s"\n.*\nversion[\s]+=[\s]+")%s("\nuri[\s]+=[\s]+").*("\nsha256[\s]+=[\s]+").*(".*)`
-	PackageDependencySubstitution = "${1}%s${2}%s${3}%s${4}"
+	BuildpackDependencyPattern      = `(?m)(.*id[\s]+=[\s]+"%s"\n.*\nversion[\s]+=[\s]+")%s("\nuri[\s]+=[\s]+").*("\nsha256[\s]+=[\s]+").*(".*)`
+	BuildpackDependencySubstitution = "${1}%s${2}%s${3}%s${4}"
 )
 
-type PackageDependency struct {
+type BuildpackDependency struct {
 	BuildpackPath  string
 	ID             string
 	SHA256         string
@@ -40,7 +40,7 @@ type PackageDependency struct {
 	VersionPattern string
 }
 
-func (p PackageDependency) Update(options ...Option) {
+func (p BuildpackDependency) Update(options ...Option) {
 	config := Config{
 		exitHandler: internal.NewExitHandler(),
 	}
@@ -61,7 +61,7 @@ func (p PackageDependency) Update(options ...Option) {
 		return
 	}
 
-	s := fmt.Sprintf(PackageDependencyPattern, p.ID, p.VersionPattern)
+	s := fmt.Sprintf(BuildpackDependencyPattern, p.ID, p.VersionPattern)
 	r, err := regexp.Compile(s)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
@@ -73,7 +73,7 @@ func (p PackageDependency) Update(options ...Option) {
 		return
 	}
 
-	s = fmt.Sprintf(PackageDependencySubstitution, p.Version, p.URI, p.SHA256)
+	s = fmt.Sprintf(BuildpackDependencySubstitution, p.Version, p.URI, p.SHA256)
 	c = r.ReplaceAll(c, []byte(s))
 
 	if err := ioutil.WriteFile(p.BuildpackPath, c, 0644); err != nil {

@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
+func testBuildpackDependency(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -42,7 +42,7 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-package-dependency")
+		f, err := ioutil.TempFile("", "carton-buildpack-dependency")
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = f.WriteString(`id      = "test-id"
@@ -62,7 +62,7 @@ stacks  = [ "test-stack" ]
 	})
 
 	it("updates dependency", func() {
-		d := carton.PackageDependency{
+		d := carton.BuildpackDependency{
 			BuildpackPath:  path,
 			ID:             "test-id",
 			SHA256:         "test-sha256-2",

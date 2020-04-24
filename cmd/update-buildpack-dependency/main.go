@@ -26,9 +26,9 @@ import (
 )
 
 func main() {
-	p := carton.PackageDependency{}
+	p := carton.BuildpackDependency{}
 
-	flagSet := pflag.NewFlagSet("Update Package Dependency", pflag.ExitOnError)
+	flagSet := pflag.NewFlagSet("Update Buildpack Dependency", pflag.ExitOnError)
 	flagSet.StringVar(&p.BuildpackPath, "buildpack-toml", "", "path to buildpack.toml")
 	flagSet.StringVar(&p.ID, "id", "", "the id of the dependency")
 	flagSet.StringVar(&p.SHA256, "sha256", "", "the new sha256 of the dependency")
