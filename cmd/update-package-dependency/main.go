@@ -26,28 +26,29 @@ import (
 )
 
 func main() {
-	b := carton.BuilderDependency{}
+	p := carton.PackageDependency{}
 
-	flagSet := pflag.NewFlagSet("Update Builder Dependency", pflag.ExitOnError)
-	flagSet.StringVar(&b.BuilderPath, "builder-toml", "", "path to builder.toml")
-	flagSet.StringVar(&b.ID, "id", "", "the id of the dependency")
-	flagSet.StringVar(&b.Version, "version", "", "the new version of the dependency")
+	flagSet := pflag.NewFlagSet("Update Package Dependency", pflag.ExitOnError)
+	flagSet.StringVar(&p.BuilderPath, "builder-toml", "", "path to builder.toml")
+	flagSet.StringVar(&p.ID, "id", "", "the id of the dependency")
+	flagSet.StringVar(&p.PackagePath, "package-toml", "", "path to package.toml")
+	flagSet.StringVar(&p.Version, "version", "", "the new version of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
-	if b.BuilderPath == "" {
-		log.Fatal("builder-toml must be set")
+	if p.BuilderPath == "" && p.PackagePath == "" {
+		log.Fatal("builder-toml or package-toml must be set")
 	}
 
-	if b.ID == "" {
+	if p.ID == "" {
 		log.Fatal("id must be set")
 	}
 
-	if b.Version == "" {
+	if p.Version == "" {
 		log.Fatal("version must be set")
 	}
 
-	b.Update()
+	p.Update()
 }

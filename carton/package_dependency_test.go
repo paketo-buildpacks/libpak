@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func testBuilderDependency(t *testing.T, context spec.G, it spec.S) {
+func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -57,18 +57,32 @@ func testBuilderDependency(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(path)).To(Succeed())
 	})
 
-	it("updates dependency", func() {
-		d := carton.BuilderDependency{
-			BuilderPath:  path,
-			ID:             "test-id-1",
-			Version:        "test-version-3",
+	it("updates builder dependency", func() {
+		p := carton.PackageDependency{
+			BuilderPath: path,
+			ID:          "test-id-1",
+			Version:     "test-version-3",
 		}
 
-		d.Update(carton.WithExitHandler(exitHandler))
+		p.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`{ id = "test-id-1", image = "test-id-1:test-version-3" },
 { id = "test-id-2", image = "test-id-2:test-version-2" },
 `)))
 	})
-}
 
+	it("updates package dependency", func() {
+		p := carton.PackageDependency{
+			PackagePath: path,
+			ID:          "test-id-1",
+			Version:     "test-version-3",
+		}
+
+		p.Update(carton.WithExitHandler(exitHandler))
+
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`{ id = "test-id-1", image = "test-id-1:test-version-3" },
+{ id = "test-id-2", image = "test-id-2:test-version-2" },
+`)))
+	})
+
+}

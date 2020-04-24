@@ -40,7 +40,7 @@ type BuildpackDependency struct {
 	VersionPattern string
 }
 
-func (p BuildpackDependency) Update(options ...Option) {
+func (b BuildpackDependency) Update(options ...Option) {
 	config := Config{
 		exitHandler: internal.NewExitHandler(),
 	}
@@ -50,18 +50,18 @@ func (p BuildpackDependency) Update(options ...Option) {
 	}
 
 	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(p.ID, p.VersionPattern))
-	logger.Headerf("Version: %s", p.Version)
-	logger.Headerf("URI:     %s", p.URI)
-	logger.Headerf("SHA256:  %s", p.SHA256)
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(b.ID, b.VersionPattern))
+	logger.Headerf("Version: %s", b.Version)
+	logger.Headerf("URI:     %s", b.URI)
+	logger.Headerf("SHA256:  %s", b.SHA256)
 
-	c, err := ioutil.ReadFile(p.BuildpackPath)
+	c, err := ioutil.ReadFile(b.BuildpackPath)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", p.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", b.BuildpackPath, err))
 		return
 	}
 
-	s := fmt.Sprintf(BuildpackDependencyPattern, p.ID, p.VersionPattern)
+	s := fmt.Sprintf(BuildpackDependencyPattern, b.ID, b.VersionPattern)
 	r, err := regexp.Compile(s)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
@@ -69,15 +69,15 @@ func (p BuildpackDependency) Update(options ...Option) {
 	}
 
 	if !r.Match(c) {
-		config.exitHandler.Error(fmt.Errorf("unable to match '%s' '%s'", p.ID, p.VersionPattern))
+		config.exitHandler.Error(fmt.Errorf("unable to match '%s' '%s'", b.ID, b.VersionPattern))
 		return
 	}
 
-	s = fmt.Sprintf(BuildpackDependencySubstitution, p.Version, p.URI, p.SHA256)
+	s = fmt.Sprintf(BuildpackDependencySubstitution, b.Version, b.URI, b.SHA256)
 	c = r.ReplaceAll(c, []byte(s))
 
-	if err := ioutil.WriteFile(p.BuildpackPath, c, 0644); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", p.BuildpackPath, err))
+	if err := ioutil.WriteFile(b.BuildpackPath, c, 0644); err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", b.BuildpackPath, err))
 		return
 	}
 }
