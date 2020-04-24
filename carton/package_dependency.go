@@ -21,21 +21,24 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
 )
 
 const (
-	PackageDependencyPattern      = `(?m)(.*image[\s]+=[\s]+"%s:)[^"]+(".*)`
+	PackageIdDependencyPattern    = `(?m)(.*id[\s]+=[\s]+"%s",[\s]+version=")[^"]+(".*)`
+	PackageImageDependencyPattern = `(?m)(.*image[\s]+=[\s]+"%s:)[^"]+(".*)`
 	PackageDependencySubstitution = "${1}%s${2}"
 )
 
 type PackageDependency struct {
-	BuilderPath string
-	ID          string
-	Version     string
-	PackagePath string
+	BuilderPath   string
+	BuildpackPath string
+	ID            string
+	Version       string
+	PackagePath   string
 }
 
 func (p PackageDependency) Update(options ...Option) {
@@ -65,7 +68,7 @@ func (p PackageDependency) Update(options ...Option) {
 			return
 		}
 
-		s := fmt.Sprintf(PackageDependencyPattern, p.ID)
+		s := fmt.Sprintf(PackageImageDependencyPattern, p.ID)
 		r, err := regexp.Compile(s)
 		if err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
@@ -73,7 +76,7 @@ func (p PackageDependency) Update(options ...Option) {
 		}
 
 		if !r.Match(c) {
-			config.exitHandler.Error(fmt.Errorf("unable to match '%s'", p.ID))
+			config.exitHandler.Error(fmt.Errorf("unable to match '%s'", s))
 			return
 		}
 
@@ -82,6 +85,35 @@ func (p PackageDependency) Update(options ...Option) {
 
 		if err := ioutil.WriteFile(path, c, 0644); err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", path, err))
+			return
+		}
+	}
+
+	if p.BuildpackPath != "" {
+		c, err := ioutil.ReadFile(p.BuildpackPath)
+		if err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", p.BuildpackPath, err))
+			return
+		}
+
+		id := strings.Join(strings.Split(p.ID, "/")[1:], "/")
+		s := fmt.Sprintf(PackageIdDependencyPattern, id)
+		r, err := regexp.Compile(s)
+		if err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
+			return
+		}
+
+		if !r.Match(c) {
+			config.exitHandler.Error(fmt.Errorf("unable to match '%s'", s))
+			return
+		}
+
+		s = fmt.Sprintf(PackageDependencySubstitution, p.Version)
+		c = r.ReplaceAll(c, []byte(s))
+
+		if err := ioutil.WriteFile(p.BuildpackPath, c, 0644); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", p.BuildpackPath, err))
 			return
 		}
 	}

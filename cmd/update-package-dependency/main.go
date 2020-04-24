@@ -30,6 +30,7 @@ func main() {
 
 	flagSet := pflag.NewFlagSet("Update Package Dependency", pflag.ExitOnError)
 	flagSet.StringVar(&p.BuilderPath, "builder-toml", "", "path to builder.toml")
+	flagSet.StringVar(&p.BuildpackPath, "buildpack-toml", "", "path to buildpack.toml")
 	flagSet.StringVar(&p.ID, "id", "", "the id of the dependency")
 	flagSet.StringVar(&p.PackagePath, "package-toml", "", "path to package.toml")
 	flagSet.StringVar(&p.Version, "version", "", "the new version of the dependency")
@@ -38,8 +39,8 @@ func main() {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
-	if p.BuilderPath == "" && p.PackagePath == "" {
-		log.Fatal("builder-toml or package-toml must be set")
+	if p.BuilderPath == "" && p.BuildpackPath == "" && p.PackagePath == "" {
+		log.Fatal("builder-toml, buildpack-toml, or package-toml must be set")
 	}
 
 	if p.ID == "" {
