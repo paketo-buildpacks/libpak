@@ -125,16 +125,18 @@ func (p Package) Create(options ...Option) {
 	}
 
 	file = metadata.PrePackage
-	logger.Headerf("Pre-package with %s", file)
-	execution := effect.Execution{
-		Command: file,
-		Dir:     p.Source,
-		Stdout:  logger.BodyWriter(),
-		Stderr:  logger.BodyWriter(),
-	}
+	if file != "" {
+		logger.Headerf("Pre-package with %s", file)
+		execution := effect.Execution{
+			Command: file,
+			Dir:     p.Source,
+			Stdout:  logger.BodyWriter(),
+			Stderr:  logger.BodyWriter(),
+		}
 
-	if err = config.executor.Execute(execution); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to execute pre-package script %s\n%w", file, err))
+		if err = config.executor.Execute(execution); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to execute pre-package script %s\n%w", file, err))
+		}
 	}
 
 	if p.IncludeDependencies {
