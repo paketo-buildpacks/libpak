@@ -121,6 +121,8 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 				names = append(names, k)
 			}
 
+			sort.Strings(names)
+
 			for _, n := range names {
 				t.logger.Headerf("  %s", n)
 			}

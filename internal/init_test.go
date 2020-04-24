@@ -24,7 +24,7 @@ import (
 )
 
 func TestUnit(t *testing.T) {
-	suite := spec.New("libcnb/internal", spec.Report(report.Terminal{}))
+	suite := spec.New("libpak/internal", spec.Report(report.Terminal{}))
 	suite("EntryWriter", testEntryWriter)
 	suite("EnvironmentWriter", testEnvironmentWriter)
 	suite("ExitHandler", testExitHandler)
