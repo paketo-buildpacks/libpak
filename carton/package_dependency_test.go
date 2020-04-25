@@ -42,13 +42,8 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-builder-dependency")
+		f, err := ioutil.TempFile("", "carton-package-dependency")
 		Expect(err).NotTo(HaveOccurred())
-
-		_, err = f.WriteString(`{ id = "test-id-1", image = "test-id-1:test-version-1" },
-{ id = "test-id-2", image = "test-id-2:test-version-2" },
-`)
-		Expect(err).To(Succeed())
 		Expect(f.Close()).To(Succeed())
 		path = f.Name()
 	})
@@ -57,31 +52,63 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(path)).To(Succeed())
 	})
 
-	it("updates builder dependency", func() {
+	it("updates buildpack dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`
+{ id = "paketo-buildpacks/test-1", version="test-version-1" },
+{ id = "paketo-buildpacks/test-2", version="test-version-2" },
+`), 0644)).To(Succeed())
+
 		p := carton.PackageDependency{
-			BuilderPath: path,
-			ID:          "test-id-1",
-			Version:     "test-version-3",
+			BuildpackPath: path,
+			ID:            "gcr.io/paketo-buildpacks/test-1",
+			Version:       "test-version-3",
 		}
 
 		p.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`{ id = "test-id-1", image = "test-id-1:test-version-3" },
-{ id = "test-id-2", image = "test-id-2:test-version-2" },
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
+{ id = "paketo-buildpacks/test-1", version="test-version-3" },
+{ id = "paketo-buildpacks/test-2", version="test-version-2" },
+`)))
+	})
+
+	it("updates builder dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`
+{ id = "paketo-buildpacks/test-1", image = "gcr.io/paketo-buildpacks/test-1:test-version-1" },
+{ id = "paketo-buildpacks/test-2", image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
+`), 0644)).To(Succeed())
+
+		p := carton.PackageDependency{
+			BuilderPath: path,
+			ID:            "gcr.io/paketo-buildpacks/test-1",
+			Version:       "test-version-3",
+		}
+
+		p.Update(carton.WithExitHandler(exitHandler))
+
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
+{ id = "paketo-buildpacks/test-1", image = "gcr.io/paketo-buildpacks/test-1:test-version-3" },
+{ id = "paketo-buildpacks/test-2", image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
 `)))
 	})
 
 	it("updates package dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`
+{ image = "gcr.io/paketo-buildpacks/test-1:test-version-1" },
+{ image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
+`), 0644)).To(Succeed())
+
 		p := carton.PackageDependency{
 			PackagePath: path,
-			ID:          "test-id-1",
-			Version:     "test-version-3",
+			ID:            "gcr.io/paketo-buildpacks/test-1",
+			Version:       "test-version-3",
 		}
 
 		p.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`{ id = "test-id-1", image = "test-id-1:test-version-3" },
-{ id = "test-id-2", image = "test-id-2:test-version-2" },
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
+{ image = "gcr.io/paketo-buildpacks/test-1:test-version-3" },
+{ image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
 `)))
 	})
 
