@@ -33,5 +33,6 @@ func TestUnit(t *testing.T) {
 	suite("DependencyCache", testDependencyCache)
 	suite("Formatter", testFormatter)
 	suite("Layer", testLayer)
+	suite("Main", testMain)
 	suite.Run(t)
 }
