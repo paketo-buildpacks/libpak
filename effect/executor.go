@@ -41,6 +41,9 @@ type Execution struct {
 	// Environment is the environment variables that the command is run with.  Defaults to current environment.
 	Env []string
 
+	// Stdin is the Reader to use for stdin.
+	Stdin io.Reader
+
 	// Stdout is the Writer to use for stdout.
 	Stdout io.Writer
 
@@ -71,6 +74,7 @@ func (CommandExecutor) Execute(execution Execution) error {
 		cmd.Env = execution.Env
 	}
 
+	cmd.Stdin = execution.Stdin
 	cmd.Stdout = execution.Stdout
 	cmd.Stderr = execution.Stderr
 
@@ -90,6 +94,8 @@ func (t TTYExecutor) Execute(execution Execution) error {
 	if len(execution.Env) > 0 {
 		cmd.Env = execution.Env
 	}
+
+	cmd.Stdin = execution.Stdin
 
 	f, err := pty.Start(cmd)
 	if err != nil {
