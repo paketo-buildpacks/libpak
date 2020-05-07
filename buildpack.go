@@ -18,14 +18,30 @@ package libpak
 
 import (
 	"fmt"
+	"os"
 	"sort"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/buildpacks/libcnb"
+	"github.com/heroku/color"
+	"github.com/paketo-buildpacks/libpak/bard"
 )
 
-// License represents a license that a BuildpackDependency is distributed under.  At least one of Name or URI MUST be
-// specified.
+// BuildpackConfiguration represents a build or launch configuration parameter.
+type BuildpackConfiguration struct {
+
+	// Default is the default value of the configuration parameter.  Optional.
+	Default string `mapstructure:"default" toml:"default"`
+
+	// Description is the description of the configuration parameter.
+	Description string `mapstructure:"description" toml:"description"`
+
+	// Name is the environment variable name of the configuration parameter.
+	Name string `mapstructure:"name" toml:"name"`
+}
+
+// BuildpackDependencyLicense represents a license that a BuildpackDependency is distributed under.  At least one of
+// Name or URI MUST be specified.
 type BuildpackDependencyLicense struct {
 
 	// Type is the type of the license.  This is typically the SPDX short identifier.
@@ -77,8 +93,9 @@ func (b BuildpackDependency) AsBuildpackPlanEntry() libcnb.BuildpackPlanEntry {
 // BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
 type BuildpackMetadata struct {
 
-	// DefaultVersions represent the default versions for dependencies keyed by Dependency.Id.
-	DefaultVersions map[string]string
+	// Configurations are environment variables that can be used at build time to configure the buildpack and launch
+	// time to configure the application.
+	Configurations []BuildpackConfiguration
 
 	// Dependencies are the dependencies known to the buildpack.
 	Dependencies []BuildpackDependency
@@ -92,13 +109,25 @@ type BuildpackMetadata struct {
 
 // NewBuildpackMetadata creates a new instance of BuildpackMetadata from the contents of libcnb.Buildpack.Metadata
 func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, error) {
-	m := BuildpackMetadata{
-		DefaultVersions: map[string]string{},
-	}
+	m := BuildpackMetadata{}
 
-	if v, ok := metadata["default-versions"].(map[string]interface{}); ok {
-		for k, v := range v {
-			m.DefaultVersions[k] = v.(string)
+	if v, ok := metadata["configurations"]; ok {
+		for _, v := range v.([]map[string]interface{}) {
+			var c BuildpackConfiguration
+
+			if v, ok := v["default"].(string); ok {
+				c.Default = v
+			}
+
+			if v, ok := v["description"].(string); ok {
+				c.Description = v
+			}
+
+			if v, ok := v["name"].(string); ok {
+				c.Name = v
+			}
+
+			m.Configurations = append(m.Configurations, c)
 		}
 	}
 
@@ -163,6 +192,53 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 	}
 
 	return m, nil
+}
+
+// ConfigurationResolver provides functionality for resolving a configuration value.
+type ConfigurationResolver struct {
+
+	// Configurations are the configurations to resolve against
+	Configurations []BuildpackConfiguration
+}
+
+// NewConfigurationResolver creates a new instance from buildpack metadata.  Logs configuration options to the body
+// level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
+func NewConfigurationResolver(context libcnb.BuildContext, logger bard.Logger) (ConfigurationResolver, error) {
+	md, err := NewBuildpackMetadata(context.Buildpack.Metadata)
+	if err != nil {
+		return ConfigurationResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
+	}
+
+	sort.Slice(md.Configurations, func(i, j int) bool {
+		return md.Configurations[i].Name < md.Configurations[j].Name
+	})
+
+	for _, c := range md.Configurations {
+		s := fmt.Sprintf("Set %s to configure %s", c.Name, c.Description)
+
+		if c.Default != "" {
+			s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(c.Default))
+		}
+
+		logger.Body(s)
+	}
+
+	return ConfigurationResolver{Configurations: md.Configurations}, nil
+}
+
+// Resolve resolves the value for a configuration option, returning the default value and false if it was not set.
+func (c *ConfigurationResolver) Resolve(name string) (string, bool) {
+	if v, ok := os.LookupEnv(name); ok {
+		return v, ok
+	}
+
+	for _, c := range c.Configurations {
+		if c.Name == name {
+			return c.Default, false
+		}
+	}
+
+	return "", false
 }
 
 // DependencyResolver provides functionality for resolving a dependency given a collection of constraints.

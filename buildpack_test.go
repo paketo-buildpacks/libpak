@@ -18,6 +18,7 @@ package libpak_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/buildpacks/libcnb"
@@ -63,8 +64,12 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	context("NewBuildpackMetadata", func() {
 		it("deserializes metadata", func() {
 			actual := map[string]interface{}{
-				"default-versions": map[string]interface{}{
-					"test-key": "test-value",
+				"configurations": []map[string]interface{}{
+					{
+						"name":        "test-name",
+						"default":     "test-default",
+						"description": "test-description",
+					},
 				},
 				"dependencies": []map[string]interface{}{
 					{
@@ -87,8 +92,12 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			}
 
 			expected := libpak.BuildpackMetadata{
-				DefaultVersions: map[string]string{
-					"test-key": "test-value",
+				Configurations: []libpak.BuildpackConfiguration{
+					{
+						Name:        "test-name",
+						Default:     "test-default",
+						Description: "test-description",
+					},
 				},
 				Dependencies: []libpak.BuildpackDependency{
 					{
@@ -111,6 +120,43 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			}
 
 			Expect(libpak.NewBuildpackMetadata(actual)).To(Equal(expected))
+		})
+	})
+
+	context("ConfigurationResolver", func() {
+		var (
+			resolver = libpak.ConfigurationResolver{
+				Configurations: []libpak.BuildpackConfiguration{
+					{Name: "TEST_KEY_1", Default: "test-default-value-1"},
+					{Name: "TEST_KEY_2", Default: "test-default-value-2"},
+				},
+			}
+		)
+
+		it.Before(func() {
+			Expect(os.Setenv("TEST_KEY_1", "test-value-1")).To(Succeed())
+		})
+
+		it.After(func() {
+			Expect(os.Unsetenv("TEST_KEY_1")).To(Succeed())
+		})
+
+		it("returns configured value", func() {
+			v, ok := resolver.Resolve("TEST_KEY_1")
+			Expect(v).To(Equal("test-value-1"))
+			Expect(ok).To(BeTrue())
+		})
+
+		it("returns default value", func() {
+			v, ok := resolver.Resolve("TEST_KEY_2")
+			Expect(v).To(Equal("test-default-value-2"))
+			Expect(ok).To(BeFalse())
+		})
+
+		it("returns unknown value", func() {
+			v, ok := resolver.Resolve("TEST_KEY_3")
+			Expect(v).To(Equal(""))
+			Expect(ok).To(BeFalse())
 		})
 	})
 

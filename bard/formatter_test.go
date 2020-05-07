@@ -44,18 +44,4 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("FormatUserConfig", func() {
-
-		it("formats launch configuration", func() {
-			Expect(bard.FormatUserConfig("TEST_NAME", "", "test-default")).
-				To(Equal(fmt.Sprintf("Set $TEST_NAME to configure. Default %s.", color.New(color.Italic).Sprint("test-default"))))
-		})
-
-		it("formats launch configuration with reason", func() {
-			Expect(bard.FormatUserConfig("TEST_NAME", "test-reason", "test-default")).
-				To(Equal(fmt.Sprintf("Set $TEST_NAME to configure test-reason. Default %s.", color.New(color.Italic).Sprint("test-default"))))
-		})
-
-	})
-
 }

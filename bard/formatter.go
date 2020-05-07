@@ -32,17 +32,3 @@ func FormatIdentity(name string, description string) string {
 
 	return s
 }
-
-// FormatUserConfig formats a name and default value, and an optional reason in the form
-// 'Set $name to configure[ reason]. Default <i>def</i>.
-func FormatUserConfig(name string, reason string, def string) string {
-	s := fmt.Sprintf("Set $%s to configure", name)
-
-	if reason != "" {
-		s += fmt.Sprintf(" %s", reason)
-	}
-
-	s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(def))
-
-	return s
-}
