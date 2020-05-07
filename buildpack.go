@@ -215,7 +215,7 @@ func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (
 		})
 
 		for _, c := range md.Configurations {
-			s := fmt.Sprintf("Set %s to configure %s", c.Name, c.Description)
+			s := fmt.Sprintf("Set $%s to configure %s", c.Name, c.Description)
 
 			if c.Default != "" {
 				s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(c.Default))
