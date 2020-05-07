@@ -203,24 +203,26 @@ type ConfigurationResolver struct {
 
 // NewConfigurationResolver creates a new instance from buildpack metadata.  Logs configuration options to the body
 // level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
-func NewConfigurationResolver(context libcnb.BuildContext, logger bard.Logger) (ConfigurationResolver, error) {
+func NewConfigurationResolver(context libcnb.BuildContext, logger *bard.Logger) (ConfigurationResolver, error) {
 	md, err := NewBuildpackMetadata(context.Buildpack.Metadata)
 	if err != nil {
 		return ConfigurationResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
 	}
 
-	sort.Slice(md.Configurations, func(i, j int) bool {
-		return md.Configurations[i].Name < md.Configurations[j].Name
-	})
+	if logger != nil {
+		sort.Slice(md.Configurations, func(i, j int) bool {
+			return md.Configurations[i].Name < md.Configurations[j].Name
+		})
 
-	for _, c := range md.Configurations {
-		s := fmt.Sprintf("Set %s to configure %s", c.Name, c.Description)
+		for _, c := range md.Configurations {
+			s := fmt.Sprintf("Set %s to configure %s", c.Name, c.Description)
 
-		if c.Default != "" {
-			s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(c.Default))
+			if c.Default != "" {
+				s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(c.Default))
+			}
+
+			logger.Body(s)
 		}
-
-		logger.Body(s)
 	}
 
 	return ConfigurationResolver{Configurations: md.Configurations}, nil
