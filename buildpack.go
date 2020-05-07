@@ -203,8 +203,8 @@ type ConfigurationResolver struct {
 
 // NewConfigurationResolver creates a new instance from buildpack metadata.  Logs configuration options to the body
 // level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
-func NewConfigurationResolver(context libcnb.BuildContext, logger *bard.Logger) (ConfigurationResolver, error) {
-	md, err := NewBuildpackMetadata(context.Buildpack.Metadata)
+func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (ConfigurationResolver, error) {
+	md, err := NewBuildpackMetadata(buildpack.Metadata)
 	if err != nil {
 		return ConfigurationResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
 	}
