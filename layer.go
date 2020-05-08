@@ -63,6 +63,9 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata into %s\n%w", reflect.TypeOf(l.ExpectedMetadata), err)
 	}
 
+	l.Logger.Debugf("Expected metadata: %+v", expected.Interface())
+	l.Logger.Debugf("Actual metadata: %+v", actual)
+
 	if reflect.DeepEqual(expected.Interface(), actual) {
 		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
 		return layer, nil
