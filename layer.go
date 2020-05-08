@@ -17,14 +17,15 @@
 package libpak
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/mitchellh/mapstructure"
 	"github.com/paketo-buildpacks/libpak/bard"
 )
 
@@ -55,18 +56,20 @@ type LayerFunc func() (libcnb.Layer, error)
 
 // Contribute is the function to call when implementing your libcnb.LayerContributor.
 func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
-	expected := reflect.New(reflect.TypeOf(l.ExpectedMetadata))
-	expected.Elem().Set(reflect.ValueOf(l.ExpectedMetadata))
-
-	actual := reflect.New(reflect.TypeOf(l.ExpectedMetadata)).Interface()
-	if err := mapstructure.Decode(layer.Metadata, &actual); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata into %s\n%w", reflect.TypeOf(l.ExpectedMetadata), err)
+	raw := &bytes.Buffer{}
+	if err := toml.NewEncoder(raw).Encode(l.ExpectedMetadata); err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata\n%w", err)
 	}
 
-	l.Logger.Debugf("Expected metadata: %+v", expected.Interface())
-	l.Logger.Debugf("Actual metadata: %+v", actual)
+	expected := map[string]interface{}{}
+	if _, err := toml.Decode(raw.String(), &expected); err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata\n%w", err)
+	}
 
-	if reflect.DeepEqual(expected.Interface(), actual) {
+	l.Logger.Debugf("Expected metadata: %+v", expected)
+	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
+
+	if reflect.DeepEqual(expected, layer.Metadata) {
 		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
 		return layer, nil
 	}
@@ -86,9 +89,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 		return libcnb.Layer{}, err
 	}
 
-	if err := mapstructure.Decode(l.ExpectedMetadata, &layer.Metadata); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata into %+v\n%w", l.ExpectedMetadata, err)
-	}
+	layer.Metadata = expected
 
 	return layer, nil
 }

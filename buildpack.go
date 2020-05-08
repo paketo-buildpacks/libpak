@@ -31,13 +31,13 @@ import (
 type BuildpackConfiguration struct {
 
 	// Default is the default value of the configuration parameter.  Optional.
-	Default string `mapstructure:"default" toml:"default"`
+	Default string `toml:"default"`
 
 	// Description is the description of the configuration parameter.
-	Description string `mapstructure:"description" toml:"description"`
+	Description string `toml:"description"`
 
 	// Name is the environment variable name of the configuration parameter.
-	Name string `mapstructure:"name" toml:"name"`
+	Name string `toml:"name"`
 }
 
 // BuildpackDependencyLicense represents a license that a BuildpackDependency is distributed under.  At least one of
@@ -45,34 +45,34 @@ type BuildpackConfiguration struct {
 type BuildpackDependencyLicense struct {
 
 	// Type is the type of the license.  This is typically the SPDX short identifier.
-	Type string `mapstructure:"type" toml:"type"`
+	Type string `toml:"type"`
 
 	// URI is the location where the license can be found.
-	URI string `mapstructure:"uri" toml:"uri"`
+	URI string `toml:"uri"`
 }
 
 // BuildpackDependency describes a dependency known to the buildpack.
 type BuildpackDependency struct {
 	// ID is the dependency ID.
-	ID string `mapstructure:"id" toml:"id"`
+	ID string `toml:"id"`
 
 	// Name is the dependency name.
-	Name string `mapstructure:"name" toml:"name"`
+	Name string `toml:"name"`
 
 	// Version is the dependency version.
-	Version string `mapstructure:"version" toml:"version"`
+	Version string `toml:"version"`
 
 	// URI is the dependency URI.
-	URI string `mapstructure:"uri" toml:"uri"`
+	URI string `toml:"uri"`
 
 	// SHA256 is the hash of the dependency.
-	SHA256 string `mapstructure:"sha256" toml:"sha256"`
+	SHA256 string `toml:"sha256"`
 
 	// Stacks are the stacks the dependency is compatible with.
-	Stacks []string `mapstructure:"stacks" toml:"stacks"`
+	Stacks []string `toml:"stacks"`
 
 	// Licenses are the stacks the dependency is distributed under.
-	Licenses []BuildpackDependencyLicense `mapstructure:"licenses" toml:"licenses"`
+	Licenses []BuildpackDependencyLicense `toml:"licenses"`
 }
 
 // AsBuildpackPlanEntry renders the dependency as a BuildpackPlanEntry.

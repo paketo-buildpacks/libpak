@@ -235,7 +235,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"version": dependency.Version,
 				"uri":     dependency.URI,
 				"sha256":  dependency.SHA256,
-				"stacks":  dependency.Stacks,
+				"stacks":  []interface{}{dependency.Stacks[0]},
 				"licenses": []map[string]interface{}{
 					{
 						"type": dependency.Licenses[0].Type,
@@ -283,11 +283,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"version": dependency.Version,
 				"uri":     dependency.URI,
 				"sha256":  dependency.SHA256,
-				"stacks":  dependency.Stacks,
-				"licenses": []libpak.BuildpackDependencyLicense{
+				"stacks":  []interface{}{dependency.Stacks[0]},
+				"licenses": []map[string]interface{}{
 					{
-						Type: dependency.Licenses[0].Type,
-						URI:  dependency.Licenses[0].URI,
+						"type": dependency.Licenses[0].Type,
+						"uri":  dependency.Licenses[0].URI,
 					},
 				},
 			}))

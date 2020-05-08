@@ -32,16 +32,16 @@ import (
 type FileEntry struct {
 
 	// Path is the path of a file.
-	Path string `mapstructure:"path" toml:"path"`
+	Path string `toml:"path"`
 
 	// Mode is the mode of the source file.
-	Mode string `mapstructure:"mode" toml:"mode"`
+	Mode string `toml:"mode"`
 
 	// ModificationTime is the modification time of the file.
-	ModificationTime string `mapstructure:"modification-time" toml:"modification-time"`
+	ModificationTime string `toml:"modification-time"`
 
 	// SHA256 is the SHA256 hash of the source file.
-	SHA256 string `mapstructure:",omitempty" toml:"sha256,omitempty"`
+	SHA256 string `toml:"sha256,omitempty"`
 }
 
 type result struct {
