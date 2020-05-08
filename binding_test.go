@@ -50,7 +50,7 @@ func testBinding(t *testing.T, context spec.G, it spec.S) {
 		}
 
 		_, _, err := resolver.Resolve("", "")
-		Expect(err).To(MatchError(fmt.Sprintf("multiple bindings found for , , and [] in %s", resolver.Bindings)))
+		Expect(err).To(MatchError(fmt.Sprintf("multiple bindings found for kind  and provider  in %s", resolver.Bindings)))
 	})
 
 	it("filters on kind", func() {
@@ -85,19 +85,4 @@ func testBinding(t *testing.T, context spec.G, it spec.S) {
 		Expect(b).To(Equal(c))
 	})
 
-	it("filters on all tags", func() {
-		c := libcnb.NewBinding("test-binding-2")
-		c.Metadata[libcnb.BindingTags] = "test-tag-1\ntest-tag-2\ntest-tag-3"
-		c.Metadata["test-key"] = "test-value"
-
-		resolver.Bindings = libcnb.Bindings{
-			libcnb.NewBinding("test-binding-1"),
-			c,
-		}
-
-		b, ok, err := resolver.Resolve("", "", "test-tag-1", "test-tag-2")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
-		Expect(b).To(Equal(c))
-	})
 }

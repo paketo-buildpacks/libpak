@@ -31,10 +31,10 @@ type BindingResolver struct {
 
 // Resolve returns the matching binding within the collection of Bindings.  The candidate set is filtered by the
 // constraints.
-func (b *BindingResolver) Resolve(kind string, provider string, tags ...string) (libcnb.Binding, bool, error) {
+func (b *BindingResolver) Resolve(kind string, provider string) (libcnb.Binding, bool, error) {
 	m := make([]libcnb.Binding, 0)
 	for _, binding := range b.Bindings {
-		if b.matches(binding, kind, provider, tags) {
+		if b.matches(binding, kind, provider) {
 			m = append(m, binding)
 		}
 	}
@@ -42,37 +42,19 @@ func (b *BindingResolver) Resolve(kind string, provider string, tags ...string) 
 	if len(m) < 1 {
 		return libcnb.Binding{}, false, nil
 	} else if len(m) > 1 {
-		return libcnb.Binding{}, false, fmt.Errorf("multiple bindings found for %s, %s, and %s in %+v",
-			kind, provider, tags, b.Bindings)
+		return libcnb.Binding{}, false, fmt.Errorf("multiple bindings found for kind %s and provider %s in %+v", kind, provider, b.Bindings)
 	}
 
 	return m[0], true, nil
 }
 
-func (BindingResolver) contains(candidates []string, value string) bool {
-	for _, c := range candidates {
-		if c == value {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (b BindingResolver) matches(binding libcnb.Binding, kind string, provider string, tags []string) bool {
+func (b BindingResolver) matches(binding libcnb.Binding, kind string, provider string) bool {
 	if kind != "" && kind != binding.Kind() {
 		return false
 	}
 
 	if provider != "" && provider != binding.Provider() {
 		return false
-	}
-
-	candidates := binding.Tags()
-	for _, t := range tags {
-		if !b.contains(candidates, t) {
-			return false
-		}
 	}
 
 	return true
