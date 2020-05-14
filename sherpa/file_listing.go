@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
-	"time"
 )
 
 // FileEntry is metadata about a file.
@@ -36,9 +35,6 @@ type FileEntry struct {
 
 	// Mode is the mode of the source file.
 	Mode string `toml:"mode"`
-
-	// ModificationTime is the modification time of the file.
-	ModificationTime string `toml:"modification-time"`
 
 	// SHA256 is the SHA256 hash of the source file.
 	SHA256 string `toml:"sha256,omitempty"`
@@ -76,7 +72,6 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 				e := FileEntry{
 					Path:             path,
 					Mode:             info.Mode().String(),
-					ModificationTime: info.ModTime().Format(time.RFC3339),
 				}
 
 				if info.IsDir() {
