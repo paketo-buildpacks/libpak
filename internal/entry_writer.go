@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 )
 
+const ModeExecutable = 0100
+
 type EntryWriter struct{}
 
 func (e EntryWriter) Write(source string, destination string) error {
@@ -31,10 +33,26 @@ func (e EntryWriter) Write(source string, destination string) error {
 		return fmt.Errorf("unable to create destination directory %s\n%w", p, err)
 	}
 
+	s, err := os.Lstat(source)
+	if err != nil {
+		return fmt.Errorf("unable to stat file %s\n%w", source, err)
+	}
+
+	if s.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(source)
+		if err != nil {
+			return fmt.Errorf("unable to read link %s\n%w", source, err)
+		}
+
+		if err := os.Symlink(target, destination); err != nil {
+			return fmt.Errorf("unable to create link %s\n%w", destination, err)
+		}
+
+		return nil
+	}
+
 	var perm os.FileMode
-	if x, err := e.isExecutable(source); err != nil {
-		return fmt.Errorf("unable to determine if %s is executable\n%w", source, err)
-	} else if x {
+	if s.Mode()&ModeExecutable == ModeExecutable {
 		perm = 0755
 	} else {
 		perm = 0644
@@ -57,13 +75,4 @@ func (e EntryWriter) Write(source string, destination string) error {
 	}
 
 	return nil
-}
-
-func (EntryWriter) isExecutable(path string) (bool, error) {
-	s, err := os.Stat(path)
-	if err != nil {
-		return false, fmt.Errorf("unable to stat file %s\n%w", path, err)
-	}
-
-	return s.Mode()&0100 == 0100, nil
 }

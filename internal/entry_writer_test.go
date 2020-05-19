@@ -76,4 +76,30 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(s.Mode()&0100 == 0100).To(BeTrue())
 	})
+
+	context("symlink", func() {
+		var (
+			symlinkSource string
+		)
+
+		it.Before(func() {
+			f, err := ioutil.TempFile("", "entry-writer-symlink-source")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(f.Close()).To(Succeed())
+			Expect(os.RemoveAll(f.Name())).To(Succeed())
+			Expect(os.Symlink(source, f.Name())).To(Succeed())
+			symlinkSource = f.Name()
+		})
+
+		it.After(func() {
+			Expect(os.RemoveAll(symlinkSource)).To(Succeed())
+		})
+
+		it("replicates symlink", func() {
+			Expect(writer.Write(symlinkSource, destination)).To(Succeed())
+
+			Expect(os.Readlink(destination)).To(Equal(source))
+		})
+	})
+
 }
