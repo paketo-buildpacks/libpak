@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/buildpacks/libcnb v1.12.0
-	github.com/creack/pty v1.1.10
+	github.com/creack/pty v1.1.11
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.9
 	github.com/mattn/go-colorable v0.1.6 // indirect
@@ -16,5 +16,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3 // indirect
+	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
