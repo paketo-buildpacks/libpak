@@ -185,6 +185,7 @@ func (l Logger) Title(buildpack libcnb.Buildpack) {
 	}
 
 	l.printf(l.title, "\n%s", FormatIdentity(buildpack.Info.Name, buildpack.Info.Version))
+	l.Body(color.New(color.FgBlue, color.Italic).Sprint(buildpack.Info.Homepage))
 }
 
 // TitleWriter returns the configured title writer.

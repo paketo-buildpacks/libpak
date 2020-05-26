@@ -198,8 +198,15 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("writes title log", func() {
-			l.Title(libcnb.Buildpack{Info: libcnb.BuildpackInfo{Name: "test-name", Version: "test-version"}})
-			Expect(b.String()).To(Equal("\x1b[34m\x1b[0m\n\x1b[34m\x1b[1mtest-name\x1b[0m\x1b[34m test-version\x1b[0m\n"))
+			l.Title(libcnb.Buildpack{
+				Info: libcnb.BuildpackInfo{
+					Name:     "test-name",
+					Version:  "test-version",
+					Homepage: "test-homepage",
+				},
+			})
+
+			Expect(b.String()).To(Equal("\x1b[34m\x1b[0m\n\x1b[34m\x1b[1mtest-name\x1b[0m\x1b[34m test-version\x1b[0m\n\x1b[2m    \x1b[34;3mtest-homepage\x1b[0m\x1b[2m\x1b[0m\n"))
 		})
 
 		it("returns title writer", func() {
