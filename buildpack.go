@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/buildpacks/libcnb"
@@ -30,11 +31,17 @@ import (
 // BuildpackConfiguration represents a build or launch configuration parameter.
 type BuildpackConfiguration struct {
 
+	// Build indicates whether the configuration is for build-time.  Optional.
+	Build bool `toml:"build"`
+
 	// Default is the default value of the configuration parameter.  Optional.
 	Default string `toml:"default"`
 
 	// Description is the description of the configuration parameter.
 	Description string `toml:"description"`
+
+	// Launch indicates whether the configuration is for launch-time.  Optional.
+	Launch bool `toml:"launch"`
 
 	// Name is the environment variable name of the configuration parameter.
 	Name string `toml:"name"`
@@ -115,12 +122,20 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 		for _, v := range v.([]map[string]interface{}) {
 			var c BuildpackConfiguration
 
+			if v, ok := v["build"].(bool); ok {
+				c.Build = v
+			}
+
 			if v, ok := v["default"].(string); ok {
 				c.Default = v
 			}
 
 			if v, ok := v["description"].(string); ok {
 				c.Description = v
+			}
+
+			if v, ok := v["launch"].(bool); ok {
+				c.Launch = v
 			}
 
 			if v, ok := v["name"].(string); ok {
@@ -201,6 +216,33 @@ type ConfigurationResolver struct {
 	Configurations []BuildpackConfiguration
 }
 
+type configurationEntry struct {
+	Name        string
+	Description string
+	Value       string
+}
+
+func (c configurationEntry) String(nameLength int, valueLength int) string {
+	sb := strings.Builder{}
+
+	sb.WriteString("$")
+	sb.WriteString(c.Name)
+	for i := 0; i < nameLength-len(c.Name); i++ {
+		sb.WriteString(" ")
+	}
+
+	sb.WriteString("  ")
+	sb.WriteString(c.Value)
+	for i := 0; i < valueLength-len(c.Value); i++ {
+		sb.WriteString(" ")
+	}
+
+	sb.WriteString("  ")
+	sb.WriteString(c.Description)
+
+	return sb.String()
+}
+
 // NewConfigurationResolver creates a new instance from buildpack metadata.  Logs configuration options to the body
 // level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
 func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (ConfigurationResolver, error) {
@@ -209,23 +251,81 @@ func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (
 		return ConfigurationResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
 	}
 
-	if logger != nil {
-		sort.Slice(md.Configurations, func(i, j int) bool {
-			return md.Configurations[i].Name < md.Configurations[j].Name
-		})
+	cr := ConfigurationResolver{Configurations: md.Configurations}
 
-		for _, c := range md.Configurations {
-			s := fmt.Sprintf("Set $%s to configure %s", c.Name, c.Description)
+	if logger == nil {
+		return cr, nil
+	}
 
-			if c.Default != "" {
-				s += fmt.Sprintf(". Default %s.", color.New(color.Italic).Sprint(c.Default))
-			}
+	var (
+		build   []configurationEntry
+		launch  []configurationEntry
+		unknown []configurationEntry
 
-			logger.Body(s)
+		nameLength  int
+		valueLength int
+	)
+
+	sort.Slice(md.Configurations, func(i, j int) bool {
+		return md.Configurations[i].Name < md.Configurations[j].Name
+	})
+
+	for _, c := range md.Configurations {
+		e := configurationEntry{
+			Name:        c.Name,
+			Description: c.Description,
+		}
+		if s, ok := cr.Resolve(c.Name); ok {
+			e.Value = s
+		} else {
+			e.Value = fmt.Sprintf("%s (default)", s)
+		}
+
+		if l := len(e.Name); l > nameLength {
+			nameLength = l
+		}
+
+		if l := len(e.Value); l > valueLength {
+			valueLength = l
+		}
+
+		if c.Build {
+			build = append(build, e)
+		}
+
+		if c.Launch {
+			launch = append(launch, e)
+		}
+
+		if !c.Build && !c.Launch {
+			unknown = append(unknown, e)
 		}
 	}
 
-	return ConfigurationResolver{Configurations: md.Configurations}, nil
+	f := color.New(color.Faint)
+
+	if len(build) > 0 {
+		logger.Header(f.Sprint("Build Configuration:"))
+		for _, e := range build {
+			logger.Body(e.String(nameLength, valueLength))
+		}
+	}
+
+	if len(launch) > 0 {
+		logger.Header(f.Sprint("Launch Configuration:"))
+		for _, e := range launch {
+			logger.Body(e.String(nameLength, valueLength))
+		}
+	}
+
+	if len(unknown) > 0 {
+		logger.Header(f.Sprint("Unknown Configuration:"))
+		for _, e := range unknown {
+			logger.Body(e.String(nameLength, valueLength))
+		}
+	}
+
+	return cr, nil
 }
 
 // Resolve resolves the value for a configuration option, returning the default value and false if it was not set.

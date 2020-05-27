@@ -206,7 +206,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 				},
 			})
 
-			Expect(b.String()).To(Equal("\x1b[34m\x1b[0m\n\x1b[34m\x1b[1mtest-name\x1b[0m\x1b[34m test-version\x1b[0m\n\x1b[2m    \x1b[34;3mtest-homepage\x1b[0m\x1b[2m\x1b[0m\n"))
+			Expect(b.String()).To(Equal("\x1b[34m\x1b[0m\n\x1b[34m\x1b[1mtest-name\x1b[0m\x1b[34m test-version\x1b[0m\n  \x1b[34;2;3mtest-homepage\x1b[0m\n"))
 		})
 
 		it("returns title writer", func() {
