@@ -14,7 +14,8 @@ require (
 	github.com/rakyll/statik v0.1.7
 	github.com/sclevine/spec v1.4.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
+	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200506231410-2ff61e1afc86 // indirect
 )
