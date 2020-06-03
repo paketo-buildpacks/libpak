@@ -237,7 +237,10 @@ func (c configurationEntry) String(nameLength int, valueLength int) string {
 		sb.WriteString(" ")
 	}
 
-	sb.WriteString("  ")
+	if valueLength > 0 {
+		sb.WriteString("  ")
+	}
+
 	sb.WriteString(c.Description)
 
 	return sb.String()
@@ -275,11 +278,7 @@ func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (
 			Name:        c.Name,
 			Description: c.Description,
 		}
-		if s, ok := cr.Resolve(c.Name); ok {
-			e.Value = s
-		} else if s != "" {
-			e.Value = fmt.Sprintf("%s (default)", s)
-		}
+		e.Value, _ = cr.Resolve(c.Name)
 
 		if l := len(e.Name); l > nameLength {
 			nameLength = l
