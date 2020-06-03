@@ -277,7 +277,7 @@ func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (
 		}
 		if s, ok := cr.Resolve(c.Name); ok {
 			e.Value = s
-		} else {
+		} else if s != "" {
 			e.Value = fmt.Sprintf("%s (default)", s)
 		}
 

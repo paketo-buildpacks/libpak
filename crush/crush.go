@@ -42,7 +42,7 @@ func CreateTar(destination io.Writer, source string) error {
 
 		rel, err := filepath.Rel(source, path)
 		if err != nil {
-			return fmt.Errorf("uanble to calculate relative path %s -> %s\n%w", source, path, err)
+			return fmt.Errorf("unable to calculate relative path %s -> %s\n%w", source, path, err)
 		}
 		if info.IsDir() {
 			rel = fmt.Sprintf("%s/", rel)
