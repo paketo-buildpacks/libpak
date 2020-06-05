@@ -49,10 +49,10 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		}
 
 		Expect(dependency.AsBuildpackPlanEntry()).To(Equal(libcnb.BuildpackPlanEntry{
-			Name:    dependency.ID,
-			Version: dependency.Version,
+			Name: dependency.ID,
 			Metadata: map[string]interface{}{
 				"name":     dependency.Name,
+				"version":  dependency.Version,
 				"uri":      dependency.URI,
 				"sha256":   dependency.SHA256,
 				"stacks":   dependency.Stacks,

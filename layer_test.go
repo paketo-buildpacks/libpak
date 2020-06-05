@@ -299,10 +299,10 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			_ = libpak.NewDependencyLayerContributor(dependency, libpak.DependencyCache{}, &plan)
 
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
-				Name:    dependency.ID,
-				Version: dependency.Version,
+				Name: dependency.ID,
 				Metadata: map[string]interface{}{
 					"name":     dependency.Name,
+					"version":  dependency.Version,
 					"uri":      dependency.URI,
 					"sha256":   dependency.SHA256,
 					"stacks":   dependency.Stacks,
@@ -426,8 +426,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			_ = libpak.NewHelperLayerContributor(helper.Name(), "test-name", info, &plan)
 
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
-				Name:    filepath.Base(helper.Name()),
-				Version: info.Version,
+				Name:     filepath.Base(helper.Name()),
+				Metadata: map[string]interface{}{"version": info.Version},
 			}))
 		})
 	})

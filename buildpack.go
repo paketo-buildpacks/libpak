@@ -86,9 +86,9 @@ type BuildpackDependency struct {
 func (b BuildpackDependency) AsBuildpackPlanEntry() libcnb.BuildpackPlanEntry {
 	return libcnb.BuildpackPlanEntry{
 		Name:    b.ID,
-		Version: b.Version,
 		Metadata: map[string]interface{}{
 			"name":     b.Name,
+			"version":  b.Version,
 			"uri":      b.URI,
 			"sha256":   b.SHA256,
 			"stacks":   b.Stacks,

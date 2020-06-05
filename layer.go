@@ -160,8 +160,8 @@ type HelperLayerContributor struct {
 // NewHelperLayerContributor creates a new instance and adds the helper to the Buildpack Plan.
 func NewHelperLayerContributor(path string, name string, info libcnb.BuildpackInfo, plan *libcnb.BuildpackPlan) HelperLayerContributor {
 	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
-		Name:    filepath.Base(path),
-		Version: info.Version,
+		Name:     filepath.Base(path),
+		Metadata: map[string]interface{}{"version": info.Version},
 	})
 
 	return HelperLayerContributor{

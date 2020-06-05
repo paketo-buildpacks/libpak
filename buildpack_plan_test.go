@@ -41,44 +41,6 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 			Expect(libpak.ShallowMerge(a, b)).To(Equal(expected))
 		})
 
-		context("Version", func() {
-			it("chooses neither", func() {
-				a := libcnb.BuildpackPlanEntry{Name: "test-name"}
-				b := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-				expected := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-				Expect(libpak.ShallowMerge(a, b)).To(Equal(expected))
-			})
-
-			it("chooses a", func() {
-				a := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-				b := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-				expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-
-				Expect(libpak.ShallowMerge(a, b)).To(Equal(expected))
-			})
-
-			it("chooses b", func() {
-				a := libcnb.BuildpackPlanEntry{Name: "test-name"}
-				b := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-
-				expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-
-				Expect(libpak.ShallowMerge(a, b)).To(Equal(expected))
-			})
-
-			it("combines a and b with comma", func() {
-				a := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-1"}
-				b := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-2"}
-
-				expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-1,test-version-2"}
-
-				Expect(libpak.ShallowMerge(a, b)).To(Equal(expected))
-			})
-		})
-
 		context("metadata", func() {
 			it("keeps a keys", func() {
 				a := libcnb.BuildpackPlanEntry{
@@ -164,11 +126,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 						},
 						{
 							Name:    "test-name-2",
-							Version: "test-version-2a",
 						},
 						{
 							Name:    "test-name-2",
-							Version: "test-version-2b",
 						},
 					},
 				}
@@ -199,7 +159,6 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				Expect(ok).To(BeTrue())
 				Expect(e).To(Equal(libcnb.BuildpackPlanEntry{
 					Name:    "test-name-2",
-					Version: "test-version-2b",
 				}))
 			})
 		})
@@ -219,68 +178,6 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(ok).To(BeTrue())
 				Expect(e).To(Equal(expected))
-			})
-
-			context("Version", func() {
-				it("chooses neither", func() {
-					a := libcnb.BuildpackPlanEntry{Name: "test-name"}
-					b := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-					resolver := libpak.PlanEntryResolver{
-						Plan: libcnb.BuildpackPlan{Entries: []libcnb.BuildpackPlanEntry{a, b}},
-					}
-					expected := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-					e, ok, err := resolver.Resolve("test-name")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(ok).To(BeTrue())
-					Expect(e).To(Equal(expected))
-				})
-
-				it("chooses a", func() {
-					a := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-					b := libcnb.BuildpackPlanEntry{Name: "test-name"}
-
-					resolver := libpak.PlanEntryResolver{
-						Plan: libcnb.BuildpackPlan{Entries: []libcnb.BuildpackPlanEntry{a, b}},
-					}
-					expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-
-					e, ok, err := resolver.Resolve("test-name")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(ok).To(BeTrue())
-					Expect(e).To(Equal(expected))
-				})
-
-				it("chooses b", func() {
-					a := libcnb.BuildpackPlanEntry{Name: "test-name"}
-					b := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-
-					resolver := libpak.PlanEntryResolver{
-						Plan: libcnb.BuildpackPlan{Entries: []libcnb.BuildpackPlanEntry{a, b}},
-					}
-					expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version"}
-
-					e, ok, err := resolver.Resolve("test-name")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(ok).To(BeTrue())
-					Expect(e).To(Equal(expected))
-				})
-
-				it("combines a and b with comma", func() {
-					a := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-1"}
-					b := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-2"}
-
-					resolver := libpak.PlanEntryResolver{
-						Plan: libcnb.BuildpackPlan{Entries: []libcnb.BuildpackPlanEntry{a, b}},
-					}
-					expected := libcnb.BuildpackPlanEntry{Name: "test-name", Version: "test-version-1,test-version-2"}
-
-					e, ok, err := resolver.Resolve("test-name")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(ok).To(BeTrue())
-					Expect(e).To(Equal(expected))
-				})
 			})
 
 			context("metadata", func() {

@@ -19,7 +19,6 @@ package libpak
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/imdario/mergo"
@@ -59,19 +58,10 @@ func (p *PlanEntryResolver) ResolveWithMerge(name string, f MergeFunc) (libcnb.B
 // ShallowMerge merges two BuildpackPlanEntry's together.  Declared versions are combined with a comma delimiter and
 // metadata is combined with the values for b taking priority over the values of a when the keys are duplicated.
 func ShallowMerge(a, b libcnb.BuildpackPlanEntry) (libcnb.BuildpackPlanEntry, error) {
-	var v []string
-	if a.Version != "" {
-		v = append(v, a.Version)
-	}
-	if b.Version != "" {
-		v = append(v, b.Version)
-	}
-
 	if err := mergo.Merge(&b, a); err != nil {
 		return libcnb.BuildpackPlanEntry{}, fmt.Errorf("unable to merge %+v and %+v\n%w", a, b, err)
 	}
 
-	b.Version = strings.Join(v, ",")
 	return b, nil
 }
 
