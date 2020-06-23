@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	PackageIdDependencyPattern    = `(?m)(.*id[\s]+=[\s]+"%s",[\s]+version=")[^"]+(".*)`
+	PackageIdDependencyPattern    = `(?m)(.*id[\s]+=[\s]+".+-buildpacks/%s",[\s]+version=")[^"]+(".*)`
 	PackageImageDependencyPattern = `(?m)(.*image[\s]+=[\s]+"%s:)[^"]+(".*)`
 	PackageDependencySubstitution = "${1}%s${2}"
 )
@@ -96,7 +96,7 @@ func (p PackageDependency) Update(options ...Option) {
 			return
 		}
 
-		id := strings.Join(strings.Split(p.ID, "/")[1:], "/")
+		id := strings.Join(strings.Split(p.ID, "/")[2:], "/")
 		s := fmt.Sprintf(PackageIdDependencyPattern, id)
 		r, err := regexp.Compile(s)
 		if err != nil {
