@@ -104,7 +104,7 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 	var e []FileEntry
 	for r := range results {
 		if r.err != nil {
-			return nil, fmt.Errorf("unable to create file listing: %s", r.err)
+			return nil, fmt.Errorf("unable to create file listing\n%w", r.err)
 		}
 		e = append(e, r.value)
 	}
