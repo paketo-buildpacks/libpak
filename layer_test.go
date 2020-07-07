@@ -27,8 +27,9 @@ import (
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/paketo-buildpacks/libpak"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak"
 )
 
 func testLayer(t *testing.T, context spec.G, it spec.S) {

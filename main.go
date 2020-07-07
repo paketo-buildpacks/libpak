@@ -18,6 +18,7 @@ package libpak
 
 import (
 	"github.com/buildpacks/libcnb"
+
 	"github.com/paketo-buildpacks/libpak/internal"
 )
 

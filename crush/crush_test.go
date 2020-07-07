@@ -23,8 +23,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/crush"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/crush"
 )
 
 func testCrush(t *testing.T, context spec.G, it spec.S) {

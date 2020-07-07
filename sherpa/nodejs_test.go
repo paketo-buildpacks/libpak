@@ -24,8 +24,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/sherpa"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/sherpa"
 )
 
 func testNodeJS(t *testing.T, context spec.G, it spec.S) {

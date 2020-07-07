@@ -20,8 +20,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/sherpa"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/sherpa"
 
 	_ "github.com/paketo-buildpacks/libpak/sherpa/testdata/statik"
 )

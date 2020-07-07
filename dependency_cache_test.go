@@ -28,8 +28,9 @@ import (
 	"github.com/BurntSushi/toml"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/paketo-buildpacks/libpak"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak"
 )
 
 func testDependencyCache(t *testing.T, context spec.G, it spec.S) {

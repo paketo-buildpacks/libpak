@@ -25,9 +25,10 @@ import (
 	"github.com/buildpacks/libcnb"
 	"github.com/buildpacks/libcnb/mocks"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/paketo-buildpacks/libpak"
 )
 
 func testMain(t *testing.T, context spec.G, it spec.S) {

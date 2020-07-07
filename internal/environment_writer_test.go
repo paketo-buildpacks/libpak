@@ -24,9 +24,10 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/sclevine/spec"
+
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
-	"github.com/sclevine/spec"
 )
 
 func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {

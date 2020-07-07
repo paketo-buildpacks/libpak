@@ -22,8 +22,9 @@ import (
 
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/bard"
 )
 
 func testFormatter(t *testing.T, context spec.G, it spec.S) {

@@ -21,8 +21,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/paketo-buildpacks/libpak/carton"
 	"github.com/spf13/pflag"
+
+	"github.com/paketo-buildpacks/libpak/carton"
 )
 
 func main() {

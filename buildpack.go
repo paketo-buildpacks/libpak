@@ -25,6 +25,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
+
 	"github.com/paketo-buildpacks/libpak/bard"
 )
 

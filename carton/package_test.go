@@ -24,12 +24,13 @@ import (
 
 	"github.com/buildpacks/libcnb/mocks"
 	. "github.com/onsi/gomega"
+	"github.com/sclevine/spec"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/paketo-buildpacks/libpak/carton"
 	cMocks "github.com/paketo-buildpacks/libpak/carton/mocks"
 	"github.com/paketo-buildpacks/libpak/effect"
 	eMocks "github.com/paketo-buildpacks/libpak/effect/mocks"
-	"github.com/sclevine/spec"
-	"github.com/stretchr/testify/mock"
 )
 
 func testPackage(t *testing.T, context spec.G, it spec.S) {
