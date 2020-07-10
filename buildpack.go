@@ -25,6 +25,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
+	"github.com/mattn/go-shellwords"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -86,7 +87,7 @@ type BuildpackDependency struct {
 // AsBuildpackPlanEntry renders the dependency as a BuildpackPlanEntry.
 func (b BuildpackDependency) AsBuildpackPlanEntry() libcnb.BuildpackPlanEntry {
 	return libcnb.BuildpackPlanEntry{
-		Name:    b.ID,
+		Name: b.ID,
 		Metadata: map[string]interface{}{
 			"name":     b.Name,
 			"version":  b.Version,
@@ -275,11 +276,17 @@ func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (
 	})
 
 	for _, c := range md.Configurations {
+		s, _ := cr.Resolve(c.Name)
+		p, err := shellwords.Parse(s)
+		if err != nil {
+			return ConfigurationResolver{}, fmt.Errorf("unable to parse value\n%w", err)
+		}
+
 		e := configurationEntry{
 			Name:        c.Name,
 			Description: c.Description,
+			Value:       strings.Join(p, " "),
 		}
-		e.Value, _ = cr.Resolve(c.Name)
 
 		if l := len(e.Name); l > nameLength {
 			nameLength = l

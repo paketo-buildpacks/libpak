@@ -10,6 +10,7 @@ require (
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.9
 	github.com/mattn/go-colorable v0.1.7 // indirect
+	github.com/mattn/go-shellwords v1.0.10
 	github.com/onsi/gomega v1.10.1
 	github.com/rakyll/statik v0.1.7
 	github.com/sclevine/spec v1.4.0
