@@ -18,6 +18,7 @@ package libpak
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/buildpacks/libcnb"
 )
@@ -34,7 +35,7 @@ type BindingResolver struct {
 func (b *BindingResolver) Resolve(bindingType string) (libcnb.Binding, bool, error) {
 	m := make([]libcnb.Binding, 0)
 	for _, binding := range b.Bindings {
-		if binding.Type == bindingType {
+		if strings.ToLower(binding.Type) == strings.ToLower(bindingType) {
 			m = append(m, binding)
 		}
 	}
