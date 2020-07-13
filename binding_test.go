@@ -39,48 +39,30 @@ func testBinding(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("returns error if binding does not exist", func() {
-		_, ok, err := resolver.Resolve("", "")
+		_, ok, err := resolver.Resolve("test-type")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ok).To(BeFalse())
 	})
 
 	it("returns error if multiple bindings exist", func() {
 		resolver.Bindings = libcnb.Bindings{
-			libcnb.NewBinding("test-binding-1"),
-			libcnb.NewBinding("test-binding-2"),
+			libcnb.NewBinding("test-binding-1", "test-path", map[string]string{libcnb.BindingType: "test-type"}),
+			libcnb.NewBinding("test-binding-2", "test-path", map[string]string{libcnb.BindingType: "test-type"}),
 		}
 
-		_, _, err := resolver.Resolve("", "")
-		Expect(err).To(MatchError(fmt.Sprintf("multiple bindings found for kind  and provider  in %s", resolver.Bindings)))
+		_, _, err := resolver.Resolve("test-type")
+		Expect(err).To(MatchError(fmt.Sprintf("multiple bindings found for type test-type in %s", resolver.Bindings)))
 	})
 
-	it("filters on kind", func() {
-		c := libcnb.NewBinding("test-binding-2")
-		c.Metadata[libcnb.BindingKind] = "test-kind"
-		c.Metadata["test-key"] = "test-value"
+	it("filters on type", func() {
+		c := libcnb.NewBinding("test-binding-2", "test-path", map[string]string{libcnb.BindingType: "test-type-2"})
 
 		resolver.Bindings = libcnb.Bindings{
-			libcnb.NewBinding("test-binding-1"),
+			libcnb.NewBinding("test-binding-1", "test-path", map[string]string{libcnb.BindingType: "test-type-1"}),
 			c,
 		}
 
-		b, ok, err := resolver.Resolve("test-kind", "")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue())
-		Expect(b).To(Equal(c))
-	})
-
-	it("filters on provider", func() {
-		c := libcnb.NewBinding("test-binding-2")
-		c.Metadata[libcnb.BindingProvider] = "test-provider"
-		c.Metadata["test-key"] = "test-value"
-
-		resolver.Bindings = libcnb.Bindings{
-			libcnb.NewBinding("test-binding-1"),
-			c,
-		}
-
-		b, ok, err := resolver.Resolve("", "test-provider")
+		b, ok, err := resolver.Resolve("test-type-2")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ok).To(BeTrue())
 		Expect(b).To(Equal(c))
