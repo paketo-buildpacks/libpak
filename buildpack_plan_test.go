@@ -126,10 +126,10 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 							Name: "test-name-1",
 						},
 						{
-							Name:    "test-name-2",
+							Name: "test-name-2",
 						},
 						{
-							Name:    "test-name-2",
+							Name: "test-name-2",
 						},
 					},
 				}
@@ -159,7 +159,7 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(ok).To(BeTrue())
 				Expect(e).To(Equal(libcnb.BuildpackPlanEntry{
-					Name:    "test-name-2",
+					Name: "test-name-2",
 				}))
 			})
 		})

@@ -44,4 +44,3 @@ func NodeJSMainModule(path string) (string, error) {
 
 	return m, nil
 }
-

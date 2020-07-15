@@ -32,7 +32,7 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		path  string
+		path string
 	)
 
 	it.Before(func() {
