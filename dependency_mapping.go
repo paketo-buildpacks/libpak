@@ -17,20 +17,12 @@
 package libpak
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
-
-// MappingsFile defines dependency mappings for a set of buildpacks
-type MappingsFile struct {
-	BuildpackMappings []BuildpackMappings `toml:"buildpacks"`
-}
-
-type BuildpackMappings struct {
-	BuildpackID string              `toml:"id"`
-	Mappings    []DependencyMapping `toml:"mappings"`
-}
 
 // DependencyMapping defines a new URI for a dependency with the given ID and Version
 type DependencyMapping struct {
@@ -39,16 +31,29 @@ type DependencyMapping struct {
 	URI     string `toml:"uri"`
 }
 
-// ReadMappingsFile read MappingsFile from path
-func ReadMappingsFile(path string) (MappingsFile, error) {
-	mappingsFile := MappingsFile{}
-	_, err := toml.DecodeFile(path, &mappingsFile)
-	if err != nil {
-		return MappingsFile{}, err
+// ReadMappingsForBuildpack reads the mappings for the buildpack with ID buildpackID from the file at path
+func ReadMappingsForBuildpack(path string, buildpackID string) ([]DependencyMapping, error) {
+	mappingsFile := struct {
+		Buildpacks []struct {
+			ID       string              `toml:"id"`
+			Mappings []DependencyMapping `toml:"mappings"`
+		} `toml:"buildpacks"`
+	}{}
+	if _, err := toml.DecodeFile(path, &mappingsFile); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("unable to decode dependency mappings file%s\n%w", path, err)
 	}
-	return mappingsFile, nil
+	for _, bps := range mappingsFile.Buildpacks {
+		if bps.ID == buildpackID {
+			return bps.Mappings, nil
+		}
+	}
+	return nil, nil
 }
 
+// DefaultMappingsFilePath returns default path for mappings file
 func DefaultMappingsFilePath(platformDir string) string {
 	return filepath.Join(platformDir, "dependencies", "mappings.toml")
 }

@@ -37,14 +37,13 @@ import (
 func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
-
-		dependencyCache libpak.DependencyCache
 	)
 
 	context("NewDependencyCache", func() {
+		var ctx libcnb.BuildContext
+
 		it.Before(func() {
-			var err error
-			dependencyCache, err = libpak.NewDependencyCache(libcnb.BuildContext{
+			ctx = libcnb.BuildContext{
 				Buildpack: libcnb.Buildpack{
 					Info: libcnb.BuildpackInfo{
 						ID:      "some-buildpack-id",
@@ -52,41 +51,48 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 					},
 					Path: "some/path",
 				},
-				Platform: libcnb.Platform{
-					Path: filepath.Join("testdata", "platform"),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
+			}
 		})
 
-		it("defaults CachePath to <BUILDPACK_PATH>/dependencies", func() {
+		it("set default CachePath and UserAgent", func() {
+			dependencyCache, err := libpak.NewDependencyCache(ctx)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(dependencyCache.CachePath).To(Equal(filepath.Join("some/path/dependencies")))
-		})
-		it("sets the user agent to <BUILDPACK_ID>/<BUILDPACK_VERSION>", func() {
 			Expect(dependencyCache.UserAgent).To(Equal("some-buildpack-id/some-buildpack-version"))
+			Expect(dependencyCache.Mappings).To(BeEmpty())
 		})
-		it("reads mappings for buildpack from the platform dir", func() {
-			Expect(dependencyCache.Mappings).To(ConsistOf(
-				libpak.DependencyMapping{
-					ID:      "some-dependency-id",
-					Version: "some-dependency-version",
-					URI:     "some-uri",
-				},
-				libpak.DependencyMapping{
-					ID:      "other-dependency-id",
-					Version: "other-dependency-version",
-					URI:     "other-uri",
-				},
-			))
+
+		context("mappings file exists in the platform dir", func() {
+			it.Before(func() {
+				ctx.Platform.Path = filepath.Join("testdata", "platform")
+			})
+
+			it("reads mappings for buildpack", func() {
+				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dependencyCache.Mappings).To(ConsistOf(
+					libpak.DependencyMapping{
+						ID:      "some-dependency-id",
+						Version: "some-dependency-version",
+						URI:     "some-uri",
+					},
+					libpak.DependencyMapping{
+						ID:      "other-dependency-id",
+						Version: "other-dependency-version",
+						URI:     "other-uri",
+					},
+				))
+			})
 		})
 	})
 
 	context("artifacts", func() {
 		var (
-			cachePath    string
-			downloadPath string
-			dependency   libpak.BuildpackDependency
-			server       *ghttp.Server
+			cachePath       string
+			downloadPath    string
+			dependency      libpak.BuildpackDependency
+			dependencyCache libpak.DependencyCache
+			server          *ghttp.Server
 		)
 
 		it.Before(func() {

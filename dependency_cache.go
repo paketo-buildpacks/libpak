@@ -49,7 +49,7 @@ type DependencyCache struct {
 	// UserAgent is the User-Agent string to use with requests.
 	UserAgent string
 
-	// DependencyMap optionally provides override URIs for BuildpackDependencies
+	// Mappings optionally provides URIs mapping for BuildpackDependencies
 	Mappings []DependencyMapping
 }
 
@@ -57,22 +57,20 @@ type DependencyCache struct {
 // agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
 // Mappings will be read from <PLATFORM_DIR>/dependencies/mappings.toml
 func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
-	mappingsFile, err := ReadMappingsFile(DefaultMappingsFilePath(context.Platform.Path))
-	if err != nil {
-		return DependencyCache{}, err
-	}
-	var mappings []DependencyMapping
-	for _, bpm := range mappingsFile.BuildpackMappings {
-		if bpm.BuildpackID == context.Buildpack.Info.ID {
-			mappings = bpm.Mappings
-		}
-	}
-	return DependencyCache{
+	cache := DependencyCache{
 		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
 		DownloadPath: os.TempDir(),
 		UserAgent:    fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
-		Mappings:     mappings,
-	}, nil
+	}
+	mappings, err := ReadMappingsForBuildpack(
+		DefaultMappingsFilePath(context.Platform.Path),
+		context.Buildpack.Info.ID,
+	)
+	if err != nil {
+		return DependencyCache{}, fmt.Errorf("unable to read dependency mappings file\n%w", err)
+	}
+	cache.Mappings = mappings
+	return cache, nil
 }
 
 // RequestModifierFunc is a callback that enables modification of a download request before it is sent.  It is often
