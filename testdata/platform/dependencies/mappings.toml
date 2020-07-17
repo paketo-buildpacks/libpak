@@ -1,0 +1,20 @@
+[[buildpacks]]
+  id = "some-buildpack-id"
+
+  [[buildpacks.mappings]]
+   id = "some-dependency-id"
+   version = "some-dependency-version"
+   uri = "some-uri"
+
+  [[buildpacks.mappings]]
+   id = "other-dependency-id"
+   version = "other-dependency-version"
+   uri = "other-uri"
+
+[[buildpacks]]
+  id = "exclude-buildpack-id"
+
+  [[buildpacks.mappings]]
+   id = "exclude-dependency-id"
+   version = "exclude-dependency-version"
+   uri = "exclude-uri"

@@ -48,16 +48,29 @@ type DependencyCache struct {
 
 	// UserAgent is the User-Agent string to use with requests.
 	UserAgent string
+
+	// Mappings optionally provides URIs mapping for BuildpackDependencies
+	Mappings []DependencyMapping
 }
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
 // agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
-func NewDependencyCache(buildpack libcnb.Buildpack) DependencyCache {
-	return DependencyCache{
-		CachePath:    filepath.Join(buildpack.Path, "dependencies"),
+// Mappings will be read from <PLATFORM_DIR>/dependencies/mappings.toml
+func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
+	cache := DependencyCache{
+		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
 		DownloadPath: os.TempDir(),
-		UserAgent:    fmt.Sprintf("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
+		UserAgent:    fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
 	}
+	mappings, err := ReadMappingsForBuildpack(
+		DefaultMappingsFilePath(context.Platform.Path),
+		context.Buildpack.Info.ID,
+	)
+	if err != nil {
+		return DependencyCache{}, fmt.Errorf("unable to read dependency mappings file\n%w", err)
+	}
+	cache.Mappings = mappings
+	return cache, nil
 }
 
 // RequestModifierFunc is a callback that enables modification of a download request before it is sent.  It is often
@@ -90,16 +103,23 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 		actual   BuildpackDependency
 		artifact string
 		file     string
+		uri      = dependency.URI
 	)
+	for _, override := range d.Mappings {
+		if override.ID == dependency.ID && override.Version == dependency.Version {
+			uri = override.URI
+			break
+		}
+	}
 
 	if dependency.SHA256 == "" {
 		d.Logger.Headerf("%s Dependency has no SHA256. Skipping cache.",
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
-		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), dependency.URI)
-		artifact = filepath.Join(d.DownloadPath, filepath.Base(dependency.URI))
-		if err := d.download(dependency.URI, artifact, f); err != nil {
-			return nil, fmt.Errorf("unable to download %s\n%w", dependency.URI, err)
+		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
+		artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
+		if err := d.download(uri, artifact, f); err != nil {
+			return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 		}
 
 		return os.Open(artifact)
@@ -112,7 +132,7 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 
 	if reflect.DeepEqual(dependency, actual) {
 		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
-		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(dependency.URI)))
+		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(uri)))
 	}
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
@@ -122,13 +142,13 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 
 	if reflect.DeepEqual(dependency, actual) {
 		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
-		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(dependency.URI)))
+		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri)))
 	}
 
-	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), dependency.URI)
-	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(dependency.URI))
-	if err := d.download(dependency.URI, artifact, f); err != nil {
-		return nil, fmt.Errorf("unable to download %s\n%w", dependency.URI, err)
+	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
+	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri))
+	if err := d.download(uri, artifact, f); err != nil {
+		return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 	}
 
 	d.Logger.Body("Verifying checksum")

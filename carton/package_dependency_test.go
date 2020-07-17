@@ -81,8 +81,8 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 
 		p := carton.PackageDependency{
 			BuilderPath: path,
-			ID:            "gcr.io/paketo-buildpacks/test-1",
-			Version:       "test-version-3",
+			ID:          "gcr.io/paketo-buildpacks/test-1",
+			Version:     "test-version-3",
 		}
 
 		p.Update(carton.WithExitHandler(exitHandler))
@@ -101,8 +101,8 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 
 		p := carton.PackageDependency{
 			PackagePath: path,
-			ID:            "gcr.io/paketo-buildpacks/test-1",
-			Version:       "test-version-3",
+			ID:          "gcr.io/paketo-buildpacks/test-1",
+			Version:     "test-version-3",
 		}
 
 		p.Update(carton.WithExitHandler(exitHandler))

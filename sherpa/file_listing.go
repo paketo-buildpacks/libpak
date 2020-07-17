@@ -70,8 +70,8 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 				}
 
 				e := FileEntry{
-					Path:             path,
-					Mode:             info.Mode().String(),
+					Path: path,
+					Mode: info.Mode().String(),
 				}
 
 				if info.IsDir() {
