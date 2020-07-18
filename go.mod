@@ -8,7 +8,7 @@ require (
 	github.com/buildpacks/libcnb v1.15.2
 	github.com/creack/pty v1.1.11
 	github.com/heroku/color v0.0.6
-	github.com/imdario/mergo v0.3.9
+	github.com/imdario/mergo v0.3.10
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-shellwords v1.0.10
 	github.com/onsi/gomega v1.10.1
