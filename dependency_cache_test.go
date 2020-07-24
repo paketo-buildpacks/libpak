@@ -59,29 +59,62 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dependencyCache.CachePath).To(Equal(filepath.Join("some/path/dependencies")))
 			Expect(dependencyCache.UserAgent).To(Equal("some-buildpack-id/some-buildpack-version"))
-			Expect(dependencyCache.Mappings).To(BeEmpty())
+			Expect(dependencyCache.Mappings).To(Equal(map[string]string{}))
 		})
 
-		context("mappings file exists in the platform dir", func() {
+		context("bindings with type dependencies exist", func() {
 			it.Before(func() {
-				ctx.Platform.Path = filepath.Join("testdata", "platform")
+				ctx.Platform.Bindings = libcnb.Bindings{
+					{
+						Type: "dependency-mapping",
+						Secret: map[string]string{
+							"some-digest1": "some-uri1",
+							"some-digest2": "some-uri2",
+						},
+					},
+					{
+						Type: "not-dependency-mapping",
+						Secret: map[string]string{
+							"some-thing": "other-thing",
+						},
+					},
+					{
+						Type: "dependency-mapping",
+						Secret: map[string]string{
+							"some-digest3": "some-uri3",
+							"some-digest4": "some-uri4",
+						},
+					},
+				}
 			})
 
-			it("reads mappings for buildpack", func() {
+			it("sets Mappings", func() {
 				dependencyCache, err := libpak.NewDependencyCache(ctx)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(dependencyCache.Mappings).To(ConsistOf(
-					libpak.DependencyMapping{
-						ID:      "some-dependency-id",
-						Version: "some-dependency-version",
-						URI:     "some-uri",
-					},
-					libpak.DependencyMapping{
-						ID:      "other-dependency-id",
-						Version: "other-dependency-version",
-						URI:     "other-uri",
+				Expect(dependencyCache.Mappings).To(Equal(
+					map[string]string{
+						"some-digest1": "some-uri1",
+						"some-digest2": "some-uri2",
+						"some-digest3": "some-uri3",
+						"some-digest4": "some-uri4",
 					},
 				))
+			})
+
+			context("multiple bindings map the same digest", func() {
+				it.Before(func() {
+					ctx.Platform.Bindings = append(ctx.Platform.Bindings, libcnb.Binding{
+						Type: "dependency-mapping",
+						Secret: map[string]string{
+							"some-digest1": "other-uri",
+						},
+					})
+				})
+
+				it("errors", func() {
+					_, err := libpak.NewDependencyCache(ctx)
+					Expect(err).To(HaveOccurred())
+				})
 			})
 		})
 	})
@@ -192,12 +225,8 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 		context("uri is overridden", func() {
 			it.Before(func() {
-				dependencyCache.Mappings = []libpak.DependencyMapping{
-					{
-						ID:      dependency.ID,
-						Version: dependency.Version,
-						URI:     fmt.Sprintf("%s/override-path", server.URL()),
-					},
+				dependencyCache.Mappings = map[string]string{
+					"sha256:" + dependency.SHA256: fmt.Sprintf("%s/override-path", server.URL()),
 				}
 			})
 
