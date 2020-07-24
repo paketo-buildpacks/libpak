@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
@@ -50,27 +51,40 @@ type DependencyCache struct {
 	UserAgent string
 
 	// Mappings optionally provides URIs mapping for BuildpackDependencies
-	Mappings []DependencyMapping
+	Mappings map[string]string
 }
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
 // agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
-// Mappings will be read from <PLATFORM_DIR>/dependencies/mappings.toml
+// Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings"
 func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 	cache := DependencyCache{
 		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
 		DownloadPath: os.TempDir(),
 		UserAgent:    fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
+		Mappings:     map[string]string{},
 	}
-	mappings, err := ReadMappingsForBuildpack(
-		DefaultMappingsFilePath(context.Platform.Path),
-		context.Buildpack.Info.ID,
-	)
+	mappings, err := mappingsFromBindings(context.Platform.Bindings)
 	if err != nil {
-		return DependencyCache{}, fmt.Errorf("unable to read dependency mappings file\n%w", err)
+		return DependencyCache{}, fmt.Errorf("unable to process dependency-mapping bindings\n%w", err)
 	}
 	cache.Mappings = mappings
 	return cache, nil
+}
+
+func mappingsFromBindings(bindings libcnb.Bindings) (map[string]string, error) {
+	mappings := map[string]string{}
+	for _, binding := range bindings {
+		if strings.ToLower(binding.Type) == "dependency-mapping" {
+			for digest, uri := range binding.Secret {
+				if _, ok := mappings[digest]; ok {
+					return nil, fmt.Errorf("multiple mappings for digest %q", digest)
+				}
+				mappings[digest] = uri
+			}
+		}
+	}
+	return mappings, nil
 }
 
 // RequestModifierFunc is a callback that enables modification of a download request before it is sent.  It is often
@@ -105,9 +119,10 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 		file     string
 		uri      = dependency.URI
 	)
-	for _, override := range d.Mappings {
-		if override.ID == dependency.ID && override.Version == dependency.Version {
-			uri = override.URI
+
+	for d, u := range d.Mappings {
+		if d == "sha256:"+dependency.SHA256 {
+			uri = u
 			break
 		}
 	}
