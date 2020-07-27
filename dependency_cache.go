@@ -121,7 +121,7 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 	)
 
 	for d, u := range d.Mappings {
-		if d == "sha256:"+dependency.SHA256 {
+		if d == dependency.SHA256 {
 			uri = u
 			break
 		}

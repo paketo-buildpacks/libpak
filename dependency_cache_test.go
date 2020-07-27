@@ -226,7 +226,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		context("uri is overridden", func() {
 			it.Before(func() {
 				dependencyCache.Mappings = map[string]string{
-					"sha256:" + dependency.SHA256: fmt.Sprintf("%s/override-path", server.URL()),
+					dependency.SHA256: fmt.Sprintf("%s/override-path", server.URL()),
 				}
 			})
 
