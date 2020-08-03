@@ -117,13 +117,17 @@ type DependencyLayerContributor struct {
 
 // NewDependencyLayerContributor creates a new instance and adds the dependency to the Buildpack Plan.
 func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, plan *libcnb.BuildpackPlan) DependencyLayerContributor {
-	plan.Entries = append(plan.Entries, dependency.AsBuildpackPlanEntry())
-
-	return DependencyLayerContributor{
+	c := DependencyLayerContributor{
 		Dependency:       dependency,
 		DependencyCache:  cache,
 		LayerContributor: NewLayerContributor(fmt.Sprintf("%s %s", dependency.Name, dependency.Version), dependency),
 	}
+
+	entry := dependency.AsBuildpackPlanEntry()
+	entry.Metadata["layer"] = c.LayerName()
+	plan.Entries = append(plan.Entries, entry)
+
+	return c
 }
 
 // DependencyLayerFunc is a callback function that is invoked when a dependency needs to be contributed.
@@ -144,6 +148,11 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 	})
 }
 
+// LayerName returns the conventional name of the layer for this contributor
+func (d *DependencyLayerContributor) LayerName() string {
+	return d.Dependency.ID
+}
+
 // HelperLayerContributor is a helper for implementing a libcnb.LayerContributor for a buildpack helper application in
 // order to get consistent logging and avoidance.
 type HelperLayerContributor struct {
@@ -160,15 +169,17 @@ type HelperLayerContributor struct {
 
 // NewHelperLayerContributor creates a new instance and adds the helper to the Buildpack Plan.
 func NewHelperLayerContributor(path string, name string, info libcnb.BuildpackInfo, plan *libcnb.BuildpackPlan) HelperLayerContributor {
-	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
-		Name:     filepath.Base(path),
-		Metadata: map[string]interface{}{"version": info.Version},
-	})
-
-	return HelperLayerContributor{
+	c := HelperLayerContributor{
 		Path:             path,
 		LayerContributor: NewLayerContributor(name, info),
 	}
+
+	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
+		Name:     filepath.Base(path),
+		Metadata: map[string]interface{}{"layer": c.LayerName(), "version": info.Version},
+	})
+
+	return c
 }
 
 // DependencyLayerFunc is a callback function that is invoked when a helper needs to be contributed.
@@ -186,4 +197,9 @@ func (h *HelperLayerContributor) Contribute(layer libcnb.Layer, f HelperLayerFun
 
 		return f(in)
 	})
+}
+
+// LayerName returns the conventional name of the layer for this contributor
+func (h *HelperLayerContributor) LayerName() string {
+	return filepath.Base(h.Path)
 }

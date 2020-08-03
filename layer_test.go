@@ -304,6 +304,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Metadata: map[string]interface{}{
 					"name":     dependency.Name,
 					"version":  dependency.Version,
+					"layer":    dependency.ID,
 					"uri":      dependency.URI,
 					"sha256":   dependency.SHA256,
 					"stacks":   dependency.Stacks,
@@ -428,7 +429,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
 				Name:     filepath.Base(helper.Name()),
-				Metadata: map[string]interface{}{"version": info.Version},
+				Metadata: map[string]interface{}{"layer": filepath.Base(helper.Name()), "version": info.Version},
 			}))
 		})
 	})
