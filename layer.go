@@ -22,10 +22,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
+
+	"github.com/buildpacks/libcnb"
+
+	"github.com/paketo-buildpacks/libpak/sherpa"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -165,28 +169,33 @@ type HelperLayerContributor struct {
 
 	// Logger is the logger to use.
 	Logger bard.Logger
+
+	// Names are the names of the helpers to create
+	Names []string
 }
 
 // NewHelperLayerContributor creates a new instance and adds the helper to the Buildpack Plan.
-func NewHelperLayerContributor(path string, name string, info libcnb.BuildpackInfo, plan *libcnb.BuildpackPlan) HelperLayerContributor {
+func NewHelperLayerContributor(buildpack libcnb.Buildpack, plan *libcnb.BuildpackPlan, names ...string) HelperLayerContributor {
 	c := HelperLayerContributor{
-		Path:             path,
-		LayerContributor: NewLayerContributor(name, info),
+		Path:             filepath.Join(buildpack.Path, "bin", "helper"),
+		LayerContributor: NewLayerContributor("Launch Helper", buildpack.Info),
+		Names:            names,
 	}
 
 	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
-		Name:     filepath.Base(path),
-		Metadata: map[string]interface{}{"layer": c.LayerName(), "version": info.Version},
+		Name: "helper",
+		Metadata: map[string]interface{}{
+			"layer":   c.Name(),
+			"names":   names,
+			"version": buildpack.Info.Version,
+		},
 	})
 
 	return c
 }
 
-// DependencyLayerFunc is a callback function that is invoked when a helper needs to be contributed.
-type HelperLayerFunc func(artifact *os.File) (libcnb.Layer, error)
-
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
-func (h *HelperLayerContributor) Contribute(layer libcnb.Layer, f HelperLayerFunc) (libcnb.Layer, error) {
+func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	h.LayerContributor.Logger = h.Logger
 
 	return h.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
@@ -194,12 +203,45 @@ func (h *HelperLayerContributor) Contribute(layer libcnb.Layer, f HelperLayerFun
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to open %s\n%w", h.Path, err)
 		}
+		defer in.Close()
 
-		return f(in)
+		out := filepath.Join(layer.Path, "helper")
+		if err := sherpa.CopyFile(in, out); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to copy %s to %s", h.Path, out)
+		}
+
+		var p []string
+		for _, n := range h.Names {
+			link := layer.Exec.FilePath(n)
+			h.Logger.Bodyf("Creating %s", link)
+
+			f := filepath.Dir(link)
+			if err := os.MkdirAll(f, 0755); err != nil {
+				return libcnb.Layer{}, fmt.Errorf("unable to create %s\n%w", f, err)
+			}
+
+			if err := os.Symlink(out, link); err != nil {
+				return libcnb.Layer{}, fmt.Errorf("unable to link %s to %s\n%w", out, link, err)
+			}
+
+			p = append(p,
+				"exec 4<&1",
+				fmt.Sprintf(`for_export=$(%s 3>&1 >&4) || exit $?`, link),
+				"exec 4<&-",
+				"set -a",
+				`eval "$for_export"`,
+				"set +a",
+			)
+		}
+
+		layer.Profile.Add("helper", strings.Join(p, "\n"))
+
+		layer.Launch = true
+		return layer, nil
 	})
 }
 
-// LayerName returns the conventional name of the layer for this contributor
-func (h *HelperLayerContributor) LayerName() string {
+// Name returns the conventional name of the layer for this contributor
+func (h HelperLayerContributor) Name() string {
 	return filepath.Base(h.Path)
 }

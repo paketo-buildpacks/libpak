@@ -19,5 +19,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/sys v0.0.0-20200817155316-9781c653f443 // indirect
+	golang.org/x/tools v0.0.0-20200818005847-188abfa75333
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

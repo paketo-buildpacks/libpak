@@ -17,16 +17,36 @@
 package sherpa
 
 import (
+	"io"
+
 	"github.com/buildpacks/libcnb"
 )
 
 // Config is an object that contains configurable properties for execution.
 type Config struct {
+	arguments   []string
+	execdWriter io.Writer
 	exitHandler libcnb.ExitHandler
 }
 
 // Option is a function for configuring a Config instance.
 type Option func(config Config) Config
+
+// WithArguments creates an Option that sets a collection of arguments.
+func WithArguments(arguments []string) Option {
+	return func(config Config) Config {
+		config.arguments = arguments
+		return config
+	}
+}
+
+// WithExecdWriter creates an Option that sets an exec.d Writer implementation.
+func WithExecdWriter(writer io.Writer) Option {
+	return func(config Config) Config {
+		config.execdWriter = writer
+		return config
+	}
+}
 
 // WithExitHandler creates an Option that sets an ExitHandler implementation.
 func WithExitHandler(exitHandler libcnb.ExitHandler) Option {

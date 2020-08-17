@@ -37,18 +37,21 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		Expect = NewWithT(t).Expect
 
 		layer libcnb.Layer
-		path  string
 	)
 
 	it.Before(func() {
 		var err error
 
-		path, err = ioutil.TempDir("", "layer")
+		layer.Path, err = ioutil.TempDir("", "layer")
 		Expect(err).NotTo(HaveOccurred())
+
+		layer.Exec.Path = layer.Path
+		layer.Metadata = map[string]interface{}{}
+		layer.Profile = libcnb.Profile{}
 	})
 
 	it.After(func() {
-		Expect(os.RemoveAll(path)).To(Succeed())
+		Expect(os.RemoveAll(layer.Path)).To(Succeed())
 	})
 
 	context("LayerContributor", func() {
@@ -57,8 +60,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			layer.Metadata = map[string]interface{}{}
-			layer.Path = path
 			lc.ExpectedMetadata = map[string]interface{}{
 				"alpha": "test-alpha",
 				"bravo": map[string]interface{}{
@@ -167,10 +168,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			dlc.LayerContributor.ExpectedMetadata = dependency
 
-			layer.Path = path
 			dlc.Dependency = dependency
-			dlc.DependencyCache.CachePath = path
-			dlc.DependencyCache.DownloadPath = path
+			dlc.DependencyCache.CachePath = layer.Path
+			dlc.DependencyCache.DownloadPath = layer.Path
 		})
 
 		it.After(func() {
@@ -316,120 +316,114 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 	context("HelperLayerContributor", func() {
 		var (
-			helper *os.File
-			hlc    libpak.HelperLayerContributor
-			info   libcnb.BuildpackInfo
+			buildpack libcnb.Buildpack
+			hlc       libpak.HelperLayerContributor
 		)
 
 		it.Before(func() {
 			var err error
-			helper, err = ioutil.TempFile("", "layer")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(helper.Close()).To(Succeed())
 
-			info = libcnb.BuildpackInfo{
+			buildpack.Info = libcnb.BuildpackInfo{
 				ID:       "test-id",
 				Name:     "test-name",
 				Version:  "test-version",
 				Homepage: "test-homepage",
 			}
 
-			layer.Metadata = map[string]interface{}{}
-			layer.Path = path
+			buildpack.Path, err = ioutil.TempDir("", "buildpack")
+			Expect(err).NotTo(HaveOccurred())
 
-			hlc.LayerContributor.ExpectedMetadata = info
-			hlc.Path = helper.Name()
+			file := filepath.Join(buildpack.Path, "bin")
+			Expect(os.MkdirAll(file, 0755)).To(Succeed())
+
+			file = filepath.Join(file, "helper")
+			Expect(ioutil.WriteFile(file, []byte{}, 0755)).To(Succeed())
+
+			hlc.Path = file
+			hlc.LayerContributor.ExpectedMetadata = buildpack.Info
+			hlc.Names = []string{"test-name-1", "test-name-2"}
 		})
 
 		it.After(func() {
-			Expect(os.RemoveAll(hlc.Path)).To(Succeed())
+			Expect(os.RemoveAll(buildpack.Path)).To(Succeed())
 		})
 
 		it("calls function with no existing metadata", func() {
-			var called bool
-
-			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
-				defer artifact.Close()
-
-				called = true
-				return layer, nil
-			})
+			_, err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(called).To(BeTrue())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).To(BeAnExistingFile())
 		})
 
 		it("calls function with non-matching metadata", func() {
 			layer.Metadata["alpha"] = "other-alpha"
 
-			var called bool
-
-			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
-				defer artifact.Close()
-
-				called = true
-				return layer, nil
-			})
+			_, err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(called).To(BeTrue())
+			file := filepath.Join(layer.Exec.FilePath("test-name-1"))
+			Expect(file).To(BeAnExistingFile())
+			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
+
+			file = filepath.Join(layer.Exec.FilePath("test-name-2"))
+			Expect(file).To(BeAnExistingFile())
+			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
+
+			Expect(layer.Profile["helper"]).To(Equal(fmt.Sprintf(`exec 4<&1
+for_export=$(%s 3>&1 >&4) || exit $?
+exec 4<&-
+set -a
+eval "$for_export"
+set +a
+exec 4<&1
+for_export=$(%s 3>&1 >&4) || exit $?
+exec 4<&-
+set -a
+eval "$for_export"
+set +a`, layer.Exec.FilePath("test-name-1"), layer.Exec.FilePath("test-name-2"))))
 		})
 
 		it("does not call function with matching metadata", func() {
 			layer.Metadata = map[string]interface{}{
-				"id":        info.ID,
-				"name":      info.Name,
-				"version":   info.Version,
-				"homepage":  info.Homepage,
-				"clear-env": info.ClearEnvironment,
+				"id":        buildpack.Info.ID,
+				"name":      buildpack.Info.Name,
+				"version":   buildpack.Info.Version,
+				"homepage":  buildpack.Info.Homepage,
+				"clear-env": buildpack.Info.ClearEnvironment,
 			}
 
-			var called bool
-
-			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
-				defer artifact.Close()
-
-				called = true
-				return layer, nil
-			})
+			_, err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(called).To(BeFalse())
-		})
-
-		it("returns function error", func() {
-			_, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
-				defer artifact.Close()
-
-				return libcnb.Layer{}, fmt.Errorf("test-error")
-			})
-			Expect(err).To(MatchError("test-error"))
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
 		})
 
 		it("adds expected metadata to layer", func() {
-			layer, err := hlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
-				defer artifact.Close()
-				return layer, nil
-			})
+			layer, err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{
-				"id":        info.ID,
-				"name":      info.Name,
-				"version":   info.Version,
-				"homepage":  info.Homepage,
-				"clear-env": info.ClearEnvironment,
+				"id":        buildpack.Info.ID,
+				"name":      buildpack.Info.Name,
+				"version":   buildpack.Info.Version,
+				"homepage":  buildpack.Info.Homepage,
+				"clear-env": buildpack.Info.ClearEnvironment,
 			}))
 		})
 
 		it("contributes to buildpack plan", func() {
 			plan := libcnb.BuildpackPlan{}
 
-			_ = libpak.NewHelperLayerContributor(helper.Name(), "test-name", info, &plan)
+			_ = libpak.NewHelperLayerContributor(buildpack, &plan, "test-name-1", "test-name-2")
 
 			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
-				Name:     filepath.Base(helper.Name()),
-				Metadata: map[string]interface{}{"layer": filepath.Base(helper.Name()), "version": info.Version},
+				Name: filepath.Base("helper"),
+				Metadata: map[string]interface{}{
+					"layer":   "helper",
+					"names":   []string{"test-name-1", "test-name-2"},
+					"version": buildpack.Info.Version,
+				},
 			}))
 		})
 	})
