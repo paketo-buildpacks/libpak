@@ -74,6 +74,7 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.MkdirAll(filepath.Join(path, "dirA"), 0755)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0644)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileC.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.Symlink(filepath.Join(path, "dirA", "fileC.txt"), filepath.Join(path, "dirA", "fileD.txt"))).To(Succeed())
 
 			Expect(crush.CreateTar(out, path)).To(Succeed())
 
@@ -84,6 +85,7 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			Expect(filepath.Join(testPath, "fileA.txt")).To(BeARegularFile())
 			Expect(filepath.Join(testPath, "dirA", "fileB.txt")).To(BeARegularFile())
 			Expect(filepath.Join(testPath, "dirA", "fileC.txt")).To(BeARegularFile())
+			Expect(os.Readlink(filepath.Join(testPath, "dirA", "fileD.txt"))).To(Equal(filepath.Join(path, "dirA", "fileC.txt")))
 		})
 
 		it("writes a TAR.GZ", func() {
@@ -91,6 +93,7 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.MkdirAll(filepath.Join(path, "dirA"), 0755)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0644)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileC.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.Symlink(filepath.Join(path, "dirA", "fileC.txt"), filepath.Join(path, "dirA", "fileD.txt"))).To(Succeed())
 
 			Expect(crush.CreateTarGz(out, path)).To(Succeed())
 
@@ -101,6 +104,7 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			Expect(filepath.Join(testPath, "fileA.txt")).To(BeARegularFile())
 			Expect(filepath.Join(testPath, "dirA", "fileB.txt")).To(BeARegularFile())
 			Expect(filepath.Join(testPath, "dirA", "fileC.txt")).To(BeARegularFile())
+			Expect(os.Readlink(filepath.Join(testPath, "dirA", "fileD.txt"))).To(Equal(filepath.Join(path, "dirA", "fileC.txt")))
 		})
 	})
 

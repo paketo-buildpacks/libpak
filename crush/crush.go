@@ -52,7 +52,15 @@ func CreateTar(destination io.Writer, source string) error {
 			return nil
 		}
 
-		h, err := tar.FileInfoHeader(info, info.Name())
+		name := info.Name()
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			name, err = os.Readlink(path)
+			if err != nil {
+				return fmt.Errorf("unable to read link from %s\n%w", info.Name(), err)
+			}
+		}
+
+		h, err := tar.FileInfoHeader(info, name)
 		if err != nil {
 			return fmt.Errorf("unable to create TAR header from %+v\n%w", info, err)
 		}
@@ -62,7 +70,7 @@ func CreateTar(destination io.Writer, source string) error {
 			return fmt.Errorf("unable to write header %+v\n%w", h, err)
 		}
 
-		if info.IsDir() {
+		if !info.Mode().IsRegular() {
 			return nil
 		}
 

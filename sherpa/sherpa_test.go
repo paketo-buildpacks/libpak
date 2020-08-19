@@ -92,6 +92,19 @@ func testSherpa(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).To(MatchError("test-error"))
 		})
 
+		it("handles nil environment map", func() {
+			execd.On("Execute").Return(nil, nil)
+			b := &bytes.Buffer{}
+
+			err := sherpa.Helpers(map[string]sherpa.ExecD{"test": execd},
+				sherpa.WithArguments([]string{"test"}),
+				sherpa.WithExecdWriter(b),
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(b.String()).To(Equal(""))
+		})
+
 		it("writes output to fd/3", func() {
 			execd.On("Execute").Return(map[string]string{"TEST_KEY": "test-value"}, nil)
 			b := &bytes.Buffer{}
