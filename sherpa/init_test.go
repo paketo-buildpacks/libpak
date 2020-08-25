@@ -29,6 +29,5 @@ func TestUnit(t *testing.T) {
 	suite("FileListing", testFileListing)
 	suite("NodeJS", testNodeJS)
 	suite("Sherpa", testSherpa)
-	suite("StaticFile", testStaticFile)
 	suite.Run(t)
 }
