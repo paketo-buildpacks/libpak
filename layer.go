@@ -59,8 +59,16 @@ func NewLayerContributor(name string, expectedMetadata interface{}) LayerContrib
 // LayerFunc is a callback function that is invoked when a layer needs to be contributed.
 type LayerFunc func() (libcnb.Layer, error)
 
+type LayerFlag uint8
+
+const (
+	BuildLayer LayerFlag = iota
+	CacheLayer
+	LaunchLayer
+)
+
 // Contribute is the function to call when implementing your libcnb.LayerContributor.
-func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
+func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc, flags ...LayerFlag) (libcnb.Layer, error) {
 	raw := &bytes.Buffer{}
 	if err := toml.NewEncoder(raw).Encode(l.ExpectedMetadata); err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata\n%w", err)
@@ -92,6 +100,17 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 	layer, err := f()
 	if err != nil {
 		return libcnb.Layer{}, err
+	}
+
+	for _, f := range flags {
+		switch f {
+		case BuildLayer:
+			layer.Build = true
+		case CacheLayer:
+			layer.Cache = true
+		case LaunchLayer:
+			layer.Launch = true
+		}
 	}
 
 	layer.Metadata = expected
@@ -138,7 +157,7 @@ func NewDependencyLayerContributor(dependency BuildpackDependency, cache Depende
 type DependencyLayerFunc func(artifact *os.File) (libcnb.Layer, error)
 
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
-func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc) (libcnb.Layer, error) {
+func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc, flags ...LayerFlag) (libcnb.Layer, error) {
 	d.LayerContributor.Logger = d.Logger
 
 	return d.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
@@ -149,7 +168,7 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 		defer artifact.Close()
 
 		return f(artifact)
-	})
+	}, flags...)
 }
 
 // LayerName returns the conventional name of the layer for this contributor
@@ -236,9 +255,8 @@ func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, er
 
 		layer.Profile.Add("helper", strings.Join(p, "\n"))
 
-		layer.Launch = true
 		return layer, nil
-	})
+	}, LaunchLayer)
 }
 
 // Name returns the conventional name of the layer for this contributor

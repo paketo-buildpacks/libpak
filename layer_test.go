@@ -136,6 +136,33 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				},
 			}))
 		})
+
+		it("sets build layer flag", func() {
+			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+				return layer, nil
+			}, libpak.BuildLayer)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(layer.Build).To(BeTrue())
+		})
+
+		it("sets cache layer flag", func() {
+			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+				return layer, nil
+			}, libpak.CacheLayer)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(layer.Cache).To(BeTrue())
+		})
+
+		it("sets launch layer flag", func() {
+			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+				return layer, nil
+			}, libpak.LaunchLayer)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(layer.Launch).To(BeTrue())
+		})
 	})
 
 	context("DependencyLayerContributor", func() {
