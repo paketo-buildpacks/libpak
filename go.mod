@@ -11,12 +11,12 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-shellwords v1.0.10
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/gomega v1.10.2
 	github.com/sclevine/spec v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/sys v0.0.0-20200824131525-c12d262b63d8 // indirect
+	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
