@@ -27,11 +27,10 @@ import (
 )
 
 func main() {
-	i := carton.ImageDependency{}
+	i := carton.BuildImageDependency{}
 
 	flagSet := pflag.NewFlagSet("Update Image Dependency", pflag.ExitOnError)
 	flagSet.StringVar(&i.BuilderPath, "builder-toml", "", "path to builder.toml")
-	flagSet.StringVar(&i.Type, "type", "", "the type of the dependency")
 	flagSet.StringVar(&i.Version, "version", "", "the new version of the dependency")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
@@ -40,10 +39,6 @@ func main() {
 
 	if i.BuilderPath == "" {
 		log.Fatal("builder-toml must be set")
-	}
-
-	if i.Type == "" {
-		log.Fatal("type must be set")
 	}
 
 	if i.Version == "" {

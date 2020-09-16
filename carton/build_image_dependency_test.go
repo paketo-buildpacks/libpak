@@ -29,7 +29,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/carton"
 )
 
-func testImageDependency(t *testing.T, context spec.G, it spec.S) {
+func testBuildImageDependency(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -47,8 +47,7 @@ func testImageDependency(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = f.WriteString(`test-prologue
-test1-image = "image-name:test-version-1"
-test2-image = "image-name:test-version-2"
+build-image = "image-name:test-version-1"
 test-epilogue
 `)
 		Expect(err).To(Succeed())
@@ -61,17 +60,15 @@ test-epilogue
 	})
 
 	it("updates dependency", func() {
-		d := carton.ImageDependency{
+		d := carton.BuildImageDependency{
 			BuilderPath: path,
-			Type:        "test1",
-			Version:     "test-version-3",
+			Version:     "test-version-2",
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`test-prologue
-test1-image = "image-name:test-version-3"
-test2-image = "image-name:test-version-2"
+build-image = "image-name:test-version-2"
 test-epilogue
 `)))
 	})

@@ -21,24 +21,22 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
-	"strings"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
 )
 
 const (
-	ImageDependencyPattern      = `(?m)(.*%s-image[\s]+=[\s]+"[^"]+:)[^"]+(".*)`
+	ImageDependencyPattern      = `(?m)(.*build-image[\s]+=[\s]+"[^"]+:)[^"]+(".*)`
 	ImageDependencySubstitution = "${1}%s${2}"
 )
 
-type ImageDependency struct {
+type BuildImageDependency struct {
 	BuilderPath string
-	Type        string
 	Version     string
 }
 
-func (i ImageDependency) Update(options ...Option) {
+func (i BuildImageDependency) Update(options ...Option) {
 	config := Config{
 		exitHandler: internal.NewExitHandler(),
 	}
@@ -48,8 +46,7 @@ func (i ImageDependency) Update(options ...Option) {
 	}
 
 	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n",
-		bard.FormatIdentity(fmt.Sprintf("%s Image", strings.Title(i.Type)), i.Version))
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity("Build Image", i.Version))
 
 	c, err := ioutil.ReadFile(i.BuilderPath)
 	if err != nil {
@@ -57,19 +54,14 @@ func (i ImageDependency) Update(options ...Option) {
 		return
 	}
 
-	s := fmt.Sprintf(ImageDependencyPattern, i.Type)
-	r, err := regexp.Compile(s)
-	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
-		return
-	}
+	r := regexp.MustCompile(ImageDependencyPattern)
 
 	if !r.Match(c) {
-		config.exitHandler.Error(fmt.Errorf("unable to match '%s'", i.Type))
+		config.exitHandler.Error(fmt.Errorf("unable to match '%s'", r.String()))
 		return
 	}
 
-	s = fmt.Sprintf(ImageDependencySubstitution, i.Version)
+	s := fmt.Sprintf(ImageDependencySubstitution, i.Version)
 	c = r.ReplaceAll(c, []byte(s))
 
 	if err := ioutil.WriteFile(i.BuilderPath, c, 0644); err != nil {
