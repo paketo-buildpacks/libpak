@@ -23,11 +23,15 @@ import (
 	"path/filepath"
 )
 
-// NodeJSMainModule returns the name of the main module as defined in <path>/package.json.
+// NodeJSMainModule returns the name of the main module as defined in <path>/package.json. If no package.json exists,
+// or the package.json does not include a main entry, value defaults to server.js in line with the behavior of the
+// Paketo NodeJS buildpack.
 func NodeJSMainModule(path string) (string, error) {
 	file := filepath.Join(path, "package.json")
 	in, err := os.Open(file)
-	if err != nil {
+	if os.IsNotExist(err) {
+		return "server.js", nil
+	} else if err != nil {
 		return "", fmt.Errorf("unable to open %s\n%w", file, err)
 	}
 	defer in.Close()
@@ -39,7 +43,7 @@ func NodeJSMainModule(path string) (string, error) {
 
 	m, ok := raw["main"].(string)
 	if !ok {
-		return "", fmt.Errorf("no main module defined in %s: %+v", file, raw)
+		return "server.js", nil
 	}
 
 	return m, nil
