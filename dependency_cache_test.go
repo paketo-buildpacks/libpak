@@ -284,7 +284,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				ghttp.RespondWith(http.StatusOK, "test-fixture"),
 			))
 
-			a, err := dependencyCache.ArtifactWithRequestModification(dependency, func(request *http.Request) (*http.Request, error) {
+			a, err := dependencyCache.Artifact(dependency, func(request *http.Request) (*http.Request, error) {
 				request.Header.Add("Test-Key", "test-value")
 				return request, nil
 			})

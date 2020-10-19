@@ -134,8 +134,8 @@ type DependencyLayerContributor struct {
 	// Logger is the logger to use.
 	Logger bard.Logger
 
-	// RequestModifierFunc is an optional Request Modifier to use when downloading the dependency.
-	RequestModifierFunc RequestModifierFunc
+	// RequestModifierFuncs is an optional Request Modifier to use when downloading the dependency.
+	RequestModifierFuncs []RequestModifierFunc
 }
 
 // NewDependencyLayerContributor creates a new instance and adds the dependency to the Buildpack Plan.
@@ -161,7 +161,7 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 	d.LayerContributor.Logger = d.Logger
 
 	return d.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
-		artifact, err := d.DependencyCache.ArtifactWithRequestModification(d.Dependency, d.RequestModifierFunc)
+		artifact, err := d.DependencyCache.Artifact(d.Dependency, d.RequestModifierFuncs...)
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
 		}
