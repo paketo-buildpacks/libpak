@@ -99,19 +99,7 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 //
 // If the BuildpackDependency's SHA256 is not set, the download can never be verified to be up to date and will always
 // download, skipping all the caches.
-func (d *DependencyCache) Artifact(dependency BuildpackDependency) (*os.File, error) {
-	return d.ArtifactWithRequestModification(dependency, nil)
-}
-
-// ArtifactWithRequestModification returns the path to the artifact.  Resolution of that path follows three tiers:
-//
-// 1. CachePath
-// 2. DownloadPath
-// 3. Download from URI
-//
-// If the BuildpackDependency's SHA256 is not set, the download can never be verified to be up to date and will always
-// download, skipping all the caches.
-func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDependency, f RequestModifierFunc) (*os.File, error) {
+func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...RequestModifierFunc) (*os.File, error) {
 
 	var (
 		actual   BuildpackDependency
@@ -133,7 +121,7 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 
 		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
 		artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
-		if err := d.download(uri, artifact, f); err != nil {
+		if err := d.download(uri, artifact, mods...); err != nil {
 			return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 		}
 
@@ -162,7 +150,7 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 
 	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
 	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri))
-	if err := d.download(uri, artifact, f); err != nil {
+	if err := d.download(uri, artifact, mods...); err != nil {
 		return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 	}
 
@@ -189,7 +177,7 @@ func (d *DependencyCache) ArtifactWithRequestModification(dependency BuildpackDe
 	return os.Open(artifact)
 }
 
-func (d DependencyCache) download(uri string, destination string, f RequestModifierFunc) error {
+func (d DependencyCache) download(uri string, destination string, mods ...RequestModifierFunc) error {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return fmt.Errorf("unable to create new GET request for %s\n%w", uri, err)
@@ -199,8 +187,8 @@ func (d DependencyCache) download(uri string, destination string, f RequestModif
 		req.Header.Set("User-Agent", d.UserAgent)
 	}
 
-	if f != nil {
-		req, err = f(req)
+	for _, m := range mods {
+		req, err = m(req)
 		if err != nil {
 			return fmt.Errorf("unable to modify request\n%w", err)
 		}

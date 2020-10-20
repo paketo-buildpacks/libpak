@@ -28,6 +28,7 @@ func TestUnit(t *testing.T) {
 	suite("BuildpackDependency", testBuildpackDependency)
 	suite("BuildImageDependency", testBuildImageDependency)
 	suite("LifecycleDependency", testLifecycleDependency)
+	suite("Netrc", testNetrc)
 	suite("Package", testPackage)
 	suite("PackageDependency", testPackageDependency)
 	suite.Run(t)

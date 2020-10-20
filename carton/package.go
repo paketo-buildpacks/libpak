@@ -152,10 +152,22 @@ func (p Package) Create(options ...Option) {
 			cache.DownloadPath = filepath.Join(p.Source, "dependencies")
 		}
 
+		np, err := NetrcPath()
+		if err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to determine netrc path\n%w", err))
+			return
+		}
+
+		n, err := ParseNetrc(np)
+		if err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to read %s as netrc\n%w", np, err))
+			return
+		}
+
 		for _, dep := range metadata.Dependencies {
 			logger.Headerf("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
 
-			f, err := cache.Artifact(dep)
+			f, err := cache.Artifact(dep, n.BasicAuth)
 			if err != nil {
 				config.exitHandler.Error(fmt.Errorf("unable to download %s\n%w", dep.URI, err))
 				return

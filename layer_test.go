@@ -226,10 +226,10 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				ghttp.RespondWith(http.StatusOK, "test-fixture"),
 			))
 
-			dlc.RequestModifierFunc = func(request *http.Request) (*http.Request, error) {
+			dlc.RequestModifierFuncs = append(dlc.RequestModifierFuncs, func(request *http.Request) (*http.Request, error) {
 				request.Header.Add("Test-Key", "test-value")
 				return request, nil
-			}
+			})
 
 			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 				defer artifact.Close()
