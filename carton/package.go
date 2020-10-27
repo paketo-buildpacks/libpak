@@ -24,9 +24,9 @@ import (
 	"sort"
 	"text/template"
 
-	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
+	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
@@ -74,7 +74,12 @@ func (p Package) Create(options ...Option) {
 
 	buildpack := libcnb.Buildpack{}
 	file = filepath.Join(p.Source, "buildpack.toml")
-	if _, err = toml.DecodeFile(file, &buildpack); err != nil && !os.IsNotExist(err) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil && !os.IsNotExist(err) {
+		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", file, err))
+		return
+	}
+	if err := toml.Unmarshal(b, &buildpack); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to decode buildpack %s\n%w", file, err))
 		return
 	}

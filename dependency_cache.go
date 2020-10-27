@@ -21,15 +21,16 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
+	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -129,7 +130,11 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	if _, err := toml.DecodeFile(file, &actual); err != nil && !os.IsNotExist(err) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
+	}
+	if err := toml.Unmarshal(b, &actual); err != nil {
 		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
 	}
 
@@ -139,7 +144,11 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	if _, err := toml.DecodeFile(file, &actual); err != nil && !os.IsNotExist(err) {
+	b, err = ioutil.ReadFile(file)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
+	}
+	if err := toml.Unmarshal(b, &actual); err != nil {
 		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
 	}
 
