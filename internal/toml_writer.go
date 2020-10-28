@@ -23,9 +23,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
+	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -118,7 +118,7 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 			t.logger.Header("Persistent metadata:")
 
 			var names []string
-			for k, _ := range v.Metadata {
+			for k := range v.Metadata {
 				names = append(names, k)
 			}
 

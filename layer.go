@@ -17,15 +17,14 @@
 package libpak
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/heroku/color"
+	"github.com/pelletier/go-toml"
 
 	"github.com/buildpacks/libcnb"
 
@@ -69,13 +68,13 @@ const (
 
 // Contribute is the function to call when implementing your libcnb.LayerContributor.
 func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc, flags ...LayerFlag) (libcnb.Layer, error) {
-	raw := &bytes.Buffer{}
-	if err := toml.NewEncoder(raw).Encode(l.ExpectedMetadata); err != nil {
+	raw, err := toml.Marshal(l.ExpectedMetadata)
+	if err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata\n%w", err)
 	}
 
 	expected := map[string]interface{}{}
-	if _, err := toml.Decode(raw.String(), &expected); err != nil {
+	if err := toml.Unmarshal(raw, &expected); err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata\n%w", err)
 	}
 
@@ -97,7 +96,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc, flags ...
 		return libcnb.Layer{}, fmt.Errorf("unable to create layer directory %s\n%w", layer.Path, err)
 	}
 
-	layer, err := f()
+	layer, err = f()
 	if err != nil {
 		return libcnb.Layer{}, err
 	}
