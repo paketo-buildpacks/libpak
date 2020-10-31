@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	BuildpackDependencyPattern      = `(?m)(.*id[\s]+=[\s]+"%s"\n.*\nversion[\s]+=[\s]+")%s("\nuri[\s]+=[\s]+").*("\nsha256[\s]+=[\s]+").*(".*)`
+	BuildpackDependencyPattern      = `(?m)([\s]*.*id[\s]+=[\s]+"%s"\n.*\n[\s]*version[\s]+=[\s]+")%s("\n[\s]*uri[\s]+=[\s]+").*("\n[\s]*sha256[\s]+=[\s]+").*(".*)`
 	BuildpackDependencySubstitution = "${1}%s${2}%s${3}%s${4}"
 )
 

@@ -45,15 +45,6 @@ func testBuildpackDependency(t *testing.T, context spec.G, it spec.S) {
 
 		f, err := ioutil.TempFile("", "carton-buildpack-dependency")
 		Expect(err).NotTo(HaveOccurred())
-
-		_, err = f.WriteString(`id      = "test-id"
-name    = "Test Name"
-version = "test-version-1"
-uri     = "test-uri-1"
-sha256  = "test-sha256-1"
-stacks  = [ "test-stack" ]
-`)
-		Expect(err).To(Succeed())
 		Expect(f.Close()).To(Succeed())
 		path = f.Name()
 	})
@@ -63,6 +54,14 @@ stacks  = [ "test-stack" ]
 	})
 
 	it("updates dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`id      = "test-id"
+name    = "Test Name"
+version = "test-version-1"
+uri     = "test-uri-1"
+sha256  = "test-sha256-1"
+stacks  = [ "test-stack" ]
+`), 0644)).To(Succeed())
+
 		d := carton.BuildpackDependency{
 			BuildpackPath:  path,
 			ID:             "test-id",
@@ -82,4 +81,34 @@ sha256  = "test-sha256-2"
 stacks  = [ "test-stack" ]
 `)))
 	})
+
+	it("updates indented dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`  id      = "test-id"
+  name    = "Test Name"
+  version = "test-version-1"
+  uri     = "test-uri-1"
+  sha256  = "test-sha256-1"
+  stacks  = [ "test-stack" ]
+`), 0644)).To(Succeed())
+
+		d := carton.BuildpackDependency{
+			BuildpackPath:  path,
+			ID:             "test-id",
+			SHA256:         "test-sha256-2",
+			URI:            "test-uri-2",
+			Version:        "test-version-2",
+			VersionPattern: `test-version-[\d]`,
+		}
+
+		d.Update(carton.WithExitHandler(exitHandler))
+
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`  id      = "test-id"
+  name    = "Test Name"
+  version = "test-version-2"
+  uri     = "test-uri-2"
+  sha256  = "test-sha256-2"
+  stacks  = [ "test-stack" ]
+`)))
+	})
+
 }
