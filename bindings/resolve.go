@@ -34,7 +34,7 @@ func OfType(t string) Predicate {
 	}
 }
 
-// OfType returns a Predicate that returns true if a given binding has Provider that matches p. The comparison is
+// OfProvider returns a Predicate that returns true if a given binding has Provider that matches p. The comparison is
 // case-insensitive.
 func OfProvider(p string) Predicate {
 	return func(bind libcnb.Binding) bool {
