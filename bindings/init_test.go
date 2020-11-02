@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package libpak_test
+package bindings_test
 
 import (
 	"testing"
@@ -24,14 +24,7 @@ import (
 )
 
 func TestUnit(t *testing.T) {
-	suite := spec.New("libpak", spec.Report(report.Terminal{}))
-	suite("Build", testBuild)
-	suite("Buildpack", testBuildpack)
-	suite("BuildpackPlan", testBuildpackPlan)
-	suite("Detect", testDetect)
-	suite("DependencyCache", testDependencyCache)
-	suite("Formatter", testFormatter)
-	suite("Layer", testLayer)
-	suite("Main", testMain)
+	suite := spec.New("bindings", spec.Report(report.Terminal{}))
+	suite("Resolve", testResolve)
 	suite.Run(t)
 }
