@@ -54,7 +54,7 @@ type ExecD interface {
 // Helpers is called by the main function of a buildpack's helper application, for execution.
 func Helpers(helpers map[string]ExecD, options ...Option) error {
 	config := Config{
-		arguments: os.Args,
+		arguments:   os.Args,
 		execdWriter: os.NewFile(3, "/dev/fd/3"),
 	}
 
