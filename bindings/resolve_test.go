@@ -53,62 +53,6 @@ func testResolve(t *testing.T, context spec.G, it spec.S) {
 		}
 	})
 
-	context("And", func() {
-		var (
-			tr = func(bind libcnb.Binding) bool {
-				return true
-			}
-
-			fa = func(bind libcnb.Binding) bool {
-				return false
-			}
-		)
-
-		it("returns false with no predicates", func() {
-			Expect(bindings.And()(libcnb.Binding{})).To(BeFalse())
-		})
-
-		it("returns value of single predicate", func() {
-			Expect(bindings.And(tr)(libcnb.Binding{})).To(BeTrue())
-			Expect(bindings.And(fa)(libcnb.Binding{})).To(BeFalse())
-		})
-
-		it("returns and-ed value of multiple predicates", func() {
-			Expect(bindings.And(tr, tr)(libcnb.Binding{})).To(BeTrue())
-			Expect(bindings.And(tr, fa)(libcnb.Binding{})).To(BeFalse())
-			Expect(bindings.And(fa, tr)(libcnb.Binding{})).To(BeFalse())
-			Expect(bindings.And(fa, fa)(libcnb.Binding{})).To(BeFalse())
-		})
-	})
-
-	context("Or", func() {
-		var (
-			tr = func(bind libcnb.Binding) bool {
-				return true
-			}
-
-			fa = func(bind libcnb.Binding) bool {
-				return false
-			}
-		)
-
-		it("returns false with no predicates", func() {
-			Expect(bindings.Or()(libcnb.Binding{})).To(BeFalse())
-		})
-
-		it("returns value of single predicate", func() {
-			Expect(bindings.Or(tr)(libcnb.Binding{})).To(BeTrue())
-			Expect(bindings.Or(fa)(libcnb.Binding{})).To(BeFalse())
-		})
-
-		it("returns or-ed value of multiple predicates", func() {
-			Expect(bindings.Or(tr, tr)(libcnb.Binding{})).To(BeTrue())
-			Expect(bindings.Or(tr, fa)(libcnb.Binding{})).To(BeTrue())
-			Expect(bindings.Or(fa, tr)(libcnb.Binding{})).To(BeTrue())
-			Expect(bindings.Or(fa, fa)(libcnb.Binding{})).To(BeFalse())
-		})
-	})
-
 	context("Resolve", func() {
 		context("no predicate", func() {
 			it("returns all bindings", func() {

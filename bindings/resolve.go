@@ -26,36 +26,6 @@ import (
 // Predicate should return true if it matches a given binding.
 type Predicate func(bind libcnb.Binding) bool
 
-// And combines multiple predicates logical and-ing their results together.
-func And(predicates ...Predicate) Predicate {
-	return func(bind libcnb.Binding) bool {
-		if len(predicates) < 1 {
-			return false
-		}
-
-		v := predicates[0](bind)
-		for _, p := range predicates[1:] {
-			v = v && p(bind)
-		}
-		return v
-	}
-}
-
-// Or combines multiple predicates logical or-ing their results together.
-func Or(predicates ...Predicate) Predicate {
-	return func(bind libcnb.Binding) bool {
-		if len(predicates) < 1 {
-			return false
-		}
-
-		v := predicates[0](bind)
-		for _, p := range predicates[1:] {
-			v = v || p(bind)
-		}
-		return v
-	}
-}
-
 // OfType returns a Predicate that returns true if a given binding has Type that matches t. The comparison is
 // case-insensitive.
 func OfType(t string) Predicate {

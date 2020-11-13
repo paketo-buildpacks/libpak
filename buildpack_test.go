@@ -130,16 +130,23 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				Configurations: []libpak.BuildpackConfiguration{
 					{Name: "TEST_KEY_1", Default: "test-default-value-1"},
 					{Name: "TEST_KEY_2", Default: "test-default-value-2"},
+					{Name: "TEST_BOOL_3", Default: "true"},
+					{Name: "TEST_BOOL_4", Default: "false"},
+					{Name: "TEST_BOOL_6", Default: "test-value"},
 				},
 			}
 		)
 
 		it.Before(func() {
 			Expect(os.Setenv("TEST_KEY_1", "test-value-1")).To(Succeed())
+			Expect(os.Setenv("TEST_BOOL_1", "true")).To(Succeed())
+			Expect(os.Setenv("TEST_BOOL_2", "false")).To(Succeed())
 		})
 
 		it.After(func() {
 			Expect(os.Unsetenv("TEST_KEY_1")).To(Succeed())
+			Expect(os.Unsetenv("TEST_BOOL_1")).To(Succeed())
+			Expect(os.Unsetenv("TEST_BOOL_2")).To(Succeed())
 		})
 
 		it("returns configured value", func() {
@@ -158,6 +165,24 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			v, ok := resolver.Resolve("TEST_KEY_3")
 			Expect(v).To(Equal(""))
 			Expect(ok).To(BeFalse())
+		})
+
+		it("returns configured bool", func() {
+			Expect(resolver.ResolveBool("TEST_BOOL_1")).To(BeTrue())
+			Expect(resolver.ResolveBool("TEST_BOOL_2")).To(BeFalse())
+		})
+
+		it("returns default bool", func() {
+			Expect(resolver.ResolveBool("TEST_BOOL_3")).To(BeTrue())
+			Expect(resolver.ResolveBool("TEST_BOOL_4")).To(BeFalse())
+		})
+
+		it("returns false for unset", func() {
+			Expect(resolver.ResolveBool("TEST_BOOL_5")).To(BeFalse())
+		})
+
+		it("return false for invalid", func() {
+			Expect(resolver.ResolveBool("TEST_BOOL_6")).To(BeFalse())
 		})
 	})
 
