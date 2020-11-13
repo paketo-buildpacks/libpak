@@ -33,7 +33,7 @@ func AppendToEnvVar(name string, delimiter string, values ...string) string {
 	return strings.Join(e, delimiter)
 }
 
-// GetEnvRequired returns the value of an environment varible if it exists, otherwire returns an error with a
+// GetEnvRequired returns the value of an environment variable if it exists, otherwise returns an error with a
 // predictable message.
 func GetEnvRequired(name string) (string, error) {
 	if s, ok := os.LookupEnv(name); ok {
