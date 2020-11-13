@@ -75,8 +75,8 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 
 	it("updates builder dependency", func() {
 		Expect(ioutil.WriteFile(path, []byte(`
-{ id = "paketo-buildpacks/test-1", image = "gcr.io/paketo-buildpacks/test-1:test-version-1" },
-{ id = "paketo-buildpacks/test-2", image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
+{ id = "paketo-buildpacks/test-1", uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-1" },
+{ id = "paketo-buildpacks/test-2", uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
 `), 0644)).To(Succeed())
 
 		p := carton.PackageDependency{
@@ -88,15 +88,15 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		p.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
-{ id = "paketo-buildpacks/test-1", image = "gcr.io/paketo-buildpacks/test-1:test-version-3" },
-{ id = "paketo-buildpacks/test-2", image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
+{ id = "paketo-buildpacks/test-1", uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3" },
+{ id = "paketo-buildpacks/test-2", uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
 `)))
 	})
 
 	it("updates package dependency", func() {
 		Expect(ioutil.WriteFile(path, []byte(`
-{ image = "gcr.io/paketo-buildpacks/test-1:test-version-1" },
-{ image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
+{ uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-1" },
+{ uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
 `), 0644)).To(Succeed())
 
 		p := carton.PackageDependency{
@@ -108,8 +108,8 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		p.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
-{ image = "gcr.io/paketo-buildpacks/test-1:test-version-3" },
-{ image = "gcr.io/paketo-buildpacks/test-2:test-version-2" },
+{ uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3" },
+{ uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
 `)))
 	})
 
