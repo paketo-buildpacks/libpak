@@ -3,7 +3,7 @@ module github.com/paketo-buildpacks/libpak
 go 1.15
 
 require (
-	github.com/Masterminds/semver/v3 v3.1.0
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/buildpacks/libcnb v1.18.1
 	github.com/creack/pty v1.1.11
 	github.com/heroku/color v0.0.6
