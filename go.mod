@@ -13,6 +13,6 @@ require (
 	github.com/pelletier/go-toml v1.8.1
 	github.com/sclevine/spec v1.4.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 )
