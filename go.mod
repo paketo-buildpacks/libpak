@@ -8,7 +8,6 @@ require (
 	github.com/creack/pty v1.1.11
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.11
-	github.com/mattn/go-shellwords v1.0.11
 	github.com/onsi/gomega v1.10.4
 	github.com/pelletier/go-toml v1.8.1
 	github.com/sclevine/spec v1.4.0
