@@ -67,7 +67,7 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 	}
 
 	switch v := value.(type) {
-	case libcnb.Launch:
+	case libcnb.LaunchTOML:
 		if len(v.Slices) > 0 {
 			t.logger.Headerf("%d application slices", len(v.Slices))
 		}

@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/buildpacks/libcnb v1.18.1
+	github.com/buildpacks/libcnb v1.19.0
 	github.com/creack/pty v1.1.11
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.11
