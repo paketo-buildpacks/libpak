@@ -83,9 +83,9 @@ type BuildpackDependency struct {
 	Licenses []BuildpackDependencyLicense `toml:"licenses"`
 }
 
-// AsBuildpackPlanEntry renders the dependency as a BuildpackPlanEntry.
-func (b BuildpackDependency) AsBuildpackPlanEntry() libcnb.BuildpackPlanEntry {
-	return libcnb.BuildpackPlanEntry{
+// AsBOMEntry renders a bill of materials entry describing the dependency.
+func (b BuildpackDependency) AsBOMEntry() libcnb.BOMEntry {
+	return libcnb.BOMEntry{
 		Name: b.ID,
 		Metadata: map[string]interface{}{
 			"name":     b.Name,

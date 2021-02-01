@@ -33,7 +33,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		Expect = NewWithT(t).Expect
 	)
 
-	it("renders dependency as an BuildpackPlanEntry", func() {
+	it("renders dependency as a BOMEntry", func() {
 		dependency := libpak.BuildpackDependency{
 			ID:      "test-id",
 			Name:    "test-name",
@@ -49,7 +49,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			},
 		}
 
-		Expect(dependency.AsBuildpackPlanEntry()).To(Equal(libcnb.BuildpackPlanEntry{
+		Expect(dependency.AsBOMEntry()).To(Equal(libcnb.BOMEntry{
 			Name: dependency.ID,
 			Metadata: map[string]interface{}{
 				"name":     dependency.Name,
