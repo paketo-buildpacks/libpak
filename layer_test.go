@@ -502,11 +502,13 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("does not call function with matching metadata", func() {
 			layer.Metadata = map[string]interface{}{
-				"id":        buildpack.Info.ID,
-				"name":      buildpack.Info.Name,
-				"version":   buildpack.Info.Version,
-				"homepage":  buildpack.Info.Homepage,
-				"clear-env": buildpack.Info.ClearEnvironment,
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
 			}
 
 			_, err := hlc.Contribute(layer)
@@ -521,11 +523,13 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{
-				"id":        buildpack.Info.ID,
-				"name":      buildpack.Info.Name,
-				"version":   buildpack.Info.Version,
-				"homepage":  buildpack.Info.Homepage,
-				"clear-env": buildpack.Info.ClearEnvironment,
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
 			}))
 		})
 	})
