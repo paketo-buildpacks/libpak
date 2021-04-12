@@ -100,7 +100,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	it("handles error from Detector", func() {
 		Expect(ioutil.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
-api = "0.5"
+api = "0.6"
 
 [buildpack]
 name    = "test-name"
