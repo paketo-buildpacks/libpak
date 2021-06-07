@@ -61,7 +61,6 @@ func NewLayerContributor(name string, expectedMetadata interface{}, expectedType
 // LayerFunc is a callback function that is invoked when a layer needs to be contributed.
 type LayerFunc func() (libcnb.Layer, error)
 
-
 // Contribute is the function to call when implementing your libcnb.LayerContributor.
 func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
 	raw, err := toml.Marshal(l.ExpectedMetadata)
@@ -80,6 +79,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 	// TODO: compare entire layer not just metadata (in case build, launch, or cache have changed)
 	if reflect.DeepEqual(expected, layer.Metadata) {
 		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
+		layer.LayerTypes = l.ExpectedTypes
 		return layer, nil
 	}
 

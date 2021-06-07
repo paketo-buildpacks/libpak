@@ -167,6 +167,33 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(layer.LayerTypes.Launch).To(BeTrue())
 		})
+
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			lc.ExpectedTypes.Launch = true
+			lc.ExpectedTypes.Cache = true
+			lc.ExpectedTypes.Build = true
+
+			layer.Metadata = map[string]interface{}{
+				"alpha": "test-alpha",
+				"bravo": map[string]interface{}{
+					"bravo-1": "test-bravo-1",
+					"bravo-2": "test-bravo-2",
+				},
+			}
+
+			var called bool
+
+			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(called).To(BeFalse())
+
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeTrue())
+			Expect(layer.LayerTypes.Build).To(BeTrue())
+		})
 	})
 
 	context("NewDependencyLayer", func() {
@@ -417,6 +444,42 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				},
 			}))
 		})
+
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			layer.Metadata = map[string]interface{}{
+				"id":      dependency.ID,
+				"name":    dependency.Name,
+				"version": dependency.Version,
+				"uri":     dependency.URI,
+				"sha256":  dependency.SHA256,
+				"stacks":  []interface{}{dependency.Stacks[0]},
+				"licenses": []map[string]interface{}{
+					{
+						"type": dependency.Licenses[0].Type,
+						"uri":  dependency.Licenses[0].URI,
+					},
+				},
+			}
+			dlc.ExpectedTypes.Launch = true
+			dlc.ExpectedTypes.Cache = true
+			dlc.ExpectedTypes.Build = true
+
+			var called bool
+
+			layer, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeTrue())
+			Expect(layer.LayerTypes.Build).To(BeTrue())
+		})
 	})
 
 	context("NewHelperLayer", func() {
@@ -531,6 +594,29 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"description": "",
 				"keywords":    []interface{}{},
 			}))
+		})
+
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			layer.Metadata = map[string]interface{}{
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
+			}
+			// Launch is the only one set & always true
+
+			layer, err := hlc.Contribute(layer)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeFalse())
+			Expect(layer.LayerTypes.Build).To(BeFalse())
 		})
 	})
 }
