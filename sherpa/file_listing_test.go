@@ -47,13 +47,32 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("create listing", func() {
-		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{}, 0644)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{}, 0644)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
 
 		e, err := sherpa.NewFileListing(path)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(e).To(HaveLen(3))
+	})
+
+	it("create listing as hash with non-regular file", func() {
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.Symlink(filepath.Join(path, "test-directory"), filepath.Join(path, "symlink-test-dir")))
+		Expect(os.Symlink(filepath.Join(path, "test-directory", "bravo.txt"), filepath.Join(path, "symlink-bravo.txt")))
+
+		e, err := sherpa.NewFileListing(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(e).To(HaveLen(5))
+		Expect(e[0].Path).To(HaveSuffix("alpha.txt"))
+		Expect(e[1].Path).To(HaveSuffix("symlink-bravo.txt"))
+		Expect(e[2].Path).To(HaveSuffix("symlink-test-dir"))
+		Expect(e[3].Path).To(HaveSuffix("test-directory"))
+		Expect(e[4].Path).To(HaveSuffix("bravo.txt"))
+		Expect(e[1].SHA256).To(Equal(e[4].SHA256)) // symlink to file should have hash of target file
 	})
 }

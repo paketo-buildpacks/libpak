@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -74,7 +75,12 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 					Mode: info.Mode().String(),
 				}
 
-				if info.IsDir() {
+				symlinkToDir, err := isSymlinkToDir(path, info)
+				if err != nil {
+					return err
+				}
+
+				if info.IsDir() || symlinkToDir {
 					results <- result{value: e}
 					return nil
 				}
@@ -139,4 +145,23 @@ func process(entry FileEntry) (FileEntry, error) {
 
 	entry.SHA256 = hex.EncodeToString(s.Sum(nil))
 	return entry, nil
+}
+
+func isSymlinkToDir(root string, f fs.FileInfo) (bool, error) {
+	if f.Mode().Type() == fs.ModeSymlink {
+		// rawPath := filepath.Join(root, f.Name())
+		path, err := os.Readlink(root)
+		if err != nil {
+			return false, fmt.Errorf("unable to read symlink %s\n%w", root, err)
+		}
+
+		stat, err := os.Stat(path)
+		if err != nil {
+			return false, fmt.Errorf("unable to stat file %s\n%w", path, err)
+		}
+
+		return stat.IsDir(), nil
+	}
+
+	return false, nil
 }
