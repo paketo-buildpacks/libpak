@@ -46,6 +46,21 @@ type result struct {
 	value FileEntry
 }
 
+// NewFileListingHash generates a sha256 hash from the listing of all entries under the roots
+func NewFileListingHash(roots ...string) (string, error) {
+	files, err := NewFileListing(roots...)
+	if err != nil {
+		return "", fmt.Errorf("unable to create file listing\n%w", err)
+	}
+
+	hash := sha256.New()
+	for _, file := range files {
+		hash.Write([]byte(file.Path + file.Mode + file.SHA256 + "\n"))
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 // NewFileListing generates a listing of all entries under the roots.
 func NewFileListing(roots ...string) ([]FileEntry, error) {
 	entries := make(chan FileEntry)
