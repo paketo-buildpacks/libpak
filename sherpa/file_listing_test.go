@@ -17,6 +17,8 @@
 package sherpa_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -74,5 +76,24 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 		Expect(e[3].Path).To(HaveSuffix("test-directory"))
 		Expect(e[4].Path).To(HaveSuffix("bravo.txt"))
 		Expect(e[1].SHA256).To(Equal(e[4].SHA256)) // symlink to file should have hash of target file
+	})
+
+	it("create listing and get SHA256", func() {
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{}, 0644)).To(Succeed())
+
+		e, err := sherpa.NewFileListing(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		hash := sha256.New()
+		for _, file := range e {
+			hash.Write([]byte(file.Path + file.Mode + file.SHA256 + "\n"))
+		}
+
+		s, err := sherpa.NewFileListingHash(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(s).To(Equal(hex.EncodeToString(hash.Sum(nil))))
 	})
 }
