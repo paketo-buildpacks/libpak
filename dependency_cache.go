@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -187,6 +188,43 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 }
 
 func (d DependencyCache) download(uri string, destination string, mods ...RequestModifierFunc) error {
+	url, err := url.Parse(uri)
+	if err != nil {
+		return fmt.Errorf("unable to parse URI %s\n%w", uri, err)
+	}
+
+	if url.Scheme == "file" {
+		return d.downloadFile(url.Path, destination, mods...)
+	}
+
+	return d.downloadHttp(uri, destination, mods...)
+}
+
+func (d DependencyCache) downloadFile(source string, destination string, mods ...RequestModifierFunc) error {
+	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
+		return fmt.Errorf("unable to make directory %s\n%w", filepath.Dir(destination), err)
+	}
+
+	out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to open destination file %s\n%w", destination, err)
+	}
+	defer out.Close()
+
+	input, err := os.Open(source)
+	if err != nil {
+		return fmt.Errorf("unable to open source file %s\n%w", source, err)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, input); err != nil {
+		return fmt.Errorf("unable to copy from %s to %s\n%w", source, destination, err)
+	}
+
+	return nil
+}
+
+func (d DependencyCache) downloadHttp(uri string, destination string, mods ...RequestModifierFunc) error {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return fmt.Errorf("unable to create new GET request for %s\n%w", uri, err)

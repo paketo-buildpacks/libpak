@@ -223,7 +223,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
-		context("uri is overridden", func() {
+		context("uri is overridden HTTP", func() {
 			it.Before(func() {
 				dependencyCache.Mappings = map[string]string{
 					dependency.SHA256: fmt.Sprintf("%s/override-path", server.URL()),
@@ -236,6 +236,26 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 					ghttp.RespondWith(http.StatusOK, "test-fixture"),
 				))
 
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
+		context("uri is overridden FILE", func() {
+			it.Before(func() {
+				sourcePath, err := ioutil.TempDir("", "dependency-source-path")
+				Expect(err).NotTo(HaveOccurred())
+				sourceFile := filepath.Join(sourcePath, "source-file")
+				Expect(ioutil.WriteFile(sourceFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+
+				dependencyCache.Mappings = map[string]string{
+					dependency.SHA256: fmt.Sprintf("file://%s", sourceFile),
+				}
+			})
+
+			it("downloads from override filesystem", func() {
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
