@@ -162,12 +162,15 @@ func process(entry FileEntry) (FileEntry, error) {
 	return entry, nil
 }
 
-func isSymlinkToDir(root string, f fs.FileInfo) (bool, error) {
+func isSymlinkToDir(symlink string, f fs.FileInfo) (bool, error) {
 	if f.Mode().Type() == fs.ModeSymlink {
-		// rawPath := filepath.Join(root, f.Name())
-		path, err := os.Readlink(root)
+		path, err := os.Readlink(symlink)
 		if err != nil {
-			return false, fmt.Errorf("unable to read symlink %s\n%w", root, err)
+			return false, fmt.Errorf("unable to read symlink %s\n%w", symlink, err)
+		}
+
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(filepath.Dir(symlink), path)
 		}
 
 		stat, err := os.Stat(path)
