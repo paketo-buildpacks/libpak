@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -162,8 +161,8 @@ func process(entry FileEntry) (FileEntry, error) {
 	return entry, nil
 }
 
-func isSymlinkToDir(symlink string, f fs.FileInfo) (bool, error) {
-	if f.Mode().Type() == fs.ModeSymlink {
+func isSymlinkToDir(symlink string, f os.FileInfo) (bool, error) {
+	if f.Mode().Type() == os.ModeSymlink {
 		path, err := os.Readlink(symlink)
 		if err != nil {
 			return false, fmt.Errorf("unable to read symlink %s\n%w", symlink, err)
