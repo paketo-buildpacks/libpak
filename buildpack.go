@@ -424,8 +424,12 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 }
 
 func (DependencyResolver) contains(candidates []string, value string) bool {
+	if len(candidates) == 0 {
+		return true
+	}
+
 	for _, c := range candidates {
-		if c == value {
+		if c == value || c == "*" {
 			return true
 		}
 	}
