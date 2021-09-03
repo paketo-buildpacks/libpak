@@ -261,6 +261,68 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}))
 			})
 
+			it("filters by stack and supports the wildcard stack", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+					},
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"*"},
+					},
+				}
+				resolver.StackID = "test-stack-3"
+
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri",
+					SHA256:  "test-sha256",
+					Stacks:  []string{"*"},
+				}))
+			})
+
+			it("filters by stack and treats no stacks as the wildcard stack", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+					},
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{},
+					},
+				}
+				resolver.StackID = "test-stack-3"
+
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri",
+					SHA256:  "test-sha256",
+					Stacks:  []string{},
+				}))
+			})
+
 			it("returns the best dependency", func() {
 				resolver.Dependencies = []libpak.BuildpackDependency{
 					{
