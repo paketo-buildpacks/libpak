@@ -84,6 +84,10 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 					return nil
 				}
 
+				if info.IsDir() && info.Name() == ".git" {
+					return filepath.SkipDir
+				}
+
 				e := FileEntry{
 					Path: path,
 					Mode: info.Mode().String(),

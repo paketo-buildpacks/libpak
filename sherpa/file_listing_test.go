@@ -59,6 +59,22 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 		Expect(e).To(HaveLen(3))
 	})
 
+	it("create listing skipping .git folder", func() {
+		Expect(os.MkdirAll(filepath.Join(path, ".git"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, ".git", "HEAD"), []byte{1}, 0644)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, ".git", "config"), []byte{1}, 0644)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory", ".git"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", ".git", "config"), []byte{1}, 0644)).To(Succeed())
+
+		e, err := sherpa.NewFileListing(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(e).To(HaveLen(3))
+	})
+
 	it("create listing as hash with non-regular file", func() {
 		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
