@@ -17,10 +17,7 @@
 package bindings_test
 
 import (
-	"bytes"
 	"testing"
-
-	"github.com/paketo-buildpacks/libpak/bard"
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
@@ -32,9 +29,8 @@ import (
 func testResolve(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
-		b      *bytes.Buffer
-		logger bard.Logger
-		binds  libcnb.Bindings
+
+		binds libcnb.Bindings
 	)
 
 	it.Before(func() {
@@ -165,44 +161,6 @@ func testResolve(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(ok).To(BeFalse())
 			})
-		})
-	})
-
-	context("bindings are logged", func() {
-
-		it.Before(func() {
-			b = bytes.NewBuffer(nil)
-			logger = bard.NewLogger(b)
-			binds = []libcnb.Binding{
-				{
-					Name:     "name1",
-					Type:     "some-type",
-					Provider: "some-provider",
-					Secret:   map[string]string{"my-key1": "my-sec1"},
-				},
-				{
-					Name:     "name2",
-					Type:     "some-type",
-					Provider: "some-provider",
-					Secret:   map[string]string{"my-key2": "my-sec2"},
-				},
-			}
-		})
-
-		it("checks that binding info is logged", func() {
-
-			bindings.LogBindings(binds, logger)
-			Expect(b.String()).To(ContainSubstring("name1"))
-			Expect(b.String()).To(ContainSubstring("my-key1"))
-
-			Expect(b.String()).To(ContainSubstring("name2"))
-			Expect(b.String()).To(ContainSubstring("my-key2"))
-		})
-
-		it("checks that nothing is logged is no bindings found", func() {
-			binds = []libcnb.Binding{}
-			bindings.LogBindings(binds, logger)
-			Expect(b.String()).To(ContainSubstring("No Bindings Found"))
 		})
 	})
 }
