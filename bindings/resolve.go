@@ -18,12 +18,7 @@ package bindings
 
 import (
 	"fmt"
-	"os"
-	"sort"
 	"strings"
-
-	"github.com/heroku/color"
-	"github.com/paketo-buildpacks/libpak/bard"
 
 	"github.com/buildpacks/libcnb"
 )
@@ -50,44 +45,15 @@ func OfProvider(p string) Predicate {
 // Resolve returns all bindings from binds that match every Predicate in predicates.
 func Resolve(binds libcnb.Bindings, predicates ...Predicate) libcnb.Bindings {
 	var result libcnb.Bindings
-	logger := bard.NewLogger(os.Stdout)
-
 	// deep copy
 	for _, bind := range binds {
 		result = append(result, bind)
 	}
-
 	// filter on predicates
 	for _, p := range predicates {
 		result = filter(result, p)
 	}
-
-	LogBindings(result, logger)
 	return result
-}
-
-func LogBindings(bindings libcnb.Bindings, logger bard.Logger) {
-	f := color.New(color.Bold)
-
-	if len(bindings) > 0 {
-		logger.Header(f.Sprint("Bindings Identified:"))
-	} else {
-		logger.Header(f.Sprint("No Bindings Found"))
-	}
-
-	var s []string
-	for _, binding := range bindings {
-
-		for k := range binding.Secret {
-			s = append(s, k)
-		}
-		sort.Strings(s)
-
-		logger.Bodyf("Name: %s", binding.Name)
-		logger.Bodyf("Keys: %s", s)
-		s = nil
-	}
-
 }
 
 // ResolveOne returns a single binding from bindings that match every Predicate if present. If exactly one match is found
