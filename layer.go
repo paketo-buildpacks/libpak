@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 
 	"github.com/heroku/color"
 	"github.com/pelletier/go-toml"
@@ -45,29 +44,25 @@ type LayerContributor struct {
 
 	// Name is the user readable name of the contribution.
 	Name string
+
+	// ExpectedTypes indicates the types that should be set on the layer.
+	ExpectedTypes libcnb.LayerTypes
 }
 
 // NewLayerContributor creates a new instance.
-func NewLayerContributor(name string, expectedMetadata interface{}) LayerContributor {
+func NewLayerContributor(name string, expectedMetadata interface{}, expectedTypes libcnb.LayerTypes) LayerContributor {
 	return LayerContributor{
 		ExpectedMetadata: expectedMetadata,
 		Name:             name,
+		ExpectedTypes:    expectedTypes,
 	}
 }
 
 // LayerFunc is a callback function that is invoked when a layer needs to be contributed.
 type LayerFunc func() (libcnb.Layer, error)
 
-type LayerFlag uint8
-
-const (
-	BuildLayer LayerFlag = iota
-	CacheLayer
-	LaunchLayer
-)
-
 // Contribute is the function to call when implementing your libcnb.LayerContributor.
-func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc, flags ...LayerFlag) (libcnb.Layer, error) {
+func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
 	raw, err := toml.Marshal(l.ExpectedMetadata)
 	if err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata\n%w", err)
@@ -81,8 +76,10 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc, flags ...
 	l.Logger.Debugf("Expected metadata: %+v", expected)
 	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
 
+	// TODO: compare entire layer not just metadata (in case build, launch, or cache have changed)
 	if reflect.DeepEqual(expected, layer.Metadata) {
 		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
+		layer.LayerTypes = l.ExpectedTypes
 		return layer, nil
 	}
 
@@ -101,17 +98,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc, flags ...
 		return libcnb.Layer{}, err
 	}
 
-	for _, f := range flags {
-		switch f {
-		case BuildLayer:
-			layer.Build = true
-		case CacheLayer:
-			layer.Cache = true
-		case LaunchLayer:
-			layer.Launch = true
-		}
-	}
-
+	layer.LayerTypes = l.ExpectedTypes
 	layer.Metadata = expected
 
 	return layer, nil
@@ -127,8 +114,11 @@ type DependencyLayerContributor struct {
 	// DependencyCache is the cache to use to get the dependency.
 	DependencyCache DependencyCache
 
-	// LayerContributor is the contained LayerContributor used for the actual contribution.
-	LayerContributor LayerContributor
+	// ExpectedTypes indicates the types that should be set on the layer.
+	ExpectedTypes libcnb.LayerTypes
+
+	// ExpectedMetadata contains metadata describing the expected layer
+	ExpectedMetadata interface{}
 
 	// Logger is the logger to use.
 	Logger bard.Logger
@@ -137,29 +127,38 @@ type DependencyLayerContributor struct {
 	RequestModifierFuncs []RequestModifierFunc
 }
 
-// NewDependencyLayerContributor creates a new instance and adds the dependency to the Buildpack Plan.
-func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, plan *libcnb.BuildpackPlan) DependencyLayerContributor {
+// NewDependencyLayer returns a new DependencyLayerContributor for the given BuildpackDependency and a BOMEntry describing the layer contents.
+func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) (DependencyLayerContributor, libcnb.BOMEntry) {
 	c := DependencyLayerContributor{
 		Dependency:       dependency,
+		ExpectedMetadata: dependency,
 		DependencyCache:  cache,
-		LayerContributor: NewLayerContributor(fmt.Sprintf("%s %s", dependency.Name, dependency.Version), dependency),
+		ExpectedTypes:    types,
 	}
 
-	entry := dependency.AsBuildpackPlanEntry()
+	entry := dependency.AsBOMEntry()
 	entry.Metadata["layer"] = c.LayerName()
-	plan.Entries = append(plan.Entries, entry)
 
-	return c
+	if types.Launch {
+		entry.Launch = true
+	}
+	if !(types.Launch && !types.Cache && !types.Build) {
+		// launch-only layers are the only layers NOT guaranteed to be present in the build environment
+		entry.Build = true
+	}
+
+	return c, entry
 }
 
 // DependencyLayerFunc is a callback function that is invoked when a dependency needs to be contributed.
 type DependencyLayerFunc func(artifact *os.File) (libcnb.Layer, error)
 
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
-func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc, flags ...LayerFlag) (libcnb.Layer, error) {
-	d.LayerContributor.Logger = d.Logger
+func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc) (libcnb.Layer, error) {
+	lc := NewLayerContributor(d.Name(), d.ExpectedMetadata, d.ExpectedTypes)
+	lc.Logger = d.Logger
 
-	return d.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
+	return lc.Contribute(layer, func() (libcnb.Layer, error) {
 		artifact, err := d.DependencyCache.Artifact(d.Dependency, d.RequestModifierFuncs...)
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
@@ -167,12 +166,17 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 		defer artifact.Close()
 
 		return f(artifact)
-	}, flags...)
+	})
 }
 
 // LayerName returns the conventional name of the layer for this contributor
 func (d *DependencyLayerContributor) LayerName() string {
 	return d.Dependency.ID
+}
+
+// Name returns the human readable name of the layer
+func (d *DependencyLayerContributor) Name() string {
+	return fmt.Sprintf("%s %s", d.Dependency.Name, d.Dependency.Version)
 }
 
 // HelperLayerContributor is a helper for implementing a libcnb.LayerContributor for a buildpack helper application in
@@ -182,8 +186,8 @@ type HelperLayerContributor struct {
 	// Path is the path to the helper application.
 	Path string
 
-	// LayerContributor is the contained LayerContributor used for the actual contribution.
-	LayerContributor LayerContributor
+	// BuildpackInfo describes the buildpack that provides the helper
+	BuildpackInfo libcnb.BuildpackInfo
 
 	// Logger is the logger to use.
 	Logger bard.Logger
@@ -192,31 +196,40 @@ type HelperLayerContributor struct {
 	Names []string
 }
 
-// NewHelperLayerContributor creates a new instance and adds the helper to the Buildpack Plan.
-func NewHelperLayerContributor(buildpack libcnb.Buildpack, plan *libcnb.BuildpackPlan, names ...string) HelperLayerContributor {
+// NewHelperLayer returns a new HelperLayerContributor and a BOMEntry describing the layer contents.
+func NewHelperLayer(buildpack libcnb.Buildpack, names ...string) (HelperLayerContributor, libcnb.BOMEntry) {
 	c := HelperLayerContributor{
-		Path:             filepath.Join(buildpack.Path, "bin", "helper"),
-		LayerContributor: NewLayerContributor("Launch Helper", buildpack.Info),
-		Names:            names,
+		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
+		Names:         names,
+		BuildpackInfo: buildpack.Info,
 	}
 
-	plan.Entries = append(plan.Entries, libcnb.BuildpackPlanEntry{
+	entry := libcnb.BOMEntry{
 		Name: "helper",
 		Metadata: map[string]interface{}{
 			"layer":   c.Name(),
 			"names":   names,
 			"version": buildpack.Info.Version,
 		},
-	})
+		Launch: true,
+	}
 
-	return c
+	return c, entry
+}
+
+// Name returns the conventional name of the layer for this contributor
+func (h HelperLayerContributor) Name() string {
+	return filepath.Base(h.Path)
 }
 
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
 func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
-	h.LayerContributor.Logger = h.Logger
+	lc := NewLayerContributor("Launch Helper", h.BuildpackInfo, libcnb.LayerTypes{
+		Launch: true,
+	})
+	lc.Logger = h.Logger
 
-	return h.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
+	return lc.Contribute(layer, func() (libcnb.Layer, error) {
 		in, err := os.Open(h.Path)
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to open %s\n%w", h.Path, err)
@@ -228,7 +241,6 @@ func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, er
 			return libcnb.Layer{}, fmt.Errorf("unable to copy %s to %s", h.Path, out)
 		}
 
-		var p []string
 		for _, n := range h.Names {
 			link := layer.Exec.FilePath(n)
 			h.Logger.Bodyf("Creating %s", link)
@@ -241,24 +253,8 @@ func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, er
 			if err := os.Symlink(out, link); err != nil {
 				return libcnb.Layer{}, fmt.Errorf("unable to link %s to %s\n%w", out, link, err)
 			}
-
-			p = append(p,
-				"exec 4<&1",
-				fmt.Sprintf(`for_export=$(%s 3>&1 >&4) || exit $?`, link),
-				"exec 4<&-",
-				"set -a",
-				`eval "$for_export"`,
-				"set +a",
-			)
 		}
 
-		layer.Profile.Add("helper", strings.Join(p, "\n"))
-
 		return layer, nil
-	}, LaunchLayer)
-}
-
-// Name returns the conventional name of the layer for this contributor
-func (h HelperLayerContributor) Name() string {
-	return filepath.Base(h.Path)
+	})
 }

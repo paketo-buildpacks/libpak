@@ -45,6 +45,21 @@ type result struct {
 	value FileEntry
 }
 
+// NewFileListingHash generates a sha256 hash from the listing of all entries under the roots
+func NewFileListingHash(roots ...string) (string, error) {
+	files, err := NewFileListing(roots...)
+	if err != nil {
+		return "", fmt.Errorf("unable to create file listing\n%w", err)
+	}
+
+	hash := sha256.New()
+	for _, file := range files {
+		hash.Write([]byte(file.Path + file.Mode + file.SHA256 + "\n"))
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 // NewFileListing generates a listing of all entries under the roots.
 func NewFileListing(roots ...string) ([]FileEntry, error) {
 	entries := make(chan FileEntry)
@@ -69,12 +84,21 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 					return nil
 				}
 
+				if info.IsDir() && info.Name() == ".git" {
+					return filepath.SkipDir
+				}
+
 				e := FileEntry{
 					Path: path,
 					Mode: info.Mode().String(),
 				}
 
-				if info.IsDir() {
+				symlinkToDir, err := isSymlinkToDir(path, info)
+				if err != nil {
+					return err
+				}
+
+				if info.IsDir() || symlinkToDir {
 					results <- result{value: e}
 					return nil
 				}
@@ -139,4 +163,26 @@ func process(entry FileEntry) (FileEntry, error) {
 
 	entry.SHA256 = hex.EncodeToString(s.Sum(nil))
 	return entry, nil
+}
+
+func isSymlinkToDir(symlink string, f os.FileInfo) (bool, error) {
+	if f.Mode().Type() == os.ModeSymlink {
+		path, err := os.Readlink(symlink)
+		if err != nil {
+			return false, fmt.Errorf("unable to read symlink %s\n%w", symlink, err)
+		}
+
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(filepath.Dir(symlink), path)
+		}
+
+		stat, err := os.Stat(path)
+		if err != nil {
+			return false, fmt.Errorf("unable to stat file %s\n%w", path, err)
+		}
+
+		return stat.IsDir(), nil
+	}
+
+	return false, nil
 }

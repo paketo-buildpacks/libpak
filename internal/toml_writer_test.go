@@ -87,7 +87,7 @@ other-field = "other-value"`))
 		})
 
 		it("logs []libcnb.Slice", func() {
-			err := tomlWriter.Write(path, libcnb.Launch{
+			err := tomlWriter.Write(path, libcnb.LaunchTOML{
 				Slices: []libcnb.Slice{
 					{},
 					{},
@@ -100,7 +100,7 @@ other-field = "other-value"`))
 		})
 
 		it("logs []libcnb.Label", func() {
-			err := tomlWriter.Write(path, libcnb.Launch{
+			err := tomlWriter.Write(path, libcnb.LaunchTOML{
 				Labels: []libcnb.Label{
 					{Key: "test-key-1"},
 					{Key: "test-key-2"},
@@ -117,7 +117,7 @@ other-field = "other-value"`))
 		context("[]libcnb.Process", func() {
 
 			it("aligns process types", func() {
-				err := tomlWriter.Write(path, libcnb.Launch{
+				err := tomlWriter.Write(path, libcnb.LaunchTOML{
 					Processes: []libcnb.Process{
 						{Type: "short", Command: "test-command-1"},
 						{Type: "a-very-long-type", Command: "test-command-2"},
@@ -133,7 +133,7 @@ other-field = "other-value"`))
 			})
 
 			it("appends arguments", func() {
-				err := tomlWriter.Write(path, libcnb.Launch{
+				err := tomlWriter.Write(path, libcnb.LaunchTOML{
 					Processes: []libcnb.Process{
 						{Type: "test-type", Command: "test-command", Arguments: []string{"test-arg-1", "test-arg-2"}},
 					},
@@ -147,7 +147,7 @@ other-field = "other-value"`))
 			})
 
 			it("indicates direct", func() {
-				err := tomlWriter.Write(path, libcnb.Launch{
+				err := tomlWriter.Write(path, libcnb.LaunchTOML{
 					Processes: []libcnb.Process{
 						{Type: "test-type", Command: "test-command", Direct: true},
 					},

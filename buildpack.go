@@ -26,7 +26,6 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/mattn/go-shellwords"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -85,9 +84,9 @@ type BuildpackDependency struct {
 	Licenses []BuildpackDependencyLicense `toml:"licenses"`
 }
 
-// AsBuildpackPlanEntry renders the dependency as a BuildpackPlanEntry.
-func (b BuildpackDependency) AsBuildpackPlanEntry() libcnb.BuildpackPlanEntry {
-	return libcnb.BuildpackPlanEntry{
+// AsBOMEntry renders a bill of materials entry describing the dependency.
+func (b BuildpackDependency) AsBOMEntry() libcnb.BOMEntry {
+	return libcnb.BOMEntry{
 		Name: b.ID,
 		Metadata: map[string]interface{}{
 			"name":     b.Name,
@@ -278,15 +277,11 @@ func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (
 
 	for _, c := range md.Configurations {
 		s, _ := cr.Resolve(c.Name)
-		p, err := shellwords.Parse(s)
-		if err != nil {
-			return ConfigurationResolver{}, fmt.Errorf("unable to parse value\n%w", err)
-		}
 
 		e := configurationEntry{
 			Name:        c.Name,
 			Description: c.Description,
-			Value:       strings.Join(p, " "),
+			Value:       s,
 		}
 
 		if l := len(e.Name); l > nameLength {
@@ -442,8 +437,12 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 }
 
 func (DependencyResolver) contains(candidates []string, value string) bool {
+	if len(candidates) == 0 {
+		return true
+	}
+
 	for _, c := range candidates {
-		if c == value {
+		if c == value || c == "*" {
 			return true
 		}
 	}

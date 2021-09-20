@@ -30,6 +30,7 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/bard"
 )
 
 func testLayer(t *testing.T, context spec.G, it spec.S) {
@@ -138,30 +139,154 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("sets build layer flag", func() {
+			lc.ExpectedTypes.Build = true
 			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				return layer, nil
-			}, libpak.BuildLayer)
+			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(layer.Build).To(BeTrue())
+			Expect(layer.LayerTypes.Build).To(BeTrue())
 		})
 
 		it("sets cache layer flag", func() {
+			lc.ExpectedTypes.Cache = true
 			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				return layer, nil
-			}, libpak.CacheLayer)
+			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(layer.Cache).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeTrue())
 		})
 
 		it("sets launch layer flag", func() {
+			lc.ExpectedTypes.Launch = true
 			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
 				return layer, nil
-			}, libpak.LaunchLayer)
+			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(layer.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+		})
+
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			lc.ExpectedTypes.Launch = true
+			lc.ExpectedTypes.Cache = true
+			lc.ExpectedTypes.Build = true
+
+			layer.Metadata = map[string]interface{}{
+				"alpha": "test-alpha",
+				"bravo": map[string]interface{}{
+					"bravo-1": "test-bravo-1",
+					"bravo-2": "test-bravo-2",
+				},
+			}
+
+			var called bool
+
+			layer, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(called).To(BeFalse())
+
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeTrue())
+			Expect(layer.LayerTypes.Build).To(BeTrue())
+		})
+	})
+
+	context("NewDependencyLayer", func() {
+		var dep libpak.BuildpackDependency
+
+		it.Before(func() {
+			dep = libpak.BuildpackDependency{
+				ID:      "test-id",
+				Name:    "test-name",
+				Version: "1.1.1",
+				URI:     "test-uri",
+				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Stacks:  []string{"test-stack"},
+				Licenses: []libpak.BuildpackDependencyLicense{
+					{
+						Type: "test-type",
+						URI:  "test-uri",
+					},
+				},
+			}
+		})
+		it("returns a BOM entry for the layer", func() {
+			_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
+			Expect(entry.Name).To(Equal("test-id"))
+			Expect(entry.Metadata["name"]).To(Equal("test-name"))
+			Expect(entry.Metadata["version"]).To(Equal("1.1.1"))
+			Expect(entry.Metadata["uri"]).To(Equal("test-uri"))
+			Expect(entry.Metadata["sha256"]).To(Equal("576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1"))
+			Expect(entry.Metadata["licenses"]).To(Equal([]libpak.BuildpackDependencyLicense{
+				{
+					Type: "test-type",
+					URI:  "test-uri",
+				},
+			}))
+		})
+		context("launch layer type", func() {
+			it("only sets launch on the entry", func() {
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
+					Launch: true,
+				})
+				Expect(entry.Launch).To(BeTrue())
+				Expect(entry.Build).To(BeFalse())
+			})
+		})
+
+		context("launch and build layer type", func() {
+			it("sets launch and build on the entry", func() {
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
+					Launch: true,
+					Build:  true,
+				})
+				Expect(entry.Launch).To(BeTrue())
+				Expect(entry.Build).To(BeTrue())
+			})
+		})
+
+		context("launch and cache layer type", func() {
+			it("sets launch and build on the entry", func() {
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
+					Launch: true,
+					Cache:  true,
+				})
+				Expect(entry.Launch).To(BeTrue())
+				Expect(entry.Build).To(BeTrue())
+			})
+		})
+
+		context("build layer type", func() {
+			it("sets build on the entry", func() {
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
+					Build: true,
+				})
+				Expect(entry.Launch).To(BeFalse())
+				Expect(entry.Build).To(BeTrue())
+			})
+		})
+
+		context("cache layer type", func() {
+			it("sets build on the entry", func() {
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
+					Cache: true,
+				})
+				Expect(entry.Launch).To(BeFalse())
+				Expect(entry.Build).To(BeTrue())
+			})
+		})
+
+		context("no layer types", func() {
+			it("sets build on the entry", func() {
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
+				Expect(entry.Launch).To(BeFalse())
+				Expect(entry.Build).To(BeTrue())
+			})
 		})
 	})
 
@@ -193,8 +318,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			layer.Metadata = map[string]interface{}{}
 
-			dlc.LayerContributor.ExpectedMetadata = dependency
-
+			dlc.ExpectedMetadata = dependency
 			dlc.Dependency = dependency
 			dlc.DependencyCache.CachePath = layer.Path
 			dlc.DependencyCache.DownloadPath = layer.Path
@@ -321,23 +445,62 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			}))
 		})
 
-		it("contributes to buildpack plan", func() {
-			plan := libcnb.BuildpackPlan{}
-
-			_ = libpak.NewDependencyLayerContributor(dependency, libpak.DependencyCache{}, &plan)
-
-			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
-				Name: dependency.ID,
-				Metadata: map[string]interface{}{
-					"name":     dependency.Name,
-					"version":  dependency.Version,
-					"layer":    dependency.ID,
-					"uri":      dependency.URI,
-					"sha256":   dependency.SHA256,
-					"stacks":   dependency.Stacks,
-					"licenses": dependency.Licenses,
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			layer.Metadata = map[string]interface{}{
+				"id":      dependency.ID,
+				"name":    dependency.Name,
+				"version": dependency.Version,
+				"uri":     dependency.URI,
+				"sha256":  dependency.SHA256,
+				"stacks":  []interface{}{dependency.Stacks[0]},
+				"licenses": []map[string]interface{}{
+					{
+						"type": dependency.Licenses[0].Type,
+						"uri":  dependency.Licenses[0].URI,
+					},
 				},
-			}))
+			}
+			dlc.ExpectedTypes.Launch = true
+			dlc.ExpectedTypes.Cache = true
+			dlc.ExpectedTypes.Build = true
+
+			var called bool
+
+			layer, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeTrue())
+			Expect(layer.LayerTypes.Build).To(BeTrue())
+		})
+	})
+
+	context("NewHelperLayer", func() {
+		it("returns a BOM entry with version equal to buildpack version", func() {
+			_, entry := libpak.NewHelperLayer(libcnb.Buildpack{
+				Info: libcnb.BuildpackInfo{
+					Version: "test-version",
+				},
+			}, "test-name-1", "test-name-2")
+			Expect(entry).To(Equal(
+				libcnb.BOMEntry{
+					Name: filepath.Base("helper"),
+					Metadata: map[string]interface{}{
+						"layer":   "helper",
+						"names":   []string{"test-name-1", "test-name-2"},
+						"version": "test-version",
+					},
+					Launch: true,
+					Build:  false,
+				},
+			))
 		})
 	})
 
@@ -366,9 +529,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			file = filepath.Join(file, "helper")
 			Expect(ioutil.WriteFile(file, []byte{}, 0755)).To(Succeed())
 
-			hlc.Path = file
-			hlc.LayerContributor.ExpectedMetadata = buildpack.Info
-			hlc.Names = []string{"test-name-1", "test-name-2"}
+			hlc = libpak.HelperLayerContributor{
+				Path:          file,
+				BuildpackInfo: buildpack.Info,
+				Logger:        bard.Logger{},
+				Names:         []string{"test-name-1", "test-name-2"},
+			}
 		})
 
 		it.After(func() {
@@ -395,28 +561,17 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			file = filepath.Join(layer.Exec.FilePath("test-name-2"))
 			Expect(file).To(BeAnExistingFile())
 			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
-
-			Expect(layer.Profile["helper"]).To(Equal(fmt.Sprintf(`exec 4<&1
-for_export=$(%s 3>&1 >&4) || exit $?
-exec 4<&-
-set -a
-eval "$for_export"
-set +a
-exec 4<&1
-for_export=$(%s 3>&1 >&4) || exit $?
-exec 4<&-
-set -a
-eval "$for_export"
-set +a`, layer.Exec.FilePath("test-name-1"), layer.Exec.FilePath("test-name-2"))))
 		})
 
 		it("does not call function with matching metadata", func() {
 			layer.Metadata = map[string]interface{}{
-				"id":        buildpack.Info.ID,
-				"name":      buildpack.Info.Name,
-				"version":   buildpack.Info.Version,
-				"homepage":  buildpack.Info.Homepage,
-				"clear-env": buildpack.Info.ClearEnvironment,
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
 			}
 
 			_, err := hlc.Contribute(layer)
@@ -431,27 +586,37 @@ set +a`, layer.Exec.FilePath("test-name-1"), layer.Exec.FilePath("test-name-2"))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{
-				"id":        buildpack.Info.ID,
-				"name":      buildpack.Info.Name,
-				"version":   buildpack.Info.Version,
-				"homepage":  buildpack.Info.Homepage,
-				"clear-env": buildpack.Info.ClearEnvironment,
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
 			}))
 		})
 
-		it("contributes to buildpack plan", func() {
-			plan := libcnb.BuildpackPlan{}
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			layer.Metadata = map[string]interface{}{
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
+			}
+			// Launch is the only one set & always true
 
-			_ = libpak.NewHelperLayerContributor(buildpack, &plan, "test-name-1", "test-name-2")
+			layer, err := hlc.Contribute(layer)
+			Expect(err).NotTo(HaveOccurred())
 
-			Expect(plan.Entries).To(ContainElement(libcnb.BuildpackPlanEntry{
-				Name: filepath.Base("helper"),
-				Metadata: map[string]interface{}{
-					"layer":   "helper",
-					"names":   []string{"test-name-1", "test-name-2"},
-					"version": buildpack.Info.Version,
-				},
-			}))
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+
+			Expect(layer.LayerTypes.Launch).To(BeTrue())
+			Expect(layer.LayerTypes.Cache).To(BeFalse())
+			Expect(layer.LayerTypes.Build).To(BeFalse())
 		})
 	})
 }

@@ -33,7 +33,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		Expect = NewWithT(t).Expect
 	)
 
-	it("renders dependency as an BuildpackPlanEntry", func() {
+	it("renders dependency as a BOMEntry", func() {
 		dependency := libpak.BuildpackDependency{
 			ID:      "test-id",
 			Name:    "test-name",
@@ -49,7 +49,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			},
 		}
 
-		Expect(dependency.AsBuildpackPlanEntry()).To(Equal(libcnb.BuildpackPlanEntry{
+		Expect(dependency.AsBOMEntry()).To(Equal(libcnb.BOMEntry{
 			Name: dependency.ID,
 			Metadata: map[string]interface{}{
 				"name":     dependency.Name,
@@ -283,6 +283,68 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 					URI:     "test-uri",
 					SHA256:  "test-sha256",
 					Stacks:  []string{"test-stack-1", "test-stack-3"},
+				}))
+			})
+
+			it("filters by stack and supports the wildcard stack", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+					},
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"*"},
+					},
+				}
+				resolver.StackID = "test-stack-3"
+
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri",
+					SHA256:  "test-sha256",
+					Stacks:  []string{"*"},
+				}))
+			})
+
+			it("filters by stack and treats no stacks as the wildcard stack", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+					},
+					{
+						ID:      "test-id",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{},
+					},
+				}
+				resolver.StackID = "test-stack-3"
+
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri",
+					SHA256:  "test-sha256",
+					Stacks:  []string{},
 				}))
 			})
 

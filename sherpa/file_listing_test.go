@@ -17,6 +17,8 @@
 package sherpa_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,6 +49,54 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("create listing", func() {
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+
+		e, err := sherpa.NewFileListing(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(e).To(HaveLen(3))
+	})
+
+	it("create listing skipping .git folder", func() {
+		Expect(os.MkdirAll(filepath.Join(path, ".git"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, ".git", "HEAD"), []byte{1}, 0644)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, ".git", "config"), []byte{1}, 0644)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory", ".git"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", ".git", "config"), []byte{1}, 0644)).To(Succeed())
+
+		e, err := sherpa.NewFileListing(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(e).To(HaveLen(3))
+	})
+
+	it("create listing as hash with non-regular file", func() {
+		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
+		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.Symlink(filepath.Join(path, "test-directory"), filepath.Join(path, "symlink-test-dir")))
+		Expect(os.Symlink(filepath.Join(path, "test-directory", "bravo.txt"), filepath.Join(path, "symlink-bravo.txt")))
+		Expect(os.Symlink("alpha.txt", filepath.Join(path, "symlink-relative.txt")))
+
+		e, err := sherpa.NewFileListing(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(e).To(HaveLen(6))
+		Expect(e[0].Path).To(HaveSuffix("alpha.txt"))
+		Expect(e[1].Path).To(HaveSuffix("symlink-bravo.txt"))
+		Expect(e[2].Path).To(HaveSuffix("symlink-relative.txt"))
+		Expect(e[3].Path).To(HaveSuffix("symlink-test-dir"))
+		Expect(e[4].Path).To(HaveSuffix("test-directory"))
+		Expect(e[5].Path).To(HaveSuffix("bravo.txt"))
+		Expect(e[1].SHA256).To(Equal(e[5].SHA256)) // symlink to file should have hash of target file
+	})
+
+	it("create listing and get SHA256", func() {
 		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
 		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{}, 0644)).To(Succeed())
@@ -54,6 +104,14 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 		e, err := sherpa.NewFileListing(path)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(e).To(HaveLen(3))
+		hash := sha256.New()
+		for _, file := range e {
+			hash.Write([]byte(file.Path + file.Mode + file.SHA256 + "\n"))
+		}
+
+		s, err := sherpa.NewFileListingHash(path)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(s).To(Equal(hex.EncodeToString(hash.Sum(nil))))
 	})
 }
