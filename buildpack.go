@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -343,6 +344,18 @@ func (c *ConfigurationResolver) Resolve(name string) (string, bool) {
 	}
 
 	return "", false
+}
+
+// ResolveBool resolves a boolean value for a configuration option. Returns true for 1, t, T, TRUE, true, True. Returns
+// false for all other values or unset.
+func (c *ConfigurationResolver) ResolveBool(name string) bool {
+	s, _ := c.Resolve(name)
+	t, err := strconv.ParseBool(s)
+	if err != nil {
+		return false
+	}
+
+	return t
 }
 
 // DependencyResolver provides functionality for resolving a dependency given a collection of constraints.
