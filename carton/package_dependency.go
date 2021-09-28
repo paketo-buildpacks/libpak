@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	PackageIdDependencyPattern    = `(?m)(.*id[\s]+=[\s]+".+-buildpacks/%s",[\s]+version=")[^"]+(".*)`
+	PackageIdDependencyPattern    = `(?m)(.*id[\s]+=[\s]+".+/%s",[\s]+version=")[^"]+(".*)`
 	PackageImageDependencyPattern = `(?m)(.*uri[\s]+=[\s]+".*%s:)[^"]+(".*)`
 	PackageDependencySubstitution = "${1}%s${2}"
 )
