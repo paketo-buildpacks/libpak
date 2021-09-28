@@ -53,7 +53,7 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(path)).To(Succeed())
 	})
 
-	it("updates buildpack dependency", func() {
+	it("updates paketo-buildpacks dependency", func() {
 		Expect(ioutil.WriteFile(path, []byte(`
 { id = "paketo-buildpacks/test-1", version="test-version-1" },
 { id = "paketo-buildpacks/test-2", version="test-version-2" },
@@ -70,6 +70,26 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
 { id = "paketo-buildpacks/test-1", version="test-version-3" },
 { id = "paketo-buildpacks/test-2", version="test-version-2" },
+`)))
+	})
+
+	it("updates paketocommunity dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`
+{ id = "paketocommunity/test-1", version="test-version-1" },
+{ id = "paketocommunity/test-2", version="test-version-2" },
+`), 0644)).To(Succeed())
+
+		p := carton.PackageDependency{
+			BuildpackPath: path,
+			ID:            "docker.io/paketocommunity/test-1",
+			Version:       "test-version-3",
+		}
+
+		p.Update(carton.WithExitHandler(exitHandler))
+
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
+{ id = "paketocommunity/test-1", version="test-version-3" },
+{ id = "paketocommunity/test-2", version="test-version-2" },
 `)))
 	})
 
@@ -93,7 +113,7 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 `)))
 	})
 
-	it("updates package dependency", func() {
+	it("updates paketo-buildpacks package dependency", func() {
 		Expect(ioutil.WriteFile(path, []byte(`
 { uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-1" },
 { uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
@@ -110,6 +130,26 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
 { uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3" },
 { uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
+`)))
+	})
+
+	it("updates paketocommunity package dependency", func() {
+		Expect(ioutil.WriteFile(path, []byte(`
+{ uri = "docker://docker.io/paketocommunity/test-1:test-version-1" },
+{ uri = "docker://docker.io/paketocommunity/test-2:test-version-2" },
+`), 0644)).To(Succeed())
+
+		p := carton.PackageDependency{
+			PackagePath: path,
+			ID:          "docker.io/paketocommunity/test-1",
+			Version:     "test-version-3",
+		}
+
+		p.Update(carton.WithExitHandler(exitHandler))
+
+		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`
+{ uri = "docker://docker.io/paketocommunity/test-1:test-version-3" },
+{ uri = "docker://docker.io/paketocommunity/test-2:test-version-2" },
 `)))
 	})
 
