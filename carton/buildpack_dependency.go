@@ -17,6 +17,7 @@
 package carton
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/pelletier/go-toml"
 )
 
 const (
@@ -55,26 +57,94 @@ func (b BuildpackDependency) Update(options ...Option) {
 	logger.Headerf("URI:     %s", b.URI)
 	logger.Headerf("SHA256:  %s", b.SHA256)
 
+	versionExp, err := regexp.Compile(b.VersionPattern)
+	if err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", b.VersionPattern, err))
+		return
+	}
+
 	c, err := ioutil.ReadFile(b.BuildpackPath)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", b.BuildpackPath, err))
 		return
 	}
 
-	s := fmt.Sprintf(BuildpackDependencyPattern, b.ID, b.VersionPattern)
-	r, err := regexp.Compile(s)
+	// save any leading comments, this is to preserve license headers
+	// inline comments will be lost
+	comments := []byte{}
+	for _, line := range bytes.SplitAfter(c, []byte("\n")) {
+		if bytes.HasPrefix(line, []byte("#")) || len(bytes.TrimSpace(line)) == 0 {
+			comments = append(comments, line...)
+		} else {
+			break // stop on first comment
+		}
+	}
+
+	md := make(map[string]interface{})
+	if err := toml.Unmarshal(c, &md); err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to decode md%s\n%w", b.BuildpackPath, err))
+		return
+	}
+
+	metadataUnwrapped, found := md["metadata"]
+	if !found {
+		config.exitHandler.Error(fmt.Errorf("unable to find metadata block"))
+		return
+	}
+
+	metadata, ok := metadataUnwrapped.(map[string]interface{})
+	if !ok {
+		config.exitHandler.Error(fmt.Errorf("unable to cast metadata"))
+		return
+	}
+
+	dependenciesUnwrapped, found := metadata["dependencies"]
+	if !found {
+		config.exitHandler.Error(fmt.Errorf("unable to find dependencies block"))
+		return
+	}
+
+	dependencies, ok := dependenciesUnwrapped.([]map[string]interface{})
+	if !ok {
+		config.exitHandler.Error(fmt.Errorf("unable to cast dependencies"))
+		return
+	}
+
+	for _, dep := range dependencies {
+		depIdUnwrapped, found := dep["id"]
+		if !found {
+			continue
+		}
+		depId, ok := depIdUnwrapped.(string)
+		if !ok {
+			continue
+		}
+
+		if depId == b.ID {
+			depVersionUnwrapped, found := dep["version"]
+			if !found {
+				continue
+			}
+
+			depVersion, ok := depVersionUnwrapped.(string)
+			if !ok {
+				continue
+			}
+			if versionExp.MatchString(depVersion) {
+				dep["version"] = b.Version
+				dep["uri"] = b.URI
+				dep["sha256"] = b.SHA256
+			}
+		}
+	}
+
+	c, err = toml.Marshal(md)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
+		config.exitHandler.Error(fmt.Errorf("unable to encode md %s\n%w", b.BuildpackPath, err))
 		return
 	}
 
-	if !r.Match(c) {
-		config.exitHandler.Error(fmt.Errorf("unable to match '%s' '%s'", b.ID, b.VersionPattern))
-		return
-	}
-
-	s = fmt.Sprintf(BuildpackDependencySubstitution, b.Version, b.URI, b.SHA256)
-	c = r.ReplaceAll(c, []byte(s))
+	c = append(comments, c...)
 
 	if err := ioutil.WriteFile(b.BuildpackPath, c, 0644); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", b.BuildpackPath, err))
