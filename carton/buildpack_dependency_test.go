@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/paketo-buildpacks/libpak/carton"
+	"github.com/paketo-buildpacks/libpak/internal"
 )
 
 func testBuildpackDependency(t *testing.T, context spec.G, it spec.S) {
@@ -54,7 +55,14 @@ func testBuildpackDependency(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("updates dependency", func() {
-		Expect(ioutil.WriteFile(path, []byte(`id      = "test-id"
+		Expect(ioutil.WriteFile(path, []byte(`api = "0.6"
+[buildpack]
+id = "some-buildpack"
+name = "Some Buildpack"
+version = "1.2.3"
+
+[[metadata.dependencies]]
+id      = "test-id"
 name    = "Test Name"
 version = "test-version-1"
 uri     = "test-uri-1"
@@ -73,17 +81,34 @@ stacks  = [ "test-stack" ]
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`id      = "test-id"
+		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.6"
+[buildpack]
+id = "some-buildpack"
+name = "Some Buildpack"
+version = "1.2.3"
+
+[[metadata.dependencies]]id      = "test-id"
 name    = "Test Name"
 version = "test-version-2"
 uri     = "test-uri-2"
 sha256  = "test-sha256-2"
 stacks  = [ "test-stack" ]
-`)))
+`))
 	})
 
 	it("updates indented dependency", func() {
-		Expect(ioutil.WriteFile(path, []byte(`  id      = "test-id"
+		Expect(ioutil.WriteFile(path, []byte(`# it should preserve
+#   these comments
+#      exactly
+
+api = "0.6"
+[buildpack]
+id = "some-buildpack"
+name = "Some Buildpack"
+version = "1.2.3"
+
+[[metadata.dependencies]]
+  id      = "test-id"
   name    = "Test Name"
   version = "test-version-1"
   uri     = "test-uri-1"
@@ -102,13 +127,26 @@ stacks  = [ "test-stack" ]
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`  id      = "test-id"
+		body, err := ioutil.ReadFile(path)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(body)).To(HavePrefix(`# it should preserve
+#   these comments
+#      exactly
+
+api = "0.6"`))
+		Expect(body).To(internal.MatchTOML(`api = "0.6"
+[buildpack]
+id = "some-buildpack"
+name = "Some Buildpack"
+version = "1.2.3"
+
+[[metadata.dependencies]]
+  id      = "test-id"
   name    = "Test Name"
   version = "test-version-2"
   uri     = "test-uri-2"
   sha256  = "test-sha256-2"
   stacks  = [ "test-stack" ]
-`)))
+`))
 	})
-
 }

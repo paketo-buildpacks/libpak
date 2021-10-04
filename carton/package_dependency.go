@@ -17,20 +17,15 @@
 package carton
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
-)
-
-const (
-	PackageIdDependencyPattern    = `(?m)(.*id[\s]+=[\s]+".+/%s",[\s]+version=")[^"]+(".*)`
-	PackageImageDependencyPattern = `(?m)(.*uri[\s]+=[\s]+".*%s:)[^"]+(".*)`
-	PackageDependencySubstitution = "${1}%s${2}"
+	"github.com/pelletier/go-toml"
 )
 
 type PackageDependency struct {
@@ -53,68 +48,131 @@ func (p PackageDependency) Update(options ...Option) {
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(p.ID, p.Version))
 
-	var paths []string
 	if p.BuilderPath != "" {
-		paths = append(paths, p.BuilderPath)
+		if err := updateFile(p.BuilderPath, updateByKey("buildpacks", p.ID, p.Version)); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to update %s\n%w", p.BuilderPath, err))
+		}
 	}
+
 	if p.PackagePath != "" {
-		paths = append(paths, p.PackagePath)
-	}
-
-	for _, path := range paths {
-		c, err := ioutil.ReadFile(path)
-		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", path, err))
-			return
-		}
-
-		s := fmt.Sprintf(PackageImageDependencyPattern, p.ID)
-		r, err := regexp.Compile(s)
-		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
-			return
-		}
-
-		if !r.Match(c) {
-			config.exitHandler.Error(fmt.Errorf("unable to match '%s'", s))
-			return
-		}
-
-		s = fmt.Sprintf(PackageDependencySubstitution, p.Version)
-		c = r.ReplaceAll(c, []byte(s))
-
-		if err := ioutil.WriteFile(path, c, 0644); err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", path, err))
-			return
+		if err := updateFile(p.PackagePath, updateByKey("dependencies", p.ID, p.Version)); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to update %s\n%w", p.PackagePath, err))
 		}
 	}
 
 	if p.BuildpackPath != "" {
-		c, err := ioutil.ReadFile(p.BuildpackPath)
-		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", p.BuildpackPath, err))
-			return
-		}
+		if err := updateFile(p.BuildpackPath, func(md map[string]interface{}) {
+			parts := strings.Split(p.ID, "/")
+			id := strings.Join(parts[len(parts)-2:], "/")
 
-		id := strings.Join(strings.Split(p.ID, "/")[2:], "/")
-		s := fmt.Sprintf(PackageIdDependencyPattern, id)
-		r, err := regexp.Compile(s)
-		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", s, err))
-			return
-		}
+			groupsUnwrapped, found := md["order"]
+			if !found {
+				return
+			}
 
-		if !r.Match(c) {
-			config.exitHandler.Error(fmt.Errorf("unable to match '%s'", s))
-			return
-		}
+			groups, ok := groupsUnwrapped.([]map[string]interface{})
+			if !ok {
+				return
+			}
 
-		s = fmt.Sprintf(PackageDependencySubstitution, p.Version)
-		c = r.ReplaceAll(c, []byte(s))
+			for _, group := range groups {
+				buildpacksUnwrapped, found := group["group"]
+				if !found {
+					continue
+				}
 
-		if err := ioutil.WriteFile(p.BuildpackPath, c, 0644); err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", p.BuildpackPath, err))
-			return
+				buildpacks, ok := buildpacksUnwrapped.([]map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				for _, bp := range buildpacks {
+					bpIdUnwrappd, found := bp["id"]
+					if !found {
+						continue
+					}
+
+					bpId, ok := bpIdUnwrappd.(string)
+					if !ok {
+						continue
+					}
+
+					if bpId == id {
+						bp["version"] = p.Version
+					}
+				}
+			}
+		}); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to update %s\n%w", p.BuildpackPath, err))
 		}
 	}
+}
+
+func updateByKey(key, id, version string) func(md map[string]interface{}) {
+	return func(md map[string]interface{}) {
+		valuesUnwrapped, found := md[key]
+		if !found {
+			return
+		}
+
+		values, ok := valuesUnwrapped.([]map[string]interface{})
+		if !ok {
+			return
+		}
+
+		for _, bp := range values {
+			uriUnwrapped, found := bp["uri"]
+			if !found {
+				continue
+			}
+
+			uri, ok := uriUnwrapped.(string)
+			if !ok {
+				continue
+			}
+
+			if strings.HasPrefix(uri, fmt.Sprintf("docker://%s", id)) {
+				parts := strings.Split(uri, ":")
+				bp["uri"] = fmt.Sprintf("%s:%s", strings.Join(parts[0:2], ":"), version)
+			}
+		}
+	}
+}
+
+func updateFile(cfgPath string, f func(md map[string]interface{})) error {
+	c, err := ioutil.ReadFile(cfgPath)
+	if err != nil {
+		return fmt.Errorf("unable to read %s\n%w", cfgPath, err)
+	}
+
+	// save any leading comments, this is to preserve license headers
+	// inline comments will be lost
+	comments := []byte{}
+	for i, line := range bytes.SplitAfter(c, []byte("\n")) {
+		if bytes.HasPrefix(line, []byte("#")) || (i > 0 && len(bytes.TrimSpace(line)) == 0) {
+			comments = append(comments, line...)
+		} else {
+			break // stop on first comment
+		}
+	}
+
+	md := make(map[string]interface{})
+	if err := toml.Unmarshal(c, &md); err != nil {
+		return fmt.Errorf("unable to decode md %s\n%w", cfgPath, err)
+	}
+
+	f(md)
+
+	b, err := toml.Marshal(md)
+	if err != nil {
+		return fmt.Errorf("unable to encode md %s\n%w", cfgPath, err)
+	}
+
+	b = append(comments, b...)
+
+	if err := ioutil.WriteFile(cfgPath, b, 0644); err != nil {
+		return fmt.Errorf("unable to write %s\n%w", cfgPath, err)
+	}
+
+	return nil
 }

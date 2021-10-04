@@ -188,7 +188,7 @@ func (p Package) Create(options ...Option) {
 	}
 
 	var files []string
-	for d, _ := range entries {
+	for d := range entries {
 		files = append(files, d)
 	}
 	sort.Strings(files)
