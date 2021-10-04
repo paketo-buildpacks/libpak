@@ -110,7 +110,8 @@ include-files = [
 	})
 
 	it("updates paketo-buildpacks dependency id partial id", func() {
-		Expect(ioutil.WriteFile(path, []byte(`[[order]]
+		Expect(ioutil.WriteFile(path, []byte(`
+[[order]]
 group = [
 	{ id = "paketo-buildpacks/test-1", version="test-version-1" },
 	{ id = "paketo-buildpacks/test-2", version="test-version-2" },

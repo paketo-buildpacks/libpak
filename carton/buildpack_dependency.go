@@ -72,8 +72,8 @@ func (b BuildpackDependency) Update(options ...Option) {
 	// save any leading comments, this is to preserve license headers
 	// inline comments will be lost
 	comments := []byte{}
-	for _, line := range bytes.SplitAfter(c, []byte("\n")) {
-		if bytes.HasPrefix(line, []byte("#")) || len(bytes.TrimSpace(line)) == 0 {
+	for i, line := range bytes.SplitAfter(c, []byte("\n")) {
+		if bytes.HasPrefix(line, []byte("#")) || (i > 0 && len(bytes.TrimSpace(line)) == 0) {
 			comments = append(comments, line...)
 		} else {
 			break // stop on first comment
