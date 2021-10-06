@@ -103,4 +103,53 @@ func testEnvVar(t *testing.T, context spec.G, it spec.S) {
 			Expect(sherpa.GetEnvWithDefault("ANOTHER_KEY", "default-value")).To(Equal("default-value"))
 		})
 	})
+
+	context("ResolveBool", func() {
+		context("variable not set", func() {
+			it("returns false if not set", func() {
+				Expect(sherpa.ResolveBool("TEST_KEY")).To(BeFalse())
+			})
+		})
+
+		context("variable is set to true value", func() {
+			it.After(func() {
+				Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+			})
+
+			it("returns true", func() {
+				for _, form := range []string{"1", "t", "T", "TRUE", "true", "True"} {
+					Expect(os.Setenv("TEST_KEY", form))
+					Expect(sherpa.ResolveBool("TEST_KEY")).To(BeTrue())
+					Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+				}
+			})
+		})
+
+		context("variable is set to non-true value", func() {
+			it.After(func() {
+				Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+			})
+
+			it("returns false", func() {
+				for _, form := range []string{"0", "f", "F", "FALSE", "false", "False"} {
+					Expect(os.Setenv("TEST_KEY", form))
+					Expect(sherpa.ResolveBool("TEST_KEY")).To(BeFalse())
+					Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+				}
+			})
+		})
+
+		context("variable is set to an invalid value", func() {
+			it.After(func() {
+				Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+			})
+
+			it("returns false", func() {
+				Expect(os.Setenv("TEST_KEY", "foo"))
+				Expect(sherpa.ResolveBool("TEST_KEY")).To(BeFalse())
+				Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+			})
+		})
+
+	})
 }
