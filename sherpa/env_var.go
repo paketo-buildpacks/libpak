@@ -19,6 +19,7 @@ package sherpa
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -49,4 +50,20 @@ func GetEnvWithDefault(name string, def string) string {
 		return s
 	}
 	return def
+}
+
+// ResolveBool resolves a boolean value for a configuration option. Returns true for 1, t, T, TRUE, true, True. Returns
+// false for all other values or unset.
+func ResolveBool(name string) bool {
+	s, ok := os.LookupEnv(name)
+	if !ok {
+		return false
+	}
+
+	t, err := strconv.ParseBool(s)
+	if err != nil {
+		return false
+	}
+
+	return t
 }
