@@ -35,7 +35,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 	context("Writer", func() {
 		var (
 			buffer *bytes.Buffer
-			writer bard.Writer
+			writer *bard.Writer
 		)
 
 		it.Before(func() {
@@ -95,6 +95,32 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 					_, err := writer.Write([]byte("some-text\n"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(buffer.String()).To(Equal("\x1b[31m    some-text\x1b[0m\n"))
+				})
+			})
+
+			context("when there is multiple input", func() {
+				it.Before(func() {
+					writer = bard.NewWriter(buffer, bard.WithIndent(2))
+				})
+
+				it("skips indentation if there was not a line break", func() {
+					_, err := writer.Write([]byte("some-text"))
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = writer.Write([]byte("more-text"))
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(buffer.String()).To(Equal("    some-textmore-text"))
+				})
+
+				it("indents if there was a line break previously", func() {
+					_, err := writer.Write([]byte("some-text\na"))
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = writer.Write([]byte("more-text"))
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(buffer.String()).To(Equal("    some-text\n    amore-text"))
 				})
 			})
 
