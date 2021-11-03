@@ -33,23 +33,24 @@ const (
 
 // Writer is an object that will indent and color all output flowing through it.
 type Writer struct {
-	code   string
-	color  *color.Color
-	indent int
-	writer io.Writer
+	code         string
+	color        *color.Color
+	indent       int
+	shouldIndent bool
+	writer       io.Writer
 }
 
 // NewWriter creates a instance that wraps another writer.
-func NewWriter(writer io.Writer, options ...WriterOption) Writer {
-	w := Writer{writer: writer}
+func NewWriter(writer io.Writer, options ...WriterOption) *Writer {
+	w := Writer{writer: writer, shouldIndent: true}
 	for _, option := range options {
 		w = option(w)
 	}
 
-	return w
+	return &w
 }
 
-func (w Writer) Write(b []byte) (int, error) {
+func (w *Writer) Write(b []byte) (int, error) {
 	var (
 		prefix, suffix []byte
 		reset          = []byte("\r")
@@ -70,9 +71,12 @@ func (w Writer) Write(b []byte) (int, error) {
 	lines := bytes.Split(b, newline)
 
 	var indentedLines [][]byte
-	for _, line := range lines {
-		for i := 0; i < w.indent; i++ {
-			line = append([]byte("  "), line...)
+	for i, line := range lines {
+		if w.shouldIndent || i > 0 {
+			for i := 0; i < w.indent; i++ {
+				line = append([]byte("  "), line...)
+			}
+			w.shouldIndent = false
 		}
 
 		if w.color != nil {
@@ -92,6 +96,10 @@ func (w Writer) Write(b []byte) (int, error) {
 
 	if suffix != nil {
 		b = append(b, suffix...)
+	}
+
+	if bytes.HasSuffix(b, newline) {
+		w.shouldIndent = true
 	}
 
 	if _, err := w.writer.Write(b); err != nil {
