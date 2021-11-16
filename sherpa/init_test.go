@@ -29,6 +29,7 @@ func TestUnit(t *testing.T) {
 	suite("EnvVar", testEnvVar)
 	suite("FileListing", testFileListing)
 	suite("NodeJS", testNodeJS)
+	suite("SBOM", testSBOM)
 	suite("Sherpa", testSherpa)
 	suite.Run(t)
 }

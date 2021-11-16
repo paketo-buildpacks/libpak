@@ -85,6 +85,8 @@ type BuildpackDependency struct {
 }
 
 // AsBOMEntry renders a bill of materials entry describing the dependency.
+//
+// Deprecated: as of Buildpacks RFC 95, use `sherpa.SBOMScanner` instead
 func (b BuildpackDependency) AsBOMEntry() libcnb.BOMEntry {
 	return libcnb.BOMEntry{
 		Name: b.ID,
