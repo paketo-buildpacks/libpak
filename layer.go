@@ -128,6 +128,9 @@ type DependencyLayerContributor struct {
 }
 
 // NewDependencyLayer returns a new DependencyLayerContributor for the given BuildpackDependency and a BOMEntry describing the layer contents.
+//
+// Deprecated: this method uses `libcnb.BOMEntry` which has been deprecated upstream, a future version will drop
+// support for `libcnb.BOMEntry` which will change this method signature
 func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) (DependencyLayerContributor, libcnb.BOMEntry) {
 	c := DependencyLayerContributor{
 		Dependency:       dependency,
@@ -197,6 +200,9 @@ type HelperLayerContributor struct {
 }
 
 // NewHelperLayer returns a new HelperLayerContributor and a BOMEntry describing the layer contents.
+//
+// Deprecated: this method uses `libcnb.BOMEntry` which has been deprecated upstream, a future version will drop
+// support for `libcnb.BOMEntry` which will change this method signature
 func NewHelperLayer(buildpack libcnb.Buildpack, names ...string) (HelperLayerContributor, libcnb.BOMEntry) {
 	c := HelperLayerContributor{
 		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
