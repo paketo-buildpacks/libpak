@@ -153,6 +153,8 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 						URI:  "test-uri",
 					},
 				},
+				CPEs: []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
 			}
 
 			dependencyCache = libpak.DependencyCache{

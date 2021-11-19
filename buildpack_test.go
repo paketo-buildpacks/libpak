@@ -26,6 +26,7 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/sbom"
 )
 
 func testBuildpack(t *testing.T, context spec.G, it spec.S) {
@@ -62,6 +63,37 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		}))
 	})
 
+	it("renders dependency as a SyftArtifact", func() {
+		dependency := libpak.BuildpackDependency{
+			ID:      "test-id",
+			Name:    "test-name",
+			Version: "1.1.1",
+			URI:     "test-uri",
+			SHA256:  "test-sha256",
+			Stacks:  []string{"test-stack"},
+			Licenses: []libpak.BuildpackDependencyLicense{
+				{
+					Type: "test-type",
+					URI:  "test-uri",
+				},
+			},
+			CPEs: []string{"test-cpe1", "test-cpe2"},
+			PURL: "test-purl",
+		}
+
+		Expect(dependency.AsSyftArtifact()).To(Equal(sbom.SyftArtifact{
+			ID:        "46713835f08d90b7",
+			Name:      "test-name",
+			Version:   "1.1.1",
+			Type:      "UnknownPackage",
+			FoundBy:   "libpak",
+			Licenses:  []string{"test-type"},
+			Locations: []sbom.SyftLocation{{Path: "buildpack.toml"}},
+			CPEs:      []string{"test-cpe1", "test-cpe2"},
+			PURL:      "test-purl",
+		}))
+	})
+
 	context("NewBuildpackMetadata", func() {
 		it("deserializes metadata", func() {
 			actual := map[string]interface{}{
@@ -86,6 +118,8 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 								"uri":  "test-uri",
 							},
 						},
+						"cpes": []interface{}{"cpe:2.3:a:test-id:1.1.1"},
+						"purl": "pkg:generic:test-id@1.1.1",
 					},
 				},
 				"include-files": []interface{}{"test-include-file"},
@@ -114,6 +148,8 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 								URI:  "test-uri",
 							},
 						},
+						CPEs: []string{"cpe:2.3:a:test-id:1.1.1"},
+						PURL: "pkg:generic:test-id@1.1.1",
 					},
 				},
 				IncludeFiles: []string{"test-include-file"},

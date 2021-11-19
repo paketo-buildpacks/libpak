@@ -27,6 +27,7 @@ import (
 
 	"github.com/buildpacks/libcnb"
 
+	"github.com/paketo-buildpacks/libpak/sbom"
 	"github.com/paketo-buildpacks/libpak/sherpa"
 
 	"github.com/paketo-buildpacks/libpak/bard"
@@ -139,15 +140,18 @@ func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, t
 		ExpectedTypes:    types,
 	}
 
-	entry := dependency.AsBOMEntry()
-	entry.Metadata["layer"] = c.LayerName()
+	var entry libcnb.BOMEntry
+	if dependency.PURL == "" && len(dependency.CPEs) == 0 {
+		entry = dependency.AsBOMEntry()
+		entry.Metadata["layer"] = c.LayerName()
 
-	if types.Launch {
-		entry.Launch = true
-	}
-	if !(types.Launch && !types.Cache && !types.Build) {
-		// launch-only layers are the only layers NOT guaranteed to be present in the build environment
-		entry.Build = true
+		if types.Launch {
+			entry.Launch = true
+		}
+		if !(types.Launch && !types.Cache && !types.Build) {
+			// launch-only layers are the only layers NOT guaranteed to be present in the build environment
+			entry.Build = true
+		}
 	}
 
 	return c, entry
@@ -167,6 +171,18 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
 		}
 		defer artifact.Close()
+
+		sbomArtifact, err := d.Dependency.AsSyftArtifact()
+		if err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to get SBOM artifact %s\n%w", d.Dependency.ID, err)
+		}
+
+		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
+		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{sbomArtifact})
+		d.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
+		if err := dep.WriteTo(sbomPath); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to write SBOM\n%w", err)
+		}
 
 		return f(artifact)
 	})
@@ -210,14 +226,17 @@ func NewHelperLayer(buildpack libcnb.Buildpack, names ...string) (HelperLayerCon
 		BuildpackInfo: buildpack.Info,
 	}
 
-	entry := libcnb.BOMEntry{
-		Name: "helper",
-		Metadata: map[string]interface{}{
-			"layer":   c.Name(),
-			"names":   names,
-			"version": buildpack.Info.Version,
-		},
-		Launch: true,
+	var entry libcnb.BOMEntry
+	if buildpack.API == "0.6" || buildpack.API == "0.5" || buildpack.API == "0.4" || buildpack.API == "0.3" || buildpack.API == "0.2" || buildpack.API == "0.1" {
+		entry = libcnb.BOMEntry{
+			Name: "helper",
+			Metadata: map[string]interface{}{
+				"layer":   c.Name(),
+				"names":   names,
+				"version": buildpack.Info.Version,
+			},
+			Launch: true,
+		}
 	}
 
 	return c, entry
@@ -261,6 +280,51 @@ func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, er
 			}
 		}
 
+		sbomArtifact, err := h.AsSyftArtifact()
+		if err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to get SBOM artifact for helper\n%w", err)
+		}
+
+		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
+		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{sbomArtifact})
+		h.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
+		if err := dep.WriteTo(sbomPath); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to write SBOM\n%w", err)
+		}
+
 		return layer, nil
 	})
+}
+
+func (h HelperLayerContributor) AsSyftArtifact() (sbom.SyftArtifact, error) {
+	licenses := []string{}
+	for _, license := range h.BuildpackInfo.Licenses {
+		licenses = append(licenses, license.Type)
+	}
+
+	locations := []sbom.SyftLocation{}
+	cpes := []string{}
+	for _, name := range h.Names {
+		locations = append(locations, sbom.SyftLocation{Path: name})
+		cpes = append(cpes, fmt.Sprintf("cpe:2.3:a:%s:%s:%s:*:*:*:*:*:*:*",
+			h.BuildpackInfo.ID, name, h.BuildpackInfo.Version))
+	}
+
+	artifact := sbom.SyftArtifact{
+		Name:      "helper",
+		Version:   h.BuildpackInfo.Version,
+		Type:      "UnknownPackage",
+		FoundBy:   "libpak",
+		Licenses:  licenses,
+		Locations: locations,
+		CPEs:      cpes,
+		PURL:      fmt.Sprintf("pkg:generic/%s@%s", h.BuildpackInfo.ID, h.BuildpackInfo.Version),
+	}
+	var err error
+	artifact.ID, err = artifact.Hash()
+	if err != nil {
+		return sbom.SyftArtifact{}, fmt.Errorf("unable to generate hash\n%w", err)
+	}
+
+	return artifact, nil
 }

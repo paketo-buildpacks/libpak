@@ -28,6 +28,7 @@ import (
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/sbom"
 )
 
 // BuildpackConfiguration represents a build or launch configuration parameter.
@@ -80,13 +81,19 @@ type BuildpackDependency struct {
 	// Stacks are the stacks the dependency is compatible with.
 	Stacks []string `toml:"stacks"`
 
-	// Licenses are the stacks the dependency is distributed under.
+	// Licenses are the licenses the dependency is distributed under.
 	Licenses []BuildpackDependencyLicense `toml:"licenses"`
+
+	// CPEs are the Common Platform Enumeration identifiers for the dependency
+	CPEs []string `toml:"cpes"`
+
+	// PURL is the package URL that identifies the dependency
+	PURL string `toml:"purl"`
 }
 
 // AsBOMEntry renders a bill of materials entry describing the dependency.
 //
-// Deprecated: as of Buildpacks RFC 95, use `sherpa.SBOMScanner` instead
+// Deprecated: as of Buildpacks RFC 95, use `BuildpackDependency.AsSyftArtifact` instead
 func (b BuildpackDependency) AsBOMEntry() libcnb.BOMEntry {
 	return libcnb.BOMEntry{
 		Name: b.ID,
@@ -99,6 +106,33 @@ func (b BuildpackDependency) AsBOMEntry() libcnb.BOMEntry {
 			"licenses": b.Licenses,
 		},
 	}
+}
+
+// AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.
+func (b BuildpackDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
+	licenses := []string{}
+	for _, license := range b.Licenses {
+		licenses = append(licenses, license.Type)
+	}
+
+	sbomArtifact := sbom.SyftArtifact{
+		Name:      b.Name,
+		Version:   b.Version,
+		Type:      "UnknownPackage",
+		FoundBy:   "libpak",
+		Licenses:  licenses,
+		Locations: []sbom.SyftLocation{{Path: "buildpack.toml"}},
+		CPEs:      b.CPEs,
+		PURL:      b.PURL,
+	}
+
+	var err error
+	sbomArtifact.ID, err = sbomArtifact.Hash()
+	if err != nil {
+		return sbom.SyftArtifact{}, fmt.Errorf("unable to generate hash\n%w", err)
+	}
+
+	return sbomArtifact, nil
 }
 
 // BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
@@ -194,6 +228,16 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 
 					d.Licenses = append(d.Licenses, l)
 				}
+			}
+
+			if v, ok := v["cpes"].([]interface{}); ok {
+				for _, v := range v {
+					d.CPEs = append(d.CPEs, v.(string))
+				}
+			}
+
+			if v, ok := v["purl"].(string); ok {
+				d.PURL = v
 			}
 
 			m.Dependencies = append(m.Dependencies, d)
