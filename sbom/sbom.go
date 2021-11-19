@@ -1,12 +1,15 @@
-package sherpa
+package sbom
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/CycloneDX/cyclonedx-go"
 	"github.com/buildpacks/libcnb"
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/effect"
 )
@@ -17,6 +20,89 @@ type SBOMScanner interface {
 	ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error
 	ScanBuild(scanDir string, formats ...libcnb.SBOMFormat) error
 	ScanLaunch(scanDir string, formats ...libcnb.SBOMFormat) error
+}
+
+type SyftDependency struct {
+	Artifacts  []SyftArtifact
+	Source     SyftSource
+	Descriptor SyftDescriptor
+	Schema     SyftSchema
+}
+
+func NewSyftDependency(dependencyPath string, artifacts []SyftArtifact) SyftDependency {
+	return SyftDependency{
+		Artifacts: artifacts,
+		Source: SyftSource{
+			Type:   "directory",
+			Target: dependencyPath,
+		},
+		Descriptor: SyftDescriptor{
+			Name:    "syft",
+			Version: "0.30.1",
+		},
+		Schema: SyftSchema{
+			Version: "1.1.0",
+			URL:     "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json",
+		},
+	}
+}
+
+func (s SyftDependency) WriteTo(path string) error {
+	output, err := json.Marshal(&s)
+	if err != nil {
+		return fmt.Errorf("unable to marshal to JSON\n%w", err)
+	}
+
+	err = ioutil.WriteFile(path, output, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to write to path %s\n%w", path, err)
+	}
+
+	return nil
+}
+
+type SyftArtifact struct {
+	ID        string
+	Name      string
+	Version   string
+	Type      string
+	FoundBy   string
+	Locations []SyftLocation
+	Licenses  []string
+	Language  string
+	CPEs      []string
+	PURL      string
+}
+
+func (s SyftArtifact) Hash() (string, error) {
+	f, err := hashstructure.Hash(s, hashstructure.FormatV2, &hashstructure.HashOptions{
+		ZeroNil:      true,
+		SlicesAsSets: true,
+	})
+	if err != nil {
+		return "", fmt.Errorf("could not build ID for artifact=%+v: %+v", s, err)
+	}
+
+	return fmt.Sprintf("%x", f), nil
+}
+
+type SyftLocation struct {
+	Path string
+}
+
+type SyftSource struct {
+	Type   string
+	Target string
+}
+
+type SyftDescriptor struct {
+	Name    string
+	Version string
+}
+
+type SyftSchema struct {
+	Version string
+	URL     string
 }
 
 type SyftCLISBOMScanner struct {
@@ -155,7 +241,7 @@ func (b SyftCLISBOMScanner) runSyft(sbomOutputPath string, scanDir string, forma
 
 	err = b.Executor.Execute(effect.Execution{
 		Command: "syft",
-		Args:    []string{"packges", "-o", SBOMFormatToSyftOutputFormat(format), fmt.Sprintf("dir:%s", scanDir)},
+		Args:    []string{"packages", "-q", "-o", SBOMFormatToSyftOutputFormat(format), fmt.Sprintf("dir:%s", scanDir)},
 		Stdout:  writer,
 		Stderr:  b.Logger.TerminalErrorWriter(),
 	})

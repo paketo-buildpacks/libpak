@@ -5,10 +5,11 @@ go 1.15
 require (
 	github.com/CycloneDX/cyclonedx-go v0.4.0
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/buildpacks/libcnb v1.24.1-0.20211118031525-6aa81e50810d
+	github.com/buildpacks/libcnb v1.25.0
 	github.com/creack/pty v1.1.17
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.12
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/onsi/gomega v1.17.0
 	github.com/pelletier/go-toml v1.9.4
 	github.com/sclevine/spec v1.4.0

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package sherpa_test
+package sbom_test
 
 import (
 	"testing"
@@ -24,11 +24,7 @@ import (
 )
 
 func TestUnit(t *testing.T) {
-	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
-	suite("CopyFile", testCopyFile)
-	suite("EnvVar", testEnvVar)
-	suite("FileListing", testFileListing)
-	suite("NodeJS", testNodeJS)
-	suite("Sherpa", testSherpa)
+	suite := spec.New("libpak/sbom", spec.Report(report.Terminal{}))
+	suite("SBOM", testSBOM)
 	suite.Run(t)
 }

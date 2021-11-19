@@ -1,4 +1,4 @@
-package sherpa_test
+package sbom_test
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/effect"
 	"github.com/paketo-buildpacks/libpak/effect/mocks"
-	"github.com/paketo-buildpacks/libpak/sherpa"
+	"github.com/paketo-buildpacks/libpak/sbom"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,7 +25,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 		layers   libcnb.Layers
 		layer    libcnb.Layer
 		executor mocks.Executor
-		scanner  sherpa.SBOMScanner
+		scanner  sbom.SBOMScanner
 	)
 
 	it.Before(func() {
@@ -49,21 +49,28 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("syft", func() {
+		it("generates artifact id", func() {
+			artifact := sbom.SyftArtifact{Name: "foo", Version: "1.2.3"}
+			ID, err := artifact.Hash()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ID).To(Equal("7f6c18a85645bd7c"))
+		})
+
 		it("runs syft once to generate JSON", func() {
 			format := libcnb.SyftJSON
 			outputPath := layers.BuildSBOMPath(format)
 
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
-					len(e.Args) == 4 &&
-					e.Args[2] == "json" &&
-					e.Args[3] == "dir:something"
+					len(e.Args) == 5 &&
+					e.Args[3] == "json" &&
+					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
 				Expect(ioutil.WriteFile(outputPath, []byte("succeed1"), 0644)).To(Succeed())
 			}).Return(nil)
 
 			// uses interface here intentionally, to force that inteface and implementation match
-			scanner = sherpa.NewSyftCLISBOMScanner(layers, &executor, bard.NewLogger(io.Discard))
+			scanner = sbom.NewSyftCLISBOMScanner(layers, &executor, bard.NewLogger(io.Discard))
 
 			Expect(scanner.ScanBuild("something", format)).To(Succeed())
 
@@ -78,14 +85,14 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
-					len(e.Args) == 4 &&
-					e.Args[2] == "json" &&
-					e.Args[3] == "dir:something"
+					len(e.Args) == 5 &&
+					e.Args[3] == "json" &&
+					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
 				Expect(ioutil.WriteFile(outputPath, []byte("succeed2"), 0644)).To(Succeed())
 			}).Return(nil)
 
-			scanner := sherpa.SyftCLISBOMScanner{
+			scanner := sbom.SyftCLISBOMScanner{
 				Executor: &executor,
 				Layers:   layers,
 				Logger:   bard.NewLogger(io.Discard),
@@ -107,14 +114,14 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			for format, outputPath := range outputPaths {
 				executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 					return e.Command == "syft" &&
-						len(e.Args) == 4 &&
-						e.Args[2] == sherpa.SBOMFormatToSyftOutputFormat(format) &&
-						e.Args[3] == "dir:something"
+						len(e.Args) == 5 &&
+						e.Args[3] == sbom.SBOMFormatToSyftOutputFormat(format) &&
+						e.Args[4] == "dir:something"
 				})).Run(func(args mock.Arguments) {
 					Expect(ioutil.WriteFile(outputPath, []byte("succeed3"), 0644)).To(Succeed())
 				}).Return(nil)
 
-				scanner := sherpa.SyftCLISBOMScanner{
+				scanner := sbom.SyftCLISBOMScanner{
 					Executor: &executor,
 					Layers:   layers,
 					Logger:   bard.NewLogger(io.Discard),
@@ -155,7 +162,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
   </components>
 </bom>`), 0644))
 
-			scanner := sherpa.SyftCLISBOMScanner{
+			scanner := sbom.SyftCLISBOMScanner{
 				Executor: &executor,
 				Layers:   layers,
 				Logger:   bard.NewLogger(io.Discard),
@@ -198,7 +205,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
   </components>
 </bom>`), 0644))
 
-			scanner := sherpa.SyftCLISBOMScanner{
+			scanner := sbom.SyftCLISBOMScanner{
 				Executor: &executor,
 				Layers:   layers,
 				Logger:   bard.NewLogger(io.Discard),
@@ -218,6 +225,87 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			input, err = ioutil.ReadFile(outputPath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(input)).To(ContainSubstring(`<bom xmlns="http://cyclonedx.org/schema/bom/1.2" version="1" serialNumber="urn:uuid:48051e17-8720-4503-a2ef-47efab3fc03f">`))
+		})
+
+		it("writes out a manual BOM entry", func() {
+			dep := sbom.SyftDependency{
+				Artifacts: []sbom.SyftArtifact{
+					{
+						ID:      "1234",
+						Name:    "test-dep",
+						Version: "1.2.3",
+						Type:    "UnknownPackage",
+						FoundBy: "java-buildpack",
+						Locations: []sbom.SyftLocation{
+							{Path: "/some/path"},
+						},
+						Licenses: []string{"GPL-2.0 WITH Classpath-exception-2.0"},
+						Language: "java",
+						CPEs: []string{
+							"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*",
+						},
+						PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
+					},
+				},
+				Source: sbom.SyftSource{
+					Type:   "directory",
+					Target: "path/to/layer",
+				},
+				Descriptor: sbom.SyftDescriptor{
+					Name:    "syft",
+					Version: "0.30.1",
+				},
+				Schema: sbom.SyftSchema{
+					Version: "1.1.0",
+					URL:     "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json",
+				},
+			}
+			outputFile := filepath.Join(layers.Path, "test-bom.json")
+			Expect(dep.WriteTo(outputFile)).To(Succeed())
+			Expect(outputFile).To(BeARegularFile())
+
+			data, err := ioutil.ReadFile(outputFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
+			Expect(string(data)).To(ContainSubstring(`"FoundBy":"java-buildpack",`))
+			Expect(string(data)).To(ContainSubstring(`"PURL":"pkg:generic/some-java11@11.0.2?arch=amd64"`))
+			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
+			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
+			Expect(string(data)).To(ContainSubstring(`"Source":{`))
+		})
+
+		it("writes out a manual BOM entry with help", func() {
+			dep := sbom.NewSyftDependency("path/to/layer", []sbom.SyftArtifact{
+				{
+					ID:      "1234",
+					Name:    "test-dep",
+					Version: "1.2.3",
+					Type:    "UnknownPackage",
+					FoundBy: "java-buildpack",
+					Locations: []sbom.SyftLocation{
+						{Path: "/some/path"},
+					},
+					Licenses: []string{"GPL-2.0 WITH Classpath-exception-2.0"},
+					Language: "java",
+					CPEs: []string{
+						"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*",
+					},
+					PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
+				},
+			})
+
+			outputFile := filepath.Join(layers.Path, "test-bom.json")
+			Expect(dep.WriteTo(outputFile)).To(Succeed())
+			Expect(outputFile).To(BeARegularFile())
+
+			data, err := ioutil.ReadFile(outputFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
+			Expect(string(data)).To(ContainSubstring(`"FoundBy":"java-buildpack",`))
+			Expect(string(data)).To(ContainSubstring(`"PURL":"pkg:generic/some-java11@11.0.2?arch=amd64"`))
+			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
+			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
+			Expect(string(data)).To(ContainSubstring(`"Source":{`))
 		})
 	})
 

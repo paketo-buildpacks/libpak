@@ -215,6 +215,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				},
 			}
 		})
+
 		it("returns a BOM entry for the layer", func() {
 			_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
 			Expect(entry.Name).To(Equal("test-id"))
@@ -229,6 +230,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				},
 			}))
 		})
+
 		context("launch layer type", func() {
 			it("only sets launch on the entry", func() {
 				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
@@ -288,6 +290,23 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Expect(entry.Build).To(BeTrue())
 			})
 		})
+
+		context("no BOM entry when PURL is set", func() {
+			it("sets build on the entry", func() {
+				dep.PURL = "pkg:generic/fake@1.0.0"
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
+				Expect(entry).To(Equal(libcnb.BOMEntry{}))
+			})
+
+			it("sets build on the entry", func() {
+				dep.CPEs = []string{
+					"cpe:1",
+					"cpe:2",
+				}
+				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
+				Expect(entry).To(Equal(libcnb.BOMEntry{}))
+			})
+		})
 	})
 
 	context("DependencyLayerContributor", func() {
@@ -314,6 +333,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						URI:  "test-uri",
 					},
 				},
+				CPEs: []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
 			}
 
 			layer.Metadata = map[string]interface{}{}
@@ -394,6 +415,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"uri":  dependency.Licenses[0].URI,
 					},
 				},
+				"cpes": []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl": "pkg:generic/some-java11@11.0.2?arch=amd64",
 			}
 
 			var called bool
@@ -442,6 +465,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"uri":  dependency.Licenses[0].URI,
 					},
 				},
+				"cpes": []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl": "pkg:generic/some-java11@11.0.2?arch=amd64",
 			}))
 		})
 
@@ -459,6 +484,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"uri":  dependency.Licenses[0].URI,
 					},
 				},
+				"cpes": []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl": "pkg:generic/some-java11@11.0.2?arch=amd64",
 			}
 			dlc.ExpectedTypes.Launch = true
 			dlc.ExpectedTypes.Cache = true
@@ -480,11 +507,34 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(layer.LayerTypes.Cache).To(BeTrue())
 			Expect(layer.LayerTypes.Build).To(BeTrue())
 		})
+
+		it("adds expected Syft SBOM file", func() {
+			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+
+			layer, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			outputFile := layer.SBOMPath(libcnb.SyftJSON)
+			Expect(outputFile).To(BeARegularFile())
+
+			data, err := ioutil.ReadFile(outputFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
+			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))
+			Expect(string(data)).To(ContainSubstring(`"PURL":"pkg:generic/some-java11@11.0.2?arch=amd64"`))
+			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
+			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
+			Expect(string(data)).To(ContainSubstring(`"Source":{`))
+		})
 	})
 
 	context("NewHelperLayer", func() {
 		it("returns a BOM entry with version equal to buildpack version", func() {
 			_, entry := libpak.NewHelperLayer(libcnb.Buildpack{
+				API: "0.6",
 				Info: libcnb.BuildpackInfo{
 					Version: "test-version",
 				},
@@ -501,6 +551,16 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 					Build:  false,
 				},
 			))
+		})
+
+		it("returns empty BOM entry on API 0.7", func() {
+			_, entry := libpak.NewHelperLayer(libcnb.Buildpack{
+				API: "0.7",
+				Info: libcnb.BuildpackInfo{
+					Version: "test-version",
+				},
+			}, "test-name-1", "test-name-2")
+			Expect(entry).To(Equal(libcnb.BOMEntry{}))
 		})
 	})
 
@@ -617,6 +677,37 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(layer.LayerTypes.Launch).To(BeTrue())
 			Expect(layer.LayerTypes.Cache).To(BeFalse())
 			Expect(layer.LayerTypes.Build).To(BeFalse())
+		})
+
+		it("adds expected Syft SBOM file", func() {
+			layer.Metadata = map[string]interface{}{
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
+				"keywords":    []interface{}{},
+			}
+
+			_, err := hlc.Contribute(layer)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+
+			outputFile := layer.SBOMPath(libcnb.SyftJSON)
+			Expect(outputFile).To(BeARegularFile())
+
+			data, err := ioutil.ReadFile(outputFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
+			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))
+			Expect(string(data)).To(ContainSubstring(`"PURL":"pkg:generic/test-id@test-version"`))
+			Expect(string(data)).To(ContainSubstring(`"CPEs":["cpe:2.3:a:test-id:test-name-1:test-version:*:*:*:*:*:*:*","cpe:2.3:a:test-id:test-name-2:test-version:*:*:*:*:*:*:*"]`))
+			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
+			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
+			Expect(string(data)).To(ContainSubstring(`"Source":{`))
 		})
 	})
 }
