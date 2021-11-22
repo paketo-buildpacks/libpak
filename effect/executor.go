@@ -17,13 +17,8 @@
 package effect
 
 import (
-	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"syscall"
-
-	"github.com/creack/pty"
 )
 
 // Execution is information about a command to run.
@@ -79,55 +74,4 @@ func (CommandExecutor) Execute(execution Execution) error {
 	cmd.Stderr = execution.Stderr
 
 	return cmd.Run()
-}
-
-// TTYExecutor is an implementation of Executor that uses exec.Command and runs the command with a TTY.
-type TTYExecutor struct{}
-
-func (t TTYExecutor) Execute(execution Execution) error {
-	cmd := exec.Command(execution.Command, execution.Args...)
-
-	if execution.Dir != "" {
-		cmd.Dir = execution.Dir
-	}
-
-	if len(execution.Env) > 0 {
-		cmd.Env = execution.Env
-	}
-
-	cmd.Stdin = execution.Stdin
-
-	f, err := pty.Start(cmd)
-	if err != nil {
-		return fmt.Errorf("unable to start PTY\n%w", err)
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(execution.Stdout, f); err != nil {
-		if !t.isEIO(err) {
-			return fmt.Errorf("unable to write output\n%w", err)
-		}
-	}
-
-	return cmd.Wait()
-}
-
-func (TTYExecutor) isEIO(err error) bool {
-	pe, ok := err.(*os.PathError)
-	if !ok {
-		return false
-	}
-
-	return pe.Err == syscall.EIO
-}
-
-// NewExecutor creates a new Executor.  If the buildpack is currently running in a TTY, returns a TTY-aware Executor.
-func NewExecutor() Executor {
-	// TODO: Remove once TTY support is in place
-	return TTYExecutor{}
-	// if isatty.IsTerminal(os.Stdout.Fd()) {
-	// 	return TTYExecutor{}
-	// } else {
-	// 	return CommandExecutor{}
-	// }
 }
