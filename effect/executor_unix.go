@@ -1,5 +1,5 @@
-//go:build aix && darwin && dragonfly && freebsd && linux && netbsd && openbsd && solaris
-// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
+//go:build !windows
+// +build !windows
 
 /*
  * Copyright 2018-2020 the original author or authors.
