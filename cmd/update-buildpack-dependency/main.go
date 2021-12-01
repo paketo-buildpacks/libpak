@@ -36,6 +36,10 @@ func main() {
 	flagSet.StringVar(&b.URI, "uri", "", "the new uri of the dependency")
 	flagSet.StringVar(&b.Version, "version", "", "the new version of the dependency")
 	flagSet.StringVar(&b.VersionPattern, "version-pattern", "", "the version pattern of the dependency")
+	flagSet.StringVar(&b.PURL, "purl", "", "the new purl version of the dependency, if not set defaults to version")
+	flagSet.StringVar(&b.PURLPattern, "purl-pattern", "", "the purl version pattern of the dependency, if not set defaults to version-pattern")
+	flagSet.StringVar(&b.CPE, "cpe", "", "the new version use in all CPEs, if not set defaults to version")
+	flagSet.StringVar(&b.CPEPattern, "cpe-pattern", "", "the cpe version pattern of the dependency, if not set defaults to version-pattern")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
@@ -63,6 +67,22 @@ func main() {
 
 	if b.VersionPattern == "" {
 		log.Fatal("version-pattern must be set")
+	}
+
+	if b.PURL == "" {
+		b.PURL = b.Version
+	}
+
+	if b.PURLPattern == "" {
+		b.PURLPattern = b.VersionPattern
+	}
+
+	if b.CPE == "" {
+		b.CPE = b.Version
+	}
+
+	if b.CPEPattern == "" {
+		b.CPEPattern = b.VersionPattern
 	}
 
 	b.Update()

@@ -40,6 +40,10 @@ type BuildpackDependency struct {
 	URI            string
 	Version        string
 	VersionPattern string
+	CPE            string
+	CPEPattern     string
+	PURL           string
+	PURLPattern    string
 }
 
 func (b BuildpackDependency) Update(options ...Option) {
@@ -54,12 +58,26 @@ func (b BuildpackDependency) Update(options ...Option) {
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(b.ID, b.VersionPattern))
 	logger.Headerf("Version: %s", b.Version)
+	logger.Headerf("PURL:    %s", b.PURL)
+	logger.Headerf("CPEs:    %s", b.CPE)
 	logger.Headerf("URI:     %s", b.URI)
 	logger.Headerf("SHA256:  %s", b.SHA256)
 
 	versionExp, err := regexp.Compile(b.VersionPattern)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to compile regex %s\n%w", b.VersionPattern, err))
+		config.exitHandler.Error(fmt.Errorf("unable to compile version regex %s\n%w", b.VersionPattern, err))
+		return
+	}
+
+	cpeExp, err := regexp.Compile(b.CPEPattern)
+	if err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to compile cpe regex %s\n%w", b.CPEPattern, err))
+		return
+	}
+
+	purlExp, err := regexp.Compile(b.PURLPattern)
+	if err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to compile cpe regex %s\n%w", b.PURLPattern, err))
 		return
 	}
 
@@ -134,6 +152,36 @@ func (b BuildpackDependency) Update(options ...Option) {
 				dep["version"] = b.Version
 				dep["uri"] = b.URI
 				dep["sha256"] = b.SHA256
+			}
+
+			purlUnwrapped, found := dep["purl"]
+			if !found {
+				continue
+			}
+
+			purl, ok := purlUnwrapped.(string)
+			if !ok {
+				continue
+			}
+			dep["purl"] = purlExp.ReplaceAllString(purl, b.PURL)
+
+			cpesUnwrapped, found := dep["cpes"]
+			if !found {
+				continue
+			}
+
+			cpes, ok := cpesUnwrapped.([]interface{})
+			if !ok {
+				continue
+			}
+
+			for i := 0; i < len(cpes); i++ {
+				cpe, ok := cpes[i].(string)
+				if !ok {
+					continue
+				}
+
+				cpes[i] = cpeExp.ReplaceAllString(cpe, b.CPE)
 			}
 		}
 	}
