@@ -152,36 +152,29 @@ func (b BuildpackDependency) Update(options ...Option) {
 				dep["version"] = b.Version
 				dep["uri"] = b.URI
 				dep["sha256"] = b.SHA256
-			}
 
-			purlUnwrapped, found := dep["purl"]
-			if !found {
-				continue
-			}
-
-			purl, ok := purlUnwrapped.(string)
-			if !ok {
-				continue
-			}
-			dep["purl"] = purlExp.ReplaceAllString(purl, b.PURL)
-
-			cpesUnwrapped, found := dep["cpes"]
-			if !found {
-				continue
-			}
-
-			cpes, ok := cpesUnwrapped.([]interface{})
-			if !ok {
-				continue
-			}
-
-			for i := 0; i < len(cpes); i++ {
-				cpe, ok := cpes[i].(string)
-				if !ok {
-					continue
+				purlUnwrapped, found := dep["purl"]
+				if found {
+					purl, ok := purlUnwrapped.(string)
+					if ok {
+						dep["purl"] = purlExp.ReplaceAllString(purl, b.PURL)
+					}
 				}
 
-				cpes[i] = cpeExp.ReplaceAllString(cpe, b.CPE)
+				cpesUnwrapped, found := dep["cpes"]
+				if found {
+					cpes, ok := cpesUnwrapped.([]interface{})
+					if ok {
+						for i := 0; i < len(cpes); i++ {
+							cpe, ok := cpes[i].(string)
+							if !ok {
+								continue
+							}
+
+							cpes[i] = cpeExp.ReplaceAllString(cpe, b.CPE)
+						}
+					}
+				}
 			}
 		}
 	}
