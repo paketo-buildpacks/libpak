@@ -1,7 +1,6 @@
 package sbom_test
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -105,10 +104,11 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(result)).To(Equal("succeed2"))
 		})
 
-		it("runs syft twice, once per format", func() {
+		it("runs syft thrice, once per format", func() {
 			outputPaths := map[libcnb.SBOMFormat]string{
-				libcnb.SPDXJSON: layers.LaunchSBOMPath(libcnb.SPDXJSON),
-				libcnb.SyftJSON: layers.LaunchSBOMPath(libcnb.SyftJSON),
+				libcnb.SPDXJSON:      layers.LaunchSBOMPath(libcnb.SPDXJSON),
+				libcnb.SyftJSON:      layers.LaunchSBOMPath(libcnb.SyftJSON),
+				libcnb.CycloneDXJSON: layers.LaunchSBOMPath(libcnb.CycloneDXJSON),
 			}
 
 			for format, outputPath := range outputPaths {
@@ -133,98 +133,6 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(result)).To(Equal("succeed3"))
 			}
-		})
-
-		it("converts between cyclonedx XML and JSON", func() {
-			outputPath := layers.BuildSBOMPath(libcnb.CycloneDXJSON)
-			Expect(ioutil.WriteFile(outputPath, []byte(`<?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" version="1" serialNumber="urn:uuid:48051e17-8720-4503-a2ef-47efab3fc03f">
-  <metadata>
-    <timestamp>2021-11-15T16:15:46-05:00</timestamp>
-    <tools>
-      <tool>
-        <vendor>anchore</vendor>
-        <name>syft</name>
-        <version>0.29.0</version>
-      </tool>
-    </tools>
-    <component type="file">
-      <name>.</name>
-      <version></version>
-    </component>
-  </metadata>
-  <components>
-    <component type="library">
-      <name>github.com/BurntSushi/toml</name>
-      <version>v0.4.1</version>
-      <purl>pkg:golang/github.com/BurntSushi/toml@v0.4.1</purl>
-    </component>
-  </components>
-</bom>`), 0644))
-
-			scanner := sbom.SyftCLISBOMScanner{
-				Executor: &executor,
-				Layers:   layers,
-				Logger:   bard.NewLogger(io.Discard),
-			}
-
-			Expect(scanner.ConvertCycloneDXXMLtoJSON(outputPath, false)).To(Succeed())
-
-			Expect(outputPath).To(BeARegularFile())
-			Expect(fmt.Sprintf("%s.bak", outputPath)).ToNot(BeARegularFile())
-
-			input, err := ioutil.ReadFile(outputPath)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(input)).To(ContainSubstring(`{"type":"library","name":"github.com/BurntSushi/toml","version":"v0.4.1","purl":"pkg:golang/github.com/BurntSushi/toml@v0.4.1"}`))
-		})
-
-		it("converts between cyclonedx XML and JSON with backup", func() {
-			outputPath := layers.LaunchSBOMPath(libcnb.CycloneDXJSON)
-			Expect(ioutil.WriteFile(outputPath, []byte(`<?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" version="1" serialNumber="urn:uuid:48051e17-8720-4503-a2ef-47efab3fc03f">
-  <metadata>
-    <timestamp>2021-11-15T16:15:46-05:00</timestamp>
-    <tools>
-      <tool>
-        <vendor>anchore</vendor>
-        <name>syft</name>
-        <version>0.29.0</version>
-      </tool>
-    </tools>
-    <component type="file">
-      <name>.</name>
-      <version></version>
-    </component>
-  </metadata>
-  <components>
-    <component type="library">
-      <name>github.com/BurntSushi/toml</name>
-      <version>v0.4.1</version>
-      <purl>pkg:golang/github.com/BurntSushi/toml@v0.4.1</purl>
-    </component>
-  </components>
-</bom>`), 0644))
-
-			scanner := sbom.SyftCLISBOMScanner{
-				Executor: &executor,
-				Layers:   layers,
-				Logger:   bard.NewLogger(io.Discard),
-			}
-
-			Expect(scanner.ConvertCycloneDXXMLtoJSON(outputPath, true)).To(Succeed())
-
-			Expect(outputPath).To(BeARegularFile())
-
-			input, err := ioutil.ReadFile(outputPath)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(input)).To(ContainSubstring(`{"type":"library","name":"github.com/BurntSushi/toml","version":"v0.4.1","purl":"pkg:golang/github.com/BurntSushi/toml@v0.4.1"}`))
-
-			outputPath = fmt.Sprintf("%s.bak", outputPath)
-			Expect(outputPath).To(BeARegularFile())
-
-			input, err = ioutil.ReadFile(outputPath)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(input)).To(ContainSubstring(`<bom xmlns="http://cyclonedx.org/schema/bom/1.2" version="1" serialNumber="urn:uuid:48051e17-8720-4503-a2ef-47efab3fc03f">`))
 		})
 
 		it("writes out a manual BOM entry", func() {
@@ -253,7 +161,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 				},
 				Descriptor: sbom.SyftDescriptor{
 					Name:    "syft",
-					Version: "0.30.1",
+					Version: "0.32.0",
 				},
 				Schema: sbom.SyftSchema{
 					Version: "1.1.0",

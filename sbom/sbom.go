@@ -3,11 +3,9 @@ package sbom
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 
-	"github.com/CycloneDX/cyclonedx-go"
 	"github.com/buildpacks/libcnb"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/paketo-buildpacks/libpak/bard"
@@ -38,7 +36,7 @@ func NewSyftDependency(dependencyPath string, artifacts []SyftArtifact) SyftDepe
 		},
 		Descriptor: SyftDescriptor{
 			Name:    "syft",
-			Version: "0.30.1",
+			Version: "0.32.0",
 		},
 		Schema: SyftSchema{
 			Version: "1.1.0",
@@ -150,86 +148,9 @@ func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string,
 		if err := b.runSyft(sbomLocation, scanDir, format); err != nil {
 			return fmt.Errorf("unable to run syft\n%w", err)
 		}
-
-		if format == libcnb.CycloneDXJSON {
-			// syft doesn't presently support cyclonedx JSON output and we need to convert
-			// until https://github.com/anchore/syft/issues/631 is addressed
-			if err := b.ConvertCycloneDXXMLtoJSON(sbomLocation, false); err != nil {
-				return fmt.Errorf("unable convert XML to JSON\n%w", err)
-			}
-		}
 	}
 
 	return nil
-}
-
-// ConvertCycloneDXXMLtoJSON reads input CycloneDX XML, converts to JSON and overwrites the XML optionally keeping a backup copy of the xml
-func (b SyftCLISBOMScanner) ConvertCycloneDXXMLtoJSON(inputPath string, backup bool) error {
-	if backup {
-		if err := b.backupXMLFile(inputPath); err != nil {
-			return fmt.Errorf("unable to backup file\n%w", err)
-		}
-	}
-
-	bom, err := b.readXMLSBOM(inputPath)
-	if err != nil {
-		return fmt.Errorf("unable to read XML file for conversion\n%w", err)
-	}
-
-	if err := b.writeJSONSBOM(inputPath, bom); err != nil {
-		return fmt.Errorf("unable to write converted JSON BOM file\n%w", err)
-	}
-
-	return nil
-}
-
-func (b SyftCLISBOMScanner) writeJSONSBOM(outputPath string, bom cyclonedx.BOM) error {
-	outputFile, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("unable to create BOM file %s\n%w", outputPath, err)
-	}
-	defer outputFile.Close()
-
-	decoder := cyclonedx.NewBOMEncoder(outputFile, cyclonedx.BOMFileFormatJSON)
-	if err = decoder.Encode(&bom); err != nil {
-		return fmt.Errorf("unable to decode BOM\n%w", err)
-	}
-
-	return nil
-}
-
-func (b SyftCLISBOMScanner) readXMLSBOM(inputPath string) (cyclonedx.BOM, error) {
-	inputFile, err := os.Open(inputPath)
-	if err != nil {
-		return cyclonedx.BOM{}, fmt.Errorf("unable to read file to convert %s\n%w", inputPath, err)
-	}
-	defer inputFile.Close()
-
-	var bom cyclonedx.BOM
-	decoder := cyclonedx.NewBOMDecoder(inputFile, cyclonedx.BOMFileFormatXML)
-	if err = decoder.Decode(&bom); err != nil {
-		return cyclonedx.BOM{}, fmt.Errorf("unable to decode BOM\n%w", err)
-	}
-
-	return bom, nil
-}
-
-func (b SyftCLISBOMScanner) backupXMLFile(inputPath string) error {
-	backupPath := fmt.Sprintf("%s.bak", inputPath)
-	outputFile, err := os.Create(backupPath)
-	if err != nil {
-		return fmt.Errorf("unable to create backup file %s\n%w", backupPath, err)
-	}
-	defer outputFile.Close()
-
-	inputFile, err := os.Open(inputPath)
-	if err != nil {
-		return fmt.Errorf("unable to read file for backup %s\n%w", inputPath, err)
-	}
-	defer inputFile.Close()
-
-	_, err = io.Copy(outputFile, inputFile)
-	return err
 }
 
 func (b SyftCLISBOMScanner) runSyft(sbomOutputPath string, scanDir string, format libcnb.SBOMFormat) error {
@@ -258,7 +179,7 @@ func SBOMFormatToSyftOutputFormat(format libcnb.SBOMFormat) string {
 
 	switch format {
 	case libcnb.CycloneDXJSON:
-		formatRaw = "cyclonedx"
+		formatRaw = "cyclonedx-json"
 	case libcnb.SPDXJSON:
 		formatRaw = "spdx-json"
 	case libcnb.SyftJSON:
