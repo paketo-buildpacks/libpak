@@ -290,23 +290,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Expect(entry.Build).To(BeTrue())
 			})
 		})
-
-		context("no BOM entry when PURL is set", func() {
-			it("sets build on the entry", func() {
-				dep.PURL = "pkg:generic/fake@1.0.0"
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
-				Expect(entry).To(Equal(libcnb.BOMEntry{}))
-			})
-
-			it("sets build on the entry", func() {
-				dep.CPEs = []string{
-					"cpe:1",
-					"cpe:2",
-				}
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
-				Expect(entry).To(Equal(libcnb.BOMEntry{}))
-			})
-		})
 	})
 
 	context("DependencyLayerContributor", func() {
@@ -553,14 +536,23 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			))
 		})
 
-		it("returns empty BOM entry on API 0.7", func() {
+		it("returns a BOM entry on API 0.7 too", func() {
 			_, entry := libpak.NewHelperLayer(libcnb.Buildpack{
 				API: "0.7",
 				Info: libcnb.BuildpackInfo{
 					Version: "test-version",
 				},
 			}, "test-name-1", "test-name-2")
-			Expect(entry).To(Equal(libcnb.BOMEntry{}))
+			Expect(entry).To(Equal(libcnb.BOMEntry{
+				Name: filepath.Base("helper"),
+				Metadata: map[string]interface{}{
+					"layer":   "helper",
+					"names":   []string{"test-name-1", "test-name-2"},
+					"version": "test-version",
+				},
+				Launch: true,
+				Build:  false,
+			}))
 		})
 	})
 

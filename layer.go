@@ -140,18 +140,15 @@ func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, t
 		ExpectedTypes:    types,
 	}
 
-	var entry libcnb.BOMEntry
-	if dependency.PURL == "" && len(dependency.CPEs) == 0 {
-		entry = dependency.AsBOMEntry()
-		entry.Metadata["layer"] = c.LayerName()
+	entry := dependency.AsBOMEntry()
+	entry.Metadata["layer"] = c.LayerName()
 
-		if types.Launch {
-			entry.Launch = true
-		}
-		if !(types.Launch && !types.Cache && !types.Build) {
-			// launch-only layers are the only layers NOT guaranteed to be present in the build environment
-			entry.Build = true
-		}
+	if types.Launch {
+		entry.Launch = true
+	}
+	if !(types.Launch && !types.Cache && !types.Build) {
+		// launch-only layers are the only layers NOT guaranteed to be present in the build environment
+		entry.Build = true
 	}
 
 	return c, entry
@@ -226,20 +223,15 @@ func NewHelperLayer(buildpack libcnb.Buildpack, names ...string) (HelperLayerCon
 		BuildpackInfo: buildpack.Info,
 	}
 
-	var entry libcnb.BOMEntry
-	if buildpack.API == "0.6" || buildpack.API == "0.5" || buildpack.API == "0.4" || buildpack.API == "0.3" || buildpack.API == "0.2" || buildpack.API == "0.1" {
-		entry = libcnb.BOMEntry{
-			Name: "helper",
-			Metadata: map[string]interface{}{
-				"layer":   c.Name(),
-				"names":   names,
-				"version": buildpack.Info.Version,
-			},
-			Launch: true,
-		}
+	return c, libcnb.BOMEntry{
+		Name: "helper",
+		Metadata: map[string]interface{}{
+			"layer":   c.Name(),
+			"names":   names,
+			"version": buildpack.Info.Version,
+		},
+		Launch: true,
 	}
-
-	return c, entry
 }
 
 // Name returns the conventional name of the layer for this contributor
