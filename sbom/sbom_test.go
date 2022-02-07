@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/buildpacks/libcnb"
@@ -62,7 +63,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
 					len(e.Args) == 5 &&
-					e.Args[3] == "json" &&
+					strings.HasPrefix(e.Args[3], "json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
 				Expect(ioutil.WriteFile(outputPath, []byte("succeed1"), 0644)).To(Succeed())
@@ -85,7 +86,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
 					len(e.Args) == 5 &&
-					e.Args[3] == "json" &&
+					strings.HasPrefix(e.Args[3], "json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
 				Expect(ioutil.WriteFile(outputPath, []byte("succeed2"), 0644)).To(Succeed())
@@ -104,35 +105,39 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(result)).To(Equal("succeed2"))
 		})
 
-		it("runs syft thrice, once per format", func() {
-			outputPaths := map[libcnb.SBOMFormat]string{
-				libcnb.SPDXJSON:      layers.LaunchSBOMPath(libcnb.SPDXJSON),
-				libcnb.SyftJSON:      layers.LaunchSBOMPath(libcnb.SyftJSON),
-				libcnb.CycloneDXJSON: layers.LaunchSBOMPath(libcnb.CycloneDXJSON),
+		it("runs syft once for all three formats", func() {
+			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
+				return e.Command == "syft" &&
+					len(e.Args) == 9 &&
+					strings.HasPrefix(e.Args[3], sbom.SBOMFormatToSyftOutputFormat(libcnb.CycloneDXJSON)) &&
+					strings.HasPrefix(e.Args[5], sbom.SBOMFormatToSyftOutputFormat(libcnb.SyftJSON)) &&
+					strings.HasPrefix(e.Args[7], sbom.SBOMFormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
+					e.Args[8] == "dir:something"
+			})).Run(func(args mock.Arguments) {
+				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte("succeed1"), 0644)).To(Succeed())
+				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte("succeed2"), 0644)).To(Succeed())
+				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte("succeed3"), 0644)).To(Succeed())
+			}).Return(nil)
+
+			scanner := sbom.SyftCLISBOMScanner{
+				Executor: &executor,
+				Layers:   layers,
+				Logger:   bard.NewLogger(io.Discard),
 			}
 
-			for format, outputPath := range outputPaths {
-				executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
-					return e.Command == "syft" &&
-						len(e.Args) == 5 &&
-						e.Args[3] == sbom.SBOMFormatToSyftOutputFormat(format) &&
-						e.Args[4] == "dir:something"
-				})).Run(func(args mock.Arguments) {
-					Expect(ioutil.WriteFile(outputPath, []byte("succeed3"), 0644)).To(Succeed())
-				}).Return(nil)
+			Expect(scanner.ScanLaunch("something", libcnb.CycloneDXJSON, libcnb.SyftJSON, libcnb.SPDXJSON)).To(Succeed())
 
-				scanner := sbom.SyftCLISBOMScanner{
-					Executor: &executor,
-					Layers:   layers,
-					Logger:   bard.NewLogger(io.Discard),
-				}
+			result, err := ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(result)).To(Equal("succeed1"))
 
-				Expect(scanner.ScanLaunch("something", format)).To(Succeed())
+			result, err = ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.SyftJSON))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(result)).To(Equal("succeed2"))
 
-				result, err := ioutil.ReadFile(outputPath)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(result)).To(Equal("succeed3"))
-			}
+			result, err = ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.SPDXJSON))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(result)).To(Equal("succeed3"))
 		})
 
 		it("writes out a manual BOM entry", func() {
