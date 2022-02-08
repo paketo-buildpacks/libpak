@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/mitchellh/hashstructure/v2"
@@ -139,38 +138,20 @@ func (b SyftCLISBOMScanner) ScanLaunch(scanDir string, formats ...libcnb.SBOMFor
 }
 
 func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string, scanDir string, formats ...libcnb.SBOMFormat) error {
-	// syft doesn't presently support outputting multiple formats at once
-	// to workaround this we are running syft multiple times
-	// when syft supports multiple output formats or conversion between formats, this method should change
+	args := []string{"packages", "-q"}
+
 	for _, format := range formats {
-		sbomLocation := sbomPathCreator(format)
-
-		if err := b.runSyft(sbomLocation, scanDir, format); err != nil {
-			return fmt.Errorf("unable to run syft\n%w", err)
-		}
+		args = append(args, "-o", fmt.Sprintf("%s=%s", SBOMFormatToSyftOutputFormat(format), sbomPathCreator(format)))
 	}
 
-	return nil
-}
+	args = append(args, fmt.Sprintf("dir:%s", scanDir))
 
-func (b SyftCLISBOMScanner) runSyft(sbomOutputPath string, scanDir string, format libcnb.SBOMFormat) error {
-	writer, err := os.Create(sbomOutputPath)
-	if err != nil {
-		return fmt.Errorf("unable to open output BOM file %s\n%w", sbomOutputPath, err)
-	}
-	defer writer.Close()
-
-	err = b.Executor.Execute(effect.Execution{
+	return b.Executor.Execute(effect.Execution{
 		Command: "syft",
-		Args:    []string{"packages", "-q", "-o", SBOMFormatToSyftOutputFormat(format), fmt.Sprintf("dir:%s", scanDir)},
-		Stdout:  writer,
+		Args:    args,
+		Stdout:  b.Logger.TerminalErrorWriter(),
 		Stderr:  b.Logger.TerminalErrorWriter(),
 	})
-	if err != nil {
-		return fmt.Errorf("unable to run syft on directory %s\n%w", scanDir, err)
-	}
-
-	return nil
 }
 
 // SBOMFormatToSyftOutputFormat converts a libcnb.SBOMFormat to the syft matching syft output format string
