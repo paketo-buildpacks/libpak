@@ -20,6 +20,7 @@ import (
 	"github.com/buildpacks/libcnb"
 
 	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/sherpa"
 )
 
 // Main is called by the main function of a buildpack, encapsulating both detection and build in the same binary.
@@ -29,6 +30,7 @@ func Main(detector libcnb.Detector, builder libcnb.Builder, options ...libcnb.Op
 			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
 			libcnb.WithExitHandler(internal.NewExitHandler()),
 			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
+			libcnb.WithBOMLabel(!sherpa.ResolveBool("BP_BOM_LABEL_DISABLED")),
 		}, options...)...,
 	)
 }
