@@ -23,11 +23,13 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/xi2/xz"
+	"github.com/h2non/filetype"
 )
 
 // CreateTar writes a TAR to the destination io.Writer containing the directories and files in the source folder.
@@ -99,6 +101,38 @@ func CreateTarGz(destination io.Writer, source string) error {
 	defer gz.Close()
 
 	return CreateTar(gz, source)
+}
+
+// ExtractArchive extracts source archive to a destination directory.  An arbitrary number of top-level directory
+// components can be stripped from each path.
+func ExtractArchive(source *os.File, destination string, stripComponents int) error {
+	b, err := ioutil.ReadFile(source.Name())
+	if err != nil {
+		return err
+	}
+	kind, err := filetype.Match(b)
+	if err != nil {
+		return err
+	}
+	
+	if kind == filetype.Unknown {
+		return fmt.Errorf("unknown file type")
+	}
+
+	switch kind.MIME.Value {
+	case "application/x-tar":
+		return ExtractTar(source, destination, stripComponents)
+	case "application/x-bzip2":
+		return ExtractTarBz2(source, destination, stripComponents)
+	case "application/gzip":
+		return ExtractTarGz(source, destination, stripComponents)
+	case "application/x-xz":
+		return ExtractTarXz(source, destination, stripComponents)
+	case "application/zip":
+		return ExtractZip(source, destination, stripComponents)
+	default:
+		return fmt.Errorf("unknown mime type %s for archive", kind.MIME.Value)
+	}
 }
 
 // ExtractTar extracts source TAR file to a destination directory.  An arbitrary number of top-level directory
