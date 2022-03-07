@@ -329,6 +329,27 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
 				})
 			})
+
+			context("Tar", func() {
+				it.Before(func() {
+					var err error
+					in, err = os.Open(filepath.Join("testdata", "test-archive.tar"))
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				it("extracts the archive", func() {
+					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
+					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
+					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
+				})
+
+				it("skips stripped components", func() {
+					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
+					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
+				})
+			})
 		})
 	})
 }
