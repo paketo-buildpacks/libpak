@@ -19,6 +19,7 @@ package crush
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/h2non/filetype"
 	"github.com/xi2/xz"
 )
 
@@ -101,9 +103,63 @@ func CreateTarGz(destination io.Writer, source string) error {
 	return CreateTar(gz, source)
 }
 
+// Extract decompresses and extract source files to a destination directory or path. For archives, an arbitrary number of top-level directory
+// components can be stripped from each path.
+func Extract(source io.Reader, destination string, stripComponents int) error {
+	buf := &bytes.Buffer{}
+
+	kind, err := filetype.MatchReader(io.TeeReader(source, buf))
+	if err != nil {
+		return err
+	}
+
+	source = io.MultiReader(buf, source)
+
+	switch kind.MIME.Value {
+	case "application/x-tar":
+		return extractTar(source, destination, stripComponents)
+	case "application/zip":
+		return extractZip(source, destination, stripComponents)
+	case "application/x-bzip2":
+		return Extract(bzip2.NewReader(source), destination, stripComponents)
+	case "application/gzip":
+		gz, err := gzip.NewReader(source)
+		if err != nil {
+			return fmt.Errorf("unable to create GZIP reader\n%w", err)
+		}
+		defer gz.Close()
+		return Extract(gz, destination, stripComponents)
+	case "application/x-xz":
+		xz, err := xz.NewReader(source, 0)
+		if err != nil {
+			return fmt.Errorf("unable to create XZ reader\n%w", err)
+		}
+		return Extract(xz, destination, stripComponents)
+	default:
+		// no archive, can happen with xz/gzip/bz2 if compressed file is not an archive
+		in, err := os.Create(destination)
+		if err != nil {
+			return fmt.Errorf("unable to open %s\n%w", destination, err)
+		}
+		defer in.Close()
+
+		if _, err := io.Copy(in, source); err != nil {
+			return fmt.Errorf("unable to copy to %s\n%w", destination, err)
+		}
+	}
+
+	return nil
+}
+
 // ExtractTar extracts source TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
+//
+// Deprecated: use Extract instead
 func ExtractTar(source io.Reader, destination string, stripComponents int) error {
+	return extractTar(source, destination, stripComponents)
+}
+
+func extractTar(source io.Reader, destination string, stripComponents int) error {
 	t := tar.NewReader(source)
 
 	for {
@@ -140,12 +196,16 @@ func ExtractTar(source io.Reader, destination string, stripComponents int) error
 
 // ExtractTarBz2 extracts source BZIP2'd TAR file to a destination directory.  An arbitrary number of top-level
 // directory components can be stripped from each path.
+//
+// Deprecated: use Extract instead
 func ExtractTarBz2(source io.Reader, destination string, stripComponents int) error {
 	return ExtractTar(bzip2.NewReader(source), destination, stripComponents)
 }
 
 // ExtractTarGz extracts source GZIP'd TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
+//
+// Deprecated: use Extract instead
 func ExtractTarGz(source io.Reader, destination string, stripComponents int) error {
 	gz, err := gzip.NewReader(source)
 	if err != nil {
@@ -158,6 +218,8 @@ func ExtractTarGz(source io.Reader, destination string, stripComponents int) err
 
 // ExtractTarXz extracts source XZ'd TAR file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
+//
+// Deprecated: use Extract instead
 func ExtractTarXz(source io.Reader, destination string, stripComponents int) error {
 	xz, err := xz.NewReader(source, 0)
 	if err != nil {
@@ -169,13 +231,25 @@ func ExtractTarXz(source io.Reader, destination string, stripComponents int) err
 
 // ExtractZip extracts source ZIP file to a destination directory.  An arbitrary number of top-level directory
 // components can be stripped from each path.
-func ExtractZip(source *os.File, destination string, stripComponents int) error {
-	stat, err := source.Stat()
+//
+// Deprecated: use Extract instead
+func ExtractZip(source io.Reader, destination string, stripComponents int) error {
+	return extractZip(source, destination, stripComponents)
+}
+
+func extractZip(source io.Reader, destination string, stripComponents int) error {
+	buffer, err := os.CreateTemp("", "")
 	if err != nil {
-		return fmt.Errorf("unable to stat %s\n%w", source.Name(), err)
+		return err
+	}
+	defer os.Remove(buffer.Name())
+
+	size, err := io.Copy(buffer, source)
+	if err != nil {
+		return err
 	}
 
-	z, err := zip.NewReader(source, stat.Size())
+	z, err := zip.NewReader(buffer, size)
 	if err != nil {
 		return err
 	}
