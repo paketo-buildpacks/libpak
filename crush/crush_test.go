@@ -224,7 +224,7 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("ExtractArchive", func() {
+		context("Extract", func() {
 			context("Tar", func() {
 				it.Before(func() {
 					var err error
@@ -233,14 +233,14 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("extracts the archive", func() {
-					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(crush.Extract(in, path, 0)).To(Succeed())
 					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
 				})
 
 				it("skips stripped components", func() {
-					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(crush.Extract(in, path, 1)).To(Succeed())
 					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
 				})
@@ -254,14 +254,14 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("extracts the archive", func() {
-					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(crush.Extract(in, path, 0)).To(Succeed())
 					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
 				})
 
 				it("skips stripped components", func() {
-					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(crush.Extract(in, path, 1)).To(Succeed())
 					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
 				})
@@ -275,14 +275,14 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("extracts the archive", func() {
-					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(crush.Extract(in, path, 0)).To(Succeed())
 					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
 				})
 
 				it("skips stripped components", func() {
-					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(crush.Extract(in, path, 1)).To(Succeed())
 					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
 				})
@@ -296,14 +296,14 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("extracts the archive", func() {
-					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(crush.Extract(in, path, 0)).To(Succeed())
 					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
 				})
 
 				it("skips stripped components", func() {
-					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(crush.Extract(in, path, 1)).To(Succeed())
 					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
 				})
@@ -317,14 +317,14 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("extracts the archive", func() {
-					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(crush.Extract(in, path, 0)).To(Succeed())
 					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
 				})
 
 				it("skips stripped components", func() {
-					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(crush.Extract(in, path, 1)).To(Succeed())
 					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
 				})
@@ -338,16 +338,45 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("extracts the archive", func() {
-					Expect(crush.ExtractArchive(in, path, 0)).To(Succeed())
+					Expect(crush.Extract(in, path, 0)).To(Succeed())
 					Expect(filepath.Join(path, "fileA.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "dirA", "fileC.txt")).To(BeARegularFile())
 				})
 
 				it("skips stripped components", func() {
-					Expect(crush.ExtractArchive(in, path, 1)).To(Succeed())
+					Expect(crush.Extract(in, path, 1)).To(Succeed())
 					Expect(filepath.Join(path, "fileB.txt")).To(BeARegularFile())
 					Expect(filepath.Join(path, "fileC.txt")).To(BeARegularFile())
+				})
+			})
+
+			context("compression only", func() {
+				it("decompresses gzip", func() {
+					var err error
+					in, err = os.Open(filepath.Join("testdata", "test-compress.gz"))
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(crush.Extract(in, filepath.Join(path, "test-compress"), 0)).To(Succeed())
+					Expect(filepath.Join(path, "test-compress")).To(BeARegularFile())
+				})
+
+				it("decompresses xz", func() {
+					var err error
+					in, err = os.Open(filepath.Join("testdata", "test-compress.xz"))
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(crush.Extract(in, filepath.Join(path, "test-compress"), 0)).To(Succeed())
+					Expect(filepath.Join(path, "test-compress")).To(BeARegularFile())
+				})
+
+				it("decompresses bz2", func() {
+					var err error
+					in, err = os.Open(filepath.Join("testdata", "test-compress.bz2"))
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(crush.Extract(in, filepath.Join(path, "test-compress"), 0)).To(Succeed())
+					Expect(filepath.Join(path, "test-compress")).To(BeARegularFile())
 				})
 			})
 		})
