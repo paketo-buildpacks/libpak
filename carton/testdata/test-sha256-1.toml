@@ -1,0 +1,5 @@
+id = "test-id"
+name = "test-name"
+version = "1.1.1"
+uri = "test-uri-1"
+sha256 = "test-sha256-1"

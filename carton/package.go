@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"text/template"
 
@@ -39,6 +40,12 @@ type Package struct {
 
 	// CacheLocation is the location to cache downloaded dependencies.
 	CacheLocation string
+
+	// DependencyFilters indicates which filters should be applied to exclude dependencies
+	DependencyFilters []string
+
+	// StrictDependencyFilters indicates that a filter must match both the ID and version, otherwise it must only match one of the two
+	StrictDependencyFilters bool
 
 	// IncludeDependencies indicates whether to include dependencies in build package.
 	IncludeDependencies bool
@@ -170,6 +177,11 @@ func (p Package) Create(options ...Option) {
 		}
 
 		for _, dep := range metadata.Dependencies {
+			if !p.matchDependency(dep) {
+				logger.Bodyf("Skipping [%s or %s] which matched a filter", dep.ID, dep.Version)
+				continue
+			}
+
 			logger.Headerf("Caching %s", color.BlueString("%s %s", dep.Name, dep.Version))
 
 			f, err := cache.Artifact(dep, n.BasicAuth)
@@ -200,4 +212,23 @@ func (p Package) Create(options ...Option) {
 			return
 		}
 	}
+}
+
+// matchDependency checks all filters against dependency and returns true if there is a match (or no filters) and false if there is no match
+// There is a match if a regular expression matches against the ID or Version
+func (p Package) matchDependency(dep libpak.BuildpackDependency) bool {
+	if len(p.DependencyFilters) == 0 {
+		return true
+	}
+
+	for _, rawFilter := range p.DependencyFilters {
+		filter := regexp.MustCompile(rawFilter)
+
+		if (p.StrictDependencyFilters && filter.MatchString(dep.ID) && filter.MatchString(dep.Version)) ||
+			(!p.StrictDependencyFilters && (filter.MatchString(dep.ID) || filter.MatchString(dep.Version))) {
+			return true
+		}
+	}
+
+	return false
 }

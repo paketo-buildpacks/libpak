@@ -33,6 +33,8 @@ func main() {
 	flagSet.StringVar(&p.CacheLocation, "cache-location", "", "path to cache downloaded dependencies (default: $PWD/dependencies)")
 	flagSet.StringVar(&p.Destination, "destination", "", "path to the build package destination directory")
 	flagSet.BoolVar(&p.IncludeDependencies, "include-dependencies", false, "whether to include dependencies (default: false)")
+	flagSet.StringSliceVar(&p.DependencyFilters, "dependency-filter", []string{}, "one or more filters that are applied to exclude dependencies")
+	flagSet.BoolVar(&p.StrictDependencyFilters, "strict-filters", false, "require filter to match all data or just some data (default: false)")
 	flagSet.StringVar(&p.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
 	flagSet.StringVar(&p.Version, "version", "", "version to substitute into buildpack.toml")
 

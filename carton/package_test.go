@@ -40,7 +40,6 @@ func testPackage(t *testing.T, context spec.G, it spec.S) {
 		entryWriter *cMocks.EntryWriter
 		executor    *eMocks.Executor
 		exitHandler *mocks.ExitHandler
-		p           carton.Package
 		path        string
 	)
 
@@ -92,9 +91,9 @@ include-files = [
 	})
 
 	it("executes pre_package script", func() {
-		p.Source = path
-
-		p.Create(
+		carton.Package{
+			Source: path,
+		}.Create(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -106,10 +105,10 @@ include-files = [
 	})
 
 	it("includes include_files", func() {
-		p.Source = path
-		p.Destination = "test-destination"
-
-		p.Create(
+		carton.Package{
+			Source:      path,
+			Destination: "test-destination",
+		}.Create(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -121,11 +120,11 @@ include-files = [
 	})
 
 	it("replaces .version in buildpack.toml", func() {
-		p.Source = path
-		p.Destination = "test-destination"
-		p.Version = "2.2.2"
-
-		p.Create(
+		carton.Package{
+			Source:      path,
+			Destination: "test-destination",
+			Version:     "2.2.2",
+		}.Create(
 			carton.WithEntryWriter(entryWriter),
 			carton.WithExecutor(executor),
 			carton.WithExitHandler(exitHandler))
@@ -161,5 +160,160 @@ include-files = [
   "buildpack.toml",
 ]
 `)))
+	})
+
+	context("includes dependencies", func() {
+		it.Before(func() {
+			Expect(ioutil.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
+api = "0.0.0"
+
+[buildpack]
+name    = "test-name"
+version = "{{.version}}"
+
+[[metadata.dependencies]]
+id      = "test-id"
+name    = "test-name"
+version = "1.1.1"
+uri     = "test-uri-1"
+sha256  = "test-sha256-1"
+
+[[metadata.dependencies]]
+id      = "test-id"
+name    = "test-name"
+version = "2.0.5"
+uri     = "test-uri-2"
+sha256  = "test-sha256-2"
+
+[[metadata.dependencies]]
+id      = "another-test-id"
+name    = "test-name"
+version = "1.1.1"
+uri     = "test-uri-3"
+sha256  = "test-sha256-3"
+
+[metadata]
+pre-package   = "test-pre-package"
+include-files = [
+  "test-include-files",
+  "buildpack.toml",
+]
+`), 0644)).To(Succeed())
+		})
+
+		it("includes all dependencies", func() {
+			carton.Package{
+				Source:              path,
+				Destination:         "test-destination",
+				IncludeDependencies: true,
+				CacheLocation:       "testdata",
+			}.Create(
+				carton.WithEntryWriter(entryWriter),
+				carton.WithExecutor(executor),
+				carton.WithExitHandler(exitHandler))
+
+			Expect(entryWriter.Calls).To(HaveLen(8))
+			Expect(entryWriter.Calls[0].Arguments[0]).To(Equal(filepath.Join(path, "buildpack.toml")))
+			Expect(entryWriter.Calls[0].Arguments[1]).To(Equal(filepath.Join("test-destination", "buildpack.toml")))
+
+			Expect(entryWriter.Calls[1].Arguments[0]).To(Equal("testdata/test-sha256-1.toml"))
+			Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-1.toml")))
+			Expect(entryWriter.Calls[2].Arguments[0]).To(Equal("testdata/test-sha256-1/test-uri-1"))
+			Expect(entryWriter.Calls[2].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-1/test-uri-1")))
+
+			Expect(entryWriter.Calls[3].Arguments[0]).To(Equal("testdata/test-sha256-2.toml"))
+			Expect(entryWriter.Calls[3].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-2.toml")))
+			Expect(entryWriter.Calls[4].Arguments[0]).To(Equal("testdata/test-sha256-2/test-uri-2"))
+			Expect(entryWriter.Calls[4].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-2/test-uri-2")))
+
+			Expect(entryWriter.Calls[5].Arguments[0]).To(Equal("testdata/test-sha256-3.toml"))
+			Expect(entryWriter.Calls[5].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-3.toml")))
+			Expect(entryWriter.Calls[6].Arguments[0]).To(Equal("testdata/test-sha256-3/test-uri-3"))
+			Expect(entryWriter.Calls[6].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-3/test-uri-3")))
+
+			Expect(entryWriter.Calls[7].Arguments[0]).To(Equal(filepath.Join(path, "test-include-files")))
+			Expect(entryWriter.Calls[7].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
+		})
+
+		it("includes filter by id", func() {
+			carton.Package{
+				Source:              path,
+				Destination:         "test-destination",
+				IncludeDependencies: true,
+				CacheLocation:       "testdata",
+				DependencyFilters:   []string{`^another-test-id$`},
+			}.Create(
+				carton.WithEntryWriter(entryWriter),
+				carton.WithExecutor(executor),
+				carton.WithExitHandler(exitHandler))
+
+			Expect(entryWriter.Calls).To(HaveLen(4))
+			Expect(entryWriter.Calls[0].Arguments[0]).To(Equal(filepath.Join(path, "buildpack.toml")))
+			Expect(entryWriter.Calls[0].Arguments[1]).To(Equal(filepath.Join("test-destination", "buildpack.toml")))
+
+			Expect(entryWriter.Calls[1].Arguments[0]).To(Equal("testdata/test-sha256-3.toml"))
+			Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-3.toml")))
+			Expect(entryWriter.Calls[2].Arguments[0]).To(Equal("testdata/test-sha256-3/test-uri-3"))
+			Expect(entryWriter.Calls[2].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-3/test-uri-3")))
+
+			Expect(entryWriter.Calls[3].Arguments[0]).To(Equal(filepath.Join(path, "test-include-files")))
+			Expect(entryWriter.Calls[3].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
+		})
+
+		it("includes filter by version", func() {
+			carton.Package{
+				Source:              path,
+				Destination:         "test-destination",
+				IncludeDependencies: true,
+				CacheLocation:       "testdata",
+				DependencyFilters:   []string{`^1.1.1$`},
+			}.Create(
+				carton.WithEntryWriter(entryWriter),
+				carton.WithExecutor(executor),
+				carton.WithExitHandler(exitHandler))
+
+			Expect(entryWriter.Calls).To(HaveLen(6))
+			Expect(entryWriter.Calls[0].Arguments[0]).To(Equal(filepath.Join(path, "buildpack.toml")))
+			Expect(entryWriter.Calls[0].Arguments[1]).To(Equal(filepath.Join("test-destination", "buildpack.toml")))
+
+			Expect(entryWriter.Calls[1].Arguments[0]).To(Equal("testdata/test-sha256-1.toml"))
+			Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-1.toml")))
+			Expect(entryWriter.Calls[2].Arguments[0]).To(Equal("testdata/test-sha256-1/test-uri-1"))
+			Expect(entryWriter.Calls[2].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-1/test-uri-1")))
+
+			Expect(entryWriter.Calls[3].Arguments[0]).To(Equal("testdata/test-sha256-3.toml"))
+			Expect(entryWriter.Calls[3].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-3.toml")))
+			Expect(entryWriter.Calls[4].Arguments[0]).To(Equal("testdata/test-sha256-3/test-uri-3"))
+			Expect(entryWriter.Calls[4].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-3/test-uri-3")))
+
+			Expect(entryWriter.Calls[5].Arguments[0]).To(Equal(filepath.Join(path, "test-include-files")))
+			Expect(entryWriter.Calls[5].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
+		})
+
+		it.Focus("includes filter by version and id", func() {
+			carton.Package{
+				Source:                  path,
+				Destination:             "test-destination",
+				IncludeDependencies:     true,
+				CacheLocation:           "testdata",
+				DependencyFilters:       []string{`^test-id$|^2\.0\.5$`},
+				StrictDependencyFilters: true,
+			}.Create(
+				carton.WithEntryWriter(entryWriter),
+				carton.WithExecutor(executor),
+				carton.WithExitHandler(exitHandler))
+
+			Expect(entryWriter.Calls).To(HaveLen(4))
+			Expect(entryWriter.Calls[0].Arguments[0]).To(Equal(filepath.Join(path, "buildpack.toml")))
+			Expect(entryWriter.Calls[0].Arguments[1]).To(Equal(filepath.Join("test-destination", "buildpack.toml")))
+
+			Expect(entryWriter.Calls[1].Arguments[0]).To(Equal("testdata/test-sha256-2.toml"))
+			Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-2.toml")))
+			Expect(entryWriter.Calls[2].Arguments[0]).To(Equal("testdata/test-sha256-2/test-uri-2"))
+			Expect(entryWriter.Calls[2].Arguments[1]).To(Equal(filepath.Join("test-destination", "dependencies/test-sha256-2/test-uri-2")))
+
+			Expect(entryWriter.Calls[3].Arguments[0]).To(Equal(filepath.Join(path, "test-include-files")))
+			Expect(entryWriter.Calls[3].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
+		})
 	})
 }
