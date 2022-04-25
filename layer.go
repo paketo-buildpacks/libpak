@@ -18,6 +18,7 @@ package libpak
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -64,34 +65,31 @@ type LayerFunc func() (libcnb.Layer, error)
 
 // Contribute is the function to call when implementing your libcnb.LayerContributor.
 func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
-	raw, err := toml.Marshal(l.ExpectedMetadata)
+	layerRestored, err := l.checkIfLayerRestored(layer)
 	if err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to encode metadata\n%w", err)
+		return libcnb.Layer{}, fmt.Errorf("unable to check metadata\n%w", err)
 	}
 
-	expected := map[string]interface{}{}
-	if err := toml.Unmarshal(raw, &expected); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to decode metadata\n%w", err)
+	expected, cached, err := l.checkIfMetadataMatches(layer)
+	if err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to check metadata\n%w", err)
 	}
 
-	l.Logger.Debugf("Expected metadata: %+v", expected)
-	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
-
-	// TODO: compare entire layer not just metadata (in case build, launch, or cache have changed)
-	if reflect.DeepEqual(expected, layer.Metadata) {
+	if cached && layerRestored {
 		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
 		layer.LayerTypes = l.ExpectedTypes
 		return layer, nil
 	}
 
-	l.Logger.Headerf("%s: %s to layer", color.BlueString(l.Name), color.YellowString("Contributing"))
-
-	if err := os.RemoveAll(layer.Path); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to remove existing layer directory %s\n%w", layer.Path, err)
+	if !layerRestored {
+		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.RedString("Reloading"))
+	} else {
+		l.Logger.Headerf("%s: %s to layer", color.BlueString(l.Name), color.YellowString("Contributing"))
 	}
 
-	if err := os.MkdirAll(layer.Path, 0755); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to create layer directory %s\n%w", layer.Path, err)
+	err = l.reset(layer)
+	if err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to reset\n%w", err)
 	}
 
 	layer, err = f()
@@ -103,6 +101,60 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 	layer.Metadata = expected
 
 	return layer, nil
+}
+
+func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[string]interface{}, bool, error) {
+	raw, err := toml.Marshal(l.ExpectedMetadata)
+	if err != nil {
+		return map[string]interface{}{}, false, fmt.Errorf("unable to encode metadata\n%w", err)
+	}
+
+	expected := map[string]interface{}{}
+	if err := toml.Unmarshal(raw, &expected); err != nil {
+		return map[string]interface{}{}, false, fmt.Errorf("unable to decode metadata\n%w", err)
+	}
+
+	l.Logger.Debugf("Expected metadata: %+v", expected)
+	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
+
+	return expected, reflect.DeepEqual(expected, layer.Metadata), nil
+}
+
+func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error) {
+	layerTOML := fmt.Sprintf("%s.toml", layer.Path)
+	tomlExists, err := sherpa.FileExists(layerTOML)
+	if err != nil {
+		return false, fmt.Errorf("unable to check if layer TOML tomlExists %s\n%w", layerTOML, err)
+	}
+
+	layerDirExists, err := sherpa.DirExists(layer.Path)
+	if err != nil {
+		return false, fmt.Errorf("unable to check if layer directory exists %s\n%w", layer.Path, err)
+	}
+
+	var dirContents []fs.DirEntry
+	if layerDirExists {
+		dirContents, err = os.ReadDir(layer.Path)
+		if err != nil {
+			return false, fmt.Errorf("unable to read directory %s\n%w", layer.Path, err)
+		}
+	}
+
+	l.Logger.Debugf("Check If Layer Restored -> tomlExists: %s, layerDirExists: %s, dirContents: %s, cache: %s, build: %s",
+		tomlExists, layerDirExists, dirContents, l.ExpectedTypes.Cache, l.ExpectedTypes.Build)
+	return !(tomlExists && (!layerDirExists || len(dirContents) == 0) && (l.ExpectedTypes.Cache || l.ExpectedTypes.Build)), nil
+}
+
+func (l *LayerContributor) reset(layer libcnb.Layer) error {
+	if err := os.RemoveAll(layer.Path); err != nil {
+		return fmt.Errorf("unable to remove existing layer directory %s\n%w", layer.Path, err)
+	}
+
+	if err := os.MkdirAll(layer.Path, 0755); err != nil {
+		return fmt.Errorf("unable to create layer directory %s\n%w", layer.Path, err)
+	}
+
+	return nil
 }
 
 // DependencyLayerContributor is a helper for implementing a libcnb.LayerContributor for a BuildpackDependency in order
