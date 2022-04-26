@@ -124,7 +124,7 @@ func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error
 	layerTOML := fmt.Sprintf("%s.toml", layer.Path)
 	tomlExists, err := sherpa.FileExists(layerTOML)
 	if err != nil {
-		return false, fmt.Errorf("unable to check if layer TOML tomlExists %s\n%w", layerTOML, err)
+		return false, fmt.Errorf("unable to check if layer toml exists %s\n%w", layerTOML, err)
 	}
 
 	layerDirExists, err := sherpa.DirExists(layer.Path)
