@@ -37,14 +37,16 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		layer libcnb.Layer
+		layersDir string
+		layer     libcnb.Layer
 	)
 
 	it.Before(func() {
 		var err error
 
-		layer.Path, err = ioutil.TempDir("", "layer")
+		layersDir, err = ioutil.TempDir("", "layer")
 		Expect(err).NotTo(HaveOccurred())
+		layer.Path = filepath.Join(layersDir, "test-layer")
 
 		layer.Exec.Path = layer.Path
 		layer.Metadata = map[string]interface{}{}
@@ -52,7 +54,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it.After(func() {
-		Expect(os.RemoveAll(layer.Path)).To(Succeed())
+		Expect(os.RemoveAll(layersDir)).To(Succeed())
 	})
 
 	context("LayerContributor", func() {
@@ -94,6 +96,90 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(called).To(BeTrue())
+		})
+
+		context("reloads layers not restored", func() {
+			var called bool
+
+			it.Before(func() {
+				layer.Metadata = map[string]interface{}{
+					"alpha": "test-alpha",
+					"bravo": map[string]interface{}{
+						"bravo-1": "test-bravo-1",
+						"bravo-2": "test-bravo-2",
+					},
+				}
+			})
+
+			it("calls function with matching metadata but no layer directory on cache layer", func() {
+				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.RemoveAll(layer.Path)).To(Succeed())
+				lc.ExpectedTypes.Cache = true
+
+				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+					called = true
+					return layer, nil
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(called).To(BeTrue())
+			})
+
+			it("calls function with matching metadata but no layer directory on build layer", func() {
+				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.RemoveAll(layer.Path)).To(Succeed())
+				lc.ExpectedTypes.Build = true
+
+				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+					called = true
+					return layer, nil
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(called).To(BeTrue())
+			})
+
+			it("calls function with matching metadata but an empty layer directory on build layer", func() {
+				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
+				lc.ExpectedTypes.Build = true
+
+				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+					called = true
+					return layer, nil
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(called).To(BeTrue())
+			})
+
+			it("does not call function with matching metadata when layer directory exists and has a file in it", func() {
+				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
+				Expect(ioutil.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0644)).To(Succeed())
+				lc.ExpectedTypes.Build = true
+
+				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+					called = true
+					return layer, nil
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(called).To(BeFalse())
+			})
+
+			it("does not call function with matching metadata when layer TOML missing", func() {
+				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
+				layer.Build = true
+
+				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
+					called = true
+					return layer, nil
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(called).To(BeFalse())
+			})
 		})
 
 		it("does not call function with matching metadata", func() {
@@ -675,22 +761,13 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("adds expected Syft SBOM file", func() {
-			layer.Metadata = map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
-			}
+			layer.Metadata = map[string]interface{}{}
 
 			_, err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).To(BeAnExistingFile())
+			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).To(BeAnExistingFile())
 
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())
