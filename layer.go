@@ -183,17 +183,12 @@ type DependencyLayerContributor struct {
 // NewDependencyLayer returns a new DependencyLayerContributor for the given BuildpackDependency and a BOMEntry describing the layer contents.
 //
 // Deprecated: this method uses `libcnb.BOMEntry` which has been deprecated upstream, a future version will drop
-// support for `libcnb.BOMEntry` which will change this method signature
+// support for `libcnb.BOMEntry` which will change this method signature. Use NewDependencyLayerContributor instead.
 func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) (DependencyLayerContributor, libcnb.BOMEntry) {
-	c := DependencyLayerContributor{
-		Dependency:       dependency,
-		ExpectedMetadata: dependency,
-		DependencyCache:  cache,
-		ExpectedTypes:    types,
-	}
+	dlc := NewDependencyLayerContributor(dependency, cache, types)
 
 	entry := dependency.AsBOMEntry()
-	entry.Metadata["layer"] = c.LayerName()
+	entry.Metadata["layer"] = dlc.LayerName()
 
 	if types.Launch {
 		entry.Launch = true
@@ -203,7 +198,17 @@ func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, t
 		entry.Build = true
 	}
 
-	return c, entry
+	return dlc, entry
+}
+
+// NewDependencyLayerContributor returns a new DependencyLayerContributor for the given BuildpackDependency
+func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) DependencyLayerContributor {
+	return DependencyLayerContributor{
+		Dependency:       dependency,
+		ExpectedMetadata: dependency,
+		DependencyCache:  cache,
+		ExpectedTypes:    types,
+	}
 }
 
 // DependencyLayerFunc is a callback function that is invoked when a dependency needs to be contributed.
@@ -267,22 +272,27 @@ type HelperLayerContributor struct {
 // NewHelperLayer returns a new HelperLayerContributor and a BOMEntry describing the layer contents.
 //
 // Deprecated: this method uses `libcnb.BOMEntry` which has been deprecated upstream, a future version will drop
-// support for `libcnb.BOMEntry` which will change this method signature
+// support for `libcnb.BOMEntry` which will change this method signature. Use NewHelperLayerContributor instead.
 func NewHelperLayer(buildpack libcnb.Buildpack, names ...string) (HelperLayerContributor, libcnb.BOMEntry) {
-	c := HelperLayerContributor{
-		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
-		Names:         names,
-		BuildpackInfo: buildpack.Info,
-	}
+	hl := NewHelperLayerContributor(buildpack, names...)
 
-	return c, libcnb.BOMEntry{
+	return hl, libcnb.BOMEntry{
 		Name: "helper",
 		Metadata: map[string]interface{}{
-			"layer":   c.Name(),
+			"layer":   hl.Name(),
 			"names":   names,
 			"version": buildpack.Info.Version,
 		},
 		Launch: true,
+	}
+}
+
+// NewHelperLayerContributor returns a new HelperLayerContributor
+func NewHelperLayerContributor(buildpack libcnb.Buildpack, names ...string) HelperLayerContributor {
+	return HelperLayerContributor{
+		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
+		Names:         names,
+		BuildpackInfo: buildpack.Info,
 	}
 }
 
