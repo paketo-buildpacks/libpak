@@ -79,6 +79,52 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(result)).To(Equal("succeed1"))
 		})
 
+		it("runs syft to generate reproducible cycloneDX JSON", func() {
+			format := libcnb.CycloneDXJSON
+			outputPath := layers.BuildSBOMPath(format)
+
+			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
+				return e.Command == "syft" &&
+					len(e.Args) == 5 &&
+					strings.HasPrefix(e.Args[3], "cyclonedx-json=") &&
+					e.Args[4] == "dir:something"
+			})).Run(func(args mock.Arguments) {
+				Expect(ioutil.WriteFile(outputPath, []byte(`{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:fcfa5e19-bf49-47b4-8c85-ab61e2728f8e",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2022-05-05T11:33:13-04:00",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "syft",
+        "version": "0.45.1"
+      }
+    ],
+    "component": {
+      "bom-ref": "555d623e4777b7ae",
+      "type": "file",
+      "name": "target/demo-0.0.1-SNAPSHOT.jar"
+    }
+  }
+}`), 0644)).To(Succeed())
+			}).Return(nil)
+
+			// uses interface here intentionally, to force that inteface and implementation match
+			scanner = sbom.NewSyftCLISBOMScanner(layers, &executor, bard.NewLogger(io.Discard))
+
+			Expect(scanner.ScanBuild("something", format)).To(Succeed())
+
+			result, err := ioutil.ReadFile(outputPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(result)).ToNot(ContainSubstring("serialNumber"))
+			Expect(string(result)).ToNot(ContainSubstring("urn:uuid:fcfa5e19-bf49-47b4-8c85-ab61e2728f8e"))
+			Expect(string(result)).ToNot(ContainSubstring("timestamp"))
+			Expect(string(result)).ToNot(ContainSubstring("2022-05-05T11:33:13-04:00"))
+		})
+
 		it("runs syft once to generate layer-specific JSON", func() {
 			format := libcnb.SyftJSON
 			outputPath := layer.SBOMPath(format)
@@ -114,9 +160,9 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					strings.HasPrefix(e.Args[7], sbom.SBOMFormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
 					e.Args[8] == "dir:something"
 			})).Run(func(args mock.Arguments) {
-				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte("succeed1"), 0644)).To(Succeed())
-				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte("succeed2"), 0644)).To(Succeed())
-				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte("succeed3"), 0644)).To(Succeed())
+				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0644)).To(Succeed())
+				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte(`{"succeed":2}`), 0644)).To(Succeed())
+				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0644)).To(Succeed())
 			}).Return(nil)
 
 			scanner := sbom.SyftCLISBOMScanner{
@@ -129,15 +175,15 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 
 			result, err := ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(result)).To(Equal("succeed1"))
+			Expect(string(result)).To(HavePrefix(`{"succeed":1}`))
 
 			result, err = ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.SyftJSON))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(result)).To(Equal("succeed2"))
+			Expect(string(result)).To(HavePrefix(`{"succeed":2}`))
 
 			result, err = ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.SPDXJSON))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(result)).To(Equal("succeed3"))
+			Expect(string(result)).To(HavePrefix(`{"succeed":3}`))
 		})
 
 		it("writes out a manual BOM entry", func() {

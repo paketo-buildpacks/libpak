@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/mitchellh/hashstructure/v2"
@@ -146,12 +147,67 @@ func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string,
 
 	args = append(args, fmt.Sprintf("dir:%s", scanDir))
 
-	return b.Executor.Execute(effect.Execution{
+	if err := b.Executor.Execute(effect.Execution{
 		Command: "syft",
 		Args:    args,
 		Stdout:  b.Logger.TerminalErrorWriter(),
 		Stderr:  b.Logger.TerminalErrorWriter(),
-	})
+	}); err != nil {
+		return fmt.Errorf("unable to run `syft %s`\n%w", args, err)
+	}
+
+	// cleans cyclonedx file which has a timestamp and unique id which always change
+	for _, format := range formats {
+		if format == libcnb.CycloneDXJSON {
+			if err := b.makeCycloneDXReproducible(sbomPathCreator(format)); err != nil {
+				return fmt.Errorf("unable to make cyclone dx file reproducible\n%w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (b SyftCLISBOMScanner) makeCycloneDXReproducible(path string) error {
+	input, err := loadCycloneDXFile(path)
+	if err != nil {
+		return err
+	}
+
+	delete(input, "serialNumber")
+
+	if md, exists := input["metadata"]; exists {
+		if metadata, ok := md.(map[string]interface{}); ok {
+			delete(metadata, "timestamp")
+		}
+	}
+
+	out, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("unable to open CycloneDX JSON for writing %s\n%w", path, err)
+	}
+	defer out.Close()
+
+	if err := json.NewEncoder(out).Encode(input); err != nil {
+		return fmt.Errorf("unable to encode CycloneDX\n%w", err)
+	}
+
+	return nil
+}
+
+func loadCycloneDXFile(path string) (map[string]interface{}, error) {
+	in, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read CycloneDX JSON file %s\n%w", path, err)
+	}
+	defer in.Close()
+
+	raw := map[string]interface{}{}
+	if err := json.NewDecoder(in).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("unable to decode CycloneDX JSON %s\n%w", path, err)
+	}
+
+	return raw, nil
 }
 
 // SBOMFormatToSyftOutputFormat converts a libcnb.SBOMFormat to the syft matching syft output format string
