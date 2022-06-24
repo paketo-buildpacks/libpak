@@ -20,6 +20,17 @@ const (
 	// BionicStackID is the ID for the Cloud Native Buildpacks bionic stack.
 	BionicStackID = "io.buildpacks.stacks.bionic"
 
-	// TinyStackID is the ID for the Paketo Buildpacks tiny stack.
+	// BionicTinyStackID is the ID for the Paketo Buildpacks bionic tiny stack.
+	BionicTinyStackID = "io.paketo.stacks.tiny"
+
+	// TinyStackID is the ID for the Paketo Buildpacks bionic tiny stack.
+	//
+	// Deprecated: use BionicTinyStackID instead
 	TinyStackID = "io.paketo.stacks.tiny"
+
+	// JammyStackID is the ID for the Cloud Native Buildpacks jammy stack.
+	JammyStackID = "io.buildpacks.stacks.jammy"
+
+	// JammyTinyStackID is the ID for the Cloud Native Buildpacks jammy tiny stack.
+	JammyTinyStackID = "io.buildpacks.stacks.jammy.tiny"
 )
