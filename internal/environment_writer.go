@@ -66,7 +66,7 @@ func (w EnvironmentWriter) Write(path string, environment map[string]string) err
 	}
 
 	var keys []string
-	for k, _ := range environment {
+	for k := range environment {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -75,6 +75,11 @@ func (w EnvironmentWriter) Write(path string, environment map[string]string) err
 	for _, k := range keys {
 		w.logger.Bodyf("Writing %s/%s", base, k)
 		f := filepath.Join(path, k)
+
+		if err := os.MkdirAll(filepath.Dir(f), 0755); err != nil {
+			return fmt.Errorf("unable to mkdir from key %s\n%w", filepath.Dir(f), err)
+		}
+
 		if err := ioutil.WriteFile(f, []byte(environment[k]), 0644); err != nil {
 			return fmt.Errorf("unable to write file %s\n%w", f, err)
 		}
