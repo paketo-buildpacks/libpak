@@ -702,7 +702,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("does not call function with matching metadata", func() {
-			layer.Metadata = map[string]interface{}{
+			buildpackInfo := map[string]interface{}{
 				"id":           buildpack.Info.ID,
 				"name":         buildpack.Info.Name,
 				"version":      buildpack.Info.Version,
@@ -712,8 +712,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"sbom-formats": []interface{}{},
 				"keywords":     []interface{}{},
 			}
+			layer.Metadata["buildpackInfo"] = buildpackInfo
+			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}
 
 			_, err := hlc.Contribute(layer)
+
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
@@ -724,20 +727,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			layer, err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(layer.Metadata).To(Equal(map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
-			}))
-		})
-
-		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
-			layer.Metadata = map[string]interface{}{
+			buildpackInfo := map[string]interface{}{
 				"id":           buildpack.Info.ID,
 				"name":         buildpack.Info.Name,
 				"version":      buildpack.Info.Version,
@@ -747,6 +737,23 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				"sbom-formats": []interface{}{},
 				"keywords":     []interface{}{},
 			}
+			Expect(layer.Metadata).To(Equal(map[string]interface{}{"buildpackInfo": buildpackInfo, "helperNames": []interface{}{hlc.Names[0], hlc.Names[1]}}))
+		})
+
+		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
+			buildpackInfo := map[string]interface{}{
+				"id":           buildpack.Info.ID,
+				"name":         buildpack.Info.Name,
+				"version":      buildpack.Info.Version,
+				"homepage":     buildpack.Info.Homepage,
+				"clear-env":    buildpack.Info.ClearEnvironment,
+				"description":  "",
+				"sbom-formats": []interface{}{},
+				"keywords":     []interface{}{},
+			}
+			layer.Metadata["buildpackInfo"] = buildpackInfo
+			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}
+
 			// Launch is the only one set & always true
 
 			layer, err := hlc.Contribute(layer)
