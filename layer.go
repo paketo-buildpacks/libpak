@@ -303,9 +303,11 @@ func (h HelperLayerContributor) Name() string {
 
 // Contribute is the function to call whe implementing your libcnb.LayerContributor.
 func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
-	lc := NewLayerContributor("Launch Helper", h.BuildpackInfo, libcnb.LayerTypes{
+	expected := map[string]interface{}{"buildpackInfo": h.BuildpackInfo, "helperNames": h.Names}
+	lc := NewLayerContributor("Launch Helper", expected, libcnb.LayerTypes{
 		Launch: true,
 	})
+
 	lc.Logger = h.Logger
 
 	return lc.Contribute(layer, func() (libcnb.Layer, error) {
