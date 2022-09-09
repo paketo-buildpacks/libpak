@@ -26,6 +26,7 @@ import (
 func TestUnit(t *testing.T) {
 	suite := spec.New("libpak/sherpa", spec.Report(report.Terminal{}))
 	suite("CopyFile", testCopyFile)
+	suite("CopyDir", testCopyDir)
 	suite("EnvVar", testEnvVar)
 	suite("Exists", testExists)
 	suite("FileListing", testFileListing)
