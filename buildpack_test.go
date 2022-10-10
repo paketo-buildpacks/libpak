@@ -17,15 +17,18 @@
 package libpak_test
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/sbom"
 )
 
@@ -94,6 +97,23 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		}))
 	})
 
+	it("calculates dependency deprecation", func() {
+		deprecatedDependency := libpak.BuildpackDependency{
+			ID:              "test-id",
+			DeprecationDate: time.Now(),
+		}
+
+		soonDeprecatedDependency := libpak.BuildpackDependency{
+			ID:              "test-id",
+			DeprecationDate: time.Now().Add(30 * 24 * time.Hour),
+		}
+
+		Expect(deprecatedDependency.IsDeprecated()).To(BeTrue())
+		Expect(deprecatedDependency.IsSoonDeprecated()).To(BeFalse())
+		Expect(soonDeprecatedDependency.IsDeprecated()).To(BeFalse())
+		Expect(soonDeprecatedDependency.IsSoonDeprecated()).To(BeTrue())
+	})
+
 	context("NewBuildpackMetadata", func() {
 		it("deserializes metadata", func() {
 			actual := map[string]interface{}{
@@ -118,13 +138,17 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 								"uri":  "test-uri",
 							},
 						},
-						"cpes": []interface{}{"cpe:2.3:a:test-id:1.1.1"},
-						"purl": "pkg:generic:test-id@1.1.1",
+						"cpes":             []interface{}{"cpe:2.3:a:test-id:1.1.1"},
+						"purl":             "pkg:generic:test-id@1.1.1",
+						"deprecation_date": "2021-04-01T00:00:00Z",
 					},
 				},
 				"include-files": []interface{}{"test-include-file"},
 				"pre-package":   "test-pre-package",
 			}
+
+			deprecationDate, err := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
+			Expect(err).ToNot(HaveOccurred())
 
 			expected := libpak.BuildpackMetadata{
 				Configurations: []libpak.BuildpackConfiguration{
@@ -148,8 +172,9 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 								URI:  "test-uri",
 							},
 						},
-						CPEs: []string{"cpe:2.3:a:test-id:1.1.1"},
-						PURL: "pkg:generic:test-id@1.1.1",
+						CPEs:            []string{"cpe:2.3:a:test-id:1.1.1"},
+						PURL:            "pkg:generic:test-id@1.1.1",
+						DeprecationDate: deprecationDate,
 					},
 				},
 				IncludeFiles: []string{"test-include-file"},
@@ -542,6 +567,45 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 					Stacks:  []string{"test-stack-1", "test-stack-2"},
 				}))
 			})
+
+			it("prints outdated dependencies", func() {
+				buff := bytes.NewBuffer(nil)
+				logger := bard.NewLogger(buff)
+				resolver.Logger = &logger
+				soonDeprecated := time.Now().Add(30 * 24 * time.Hour)
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "missing-deprecation-date",
+						Name:    "missing-deprecation-date",
+						Version: "1.1",
+					},
+					{
+						ID:              "valid-dependency",
+						Name:            "valid-dependency",
+						Version:         "1.1",
+						DeprecationDate: time.Now().Add(60 * 24 * time.Hour),
+					},
+					{
+						ID:              "soon-deprecated-dependency",
+						Name:            "soon-deprecated-dependency",
+						Version:         "1.1",
+						DeprecationDate: soonDeprecated,
+					},
+					{
+						ID:              "deprecated-dependency",
+						Name:            "deprecated-dependency",
+						Version:         "1.1",
+						DeprecationDate: time.Now(),
+					},
+				}
+
+				for _, dependency := range resolver.Dependencies {
+					resolver.Resolve(dependency.ID, "")
+				}
+
+				Expect(buff.String()).To(Equal(fmt.Sprintf("  \x1b[33mDeprecation Notice:\x1b[0m\n\x1b[2m    \x1b[33mVersion 1.1 of soon-deprecated-dependency will be deprecated after %s.\x1b[0m\x1b[2m\x1b[0m\n\x1b[2m    \x1b[33mMigrate your application to a supported version of soon-deprecated-dependency before this time.\x1b[0m\x1b[2m\x1b[0m\n  \x1b[33mDeprecation Notice:\x1b[0m\n\x1b[2m    \x1b[33mVersion 1.1 of deprecated-dependency is deprecated.\x1b[0m\x1b[2m\x1b[0m\n\x1b[2m    \x1b[33mMigrate your application to a supported version of deprecated-dependency.\x1b[0m\x1b[2m\x1b[0m\n", soonDeprecated.Format("2006-01-02"))))
+			})
+
 		})
 
 		it("indicates whether error is NoValidDependenciesError", func() {

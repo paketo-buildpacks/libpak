@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
@@ -389,6 +390,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			RegisterTestingT(t)
 			server = ghttp.NewServer()
 
+			deprecationDate, err := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
+			Expect(err).ToNot(HaveOccurred())
+
 			dependency = libpak.BuildpackDependency{
 				ID:      "test-id",
 				Name:    "test-name",
@@ -402,8 +406,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						URI:  "test-uri",
 					},
 				},
-				CPEs: []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
+				CPEs:            []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURL:            "pkg:generic/some-java11@11.0.2?arch=amd64",
+				DeprecationDate: deprecationDate,
 			}
 
 			layer.Metadata = map[string]interface{}{}
@@ -484,8 +489,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"uri":  dependency.Licenses[0].URI,
 					},
 				},
-				"cpes": []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				"purl": "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"deprecation_date": dependency.DeprecationDate,
 			}
 
 			var called bool
@@ -534,8 +540,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"uri":  dependency.Licenses[0].URI,
 					},
 				},
-				"cpes": []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				"purl": "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"deprecation_date": dependency.DeprecationDate,
 			}))
 		})
 
@@ -553,8 +560,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"uri":  dependency.Licenses[0].URI,
 					},
 				},
-				"cpes": []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				"purl": "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"deprecation_date": dependency.DeprecationDate,
 			}
 			dlc.ExpectedTypes.Launch = true
 			dlc.ExpectedTypes.Cache = true
