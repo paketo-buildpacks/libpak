@@ -140,14 +140,14 @@ func (b BuildpackDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
 }
 
 func (b BuildpackDependency) IsDeprecated() bool {
-	deprecationDate := b.DeprecationDate
-	now := time.Now()
-	return deprecationDate == now || deprecationDate.Before(now)
+	deprecationDate := b.DeprecationDate.UTC()
+	now := time.Now().UTC()
+	return deprecationDate.Equal(now) || deprecationDate.Before(now)
 }
 
 func (b BuildpackDependency) IsSoonDeprecated() bool {
-	deprecationDate := b.DeprecationDate
-	now := time.Now()
+	deprecationDate := b.DeprecationDate.UTC()
+	now := time.Now().UTC()
 	return deprecationDate.Add(-30*24*time.Hour).Before(now) && deprecationDate.After(now)
 }
 

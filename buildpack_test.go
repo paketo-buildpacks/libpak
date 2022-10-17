@@ -100,12 +100,12 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	it("calculates dependency deprecation", func() {
 		deprecatedDependency := libpak.BuildpackDependency{
 			ID:              "test-id",
-			DeprecationDate: time.Now(),
+			DeprecationDate: time.Now().UTC(),
 		}
 
 		soonDeprecatedDependency := libpak.BuildpackDependency{
 			ID:              "test-id",
-			DeprecationDate: time.Now().Add(30 * 24 * time.Hour),
+			DeprecationDate: time.Now().UTC().Add(30 * 24 * time.Hour),
 		}
 
 		Expect(deprecatedDependency.IsDeprecated()).To(BeTrue())
@@ -140,14 +140,14 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						},
 						"cpes":             []interface{}{"cpe:2.3:a:test-id:1.1.1"},
 						"purl":             "pkg:generic:test-id@1.1.1",
-						"deprecation_date": "2021-04-01T00:00:00Z",
+						"deprecation_date": "2021-12-31T15:59:00-08:00",
 					},
 				},
 				"include-files": []interface{}{"test-include-file"},
 				"pre-package":   "test-pre-package",
 			}
 
-			deprecationDate, err := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
+			deprecationDate, err := time.Parse(time.RFC3339, "2021-12-31T15:59:00-08:00")
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := libpak.BuildpackMetadata{
@@ -572,7 +572,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				buff := bytes.NewBuffer(nil)
 				logger := bard.NewLogger(buff)
 				resolver.Logger = &logger
-				soonDeprecated := time.Now().Add(30 * 24 * time.Hour)
+				soonDeprecated := time.Now().UTC().Add(30 * 24 * time.Hour)
 				resolver.Dependencies = []libpak.BuildpackDependency{
 					{
 						ID:      "missing-deprecation-date",
@@ -583,7 +583,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						ID:              "valid-dependency",
 						Name:            "valid-dependency",
 						Version:         "1.1",
-						DeprecationDate: time.Now().Add(60 * 24 * time.Hour),
+						DeprecationDate: time.Now().UTC().Add(60 * 24 * time.Hour),
 					},
 					{
 						ID:              "soon-deprecated-dependency",
@@ -595,7 +595,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						ID:              "deprecated-dependency",
 						Name:            "deprecated-dependency",
 						Version:         "1.1",
-						DeprecationDate: time.Now(),
+						DeprecationDate: time.Now().UTC(),
 					},
 				}
 
