@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/buildpacks/libcnb"
@@ -89,6 +90,9 @@ type BuildpackDependency struct {
 
 	// PURL is the package URL that identifies the dependency
 	PURL string `toml:"purl"`
+
+	// DeprecationDate is the time when the dependency is deprecated
+	DeprecationDate time.Time `toml:"deprecation_date"`
 }
 
 // AsBOMEntry renders a bill of materials entry describing the dependency.
@@ -133,6 +137,18 @@ func (b BuildpackDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
 	}
 
 	return sbomArtifact, nil
+}
+
+func (b BuildpackDependency) IsDeprecated() bool {
+	deprecationDate := b.DeprecationDate.UTC()
+	now := time.Now().UTC()
+	return deprecationDate.Equal(now) || deprecationDate.Before(now)
+}
+
+func (b BuildpackDependency) IsSoonDeprecated() bool {
+	deprecationDate := b.DeprecationDate.UTC()
+	now := time.Now().UTC()
+	return deprecationDate.Add(-30*24*time.Hour).Before(now) && deprecationDate.After(now)
 }
 
 // BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
@@ -238,6 +254,16 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 
 			if v, ok := v["purl"].(string); ok {
 				d.PURL = v
+			}
+
+			if v, ok := v["deprecation_date"].(string); ok {
+				deprecationDate, err := time.Parse(time.RFC3339, v)
+
+				if err != nil {
+					return BuildpackMetadata{}, fmt.Errorf("unable to parse deprecation date\n%w", err)
+				}
+
+				d.DeprecationDate = deprecationDate
 			}
 
 			m.Dependencies = append(m.Dependencies, d)
@@ -412,6 +438,9 @@ type DependencyResolver struct {
 
 	// StackID is the stack id of the build.
 	StackID string
+
+	// Logger is the logger used to write to the console.
+	Logger *bard.Logger
 }
 
 // NewDependencyResolver creates a new instance from the buildpack metadata and stack id.
@@ -479,7 +508,13 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 		return a.GreaterThan(b)
 	})
 
-	return candidates[0], nil
+	candidate := candidates[0]
+
+	if (candidate.DeprecationDate != time.Time{}) {
+		d.printDependencyDeprecation(candidate)
+	}
+
+	return candidate, nil
 }
 
 func (DependencyResolver) contains(candidates []string, value string) bool {
@@ -494,4 +529,22 @@ func (DependencyResolver) contains(candidates []string, value string) bool {
 	}
 
 	return false
+}
+
+func (d *DependencyResolver) printDependencyDeprecation(dependency BuildpackDependency) {
+	if d.Logger == nil {
+		return
+	}
+
+	f := color.New(color.FgYellow)
+
+	if dependency.IsDeprecated() {
+		d.Logger.Header(f.Sprint("Deprecation Notice:"))
+		d.Logger.Body(f.Sprintf("Version %s of %s is deprecated.", dependency.Version, dependency.Name))
+		d.Logger.Body(f.Sprintf("Migrate your application to a supported version of %s.", dependency.Name))
+	} else if dependency.IsSoonDeprecated() {
+		d.Logger.Header(f.Sprint("Deprecation Notice:"))
+		d.Logger.Body(f.Sprintf("Version %s of %s will be deprecated after %s.", dependency.Version, dependency.Name, dependency.DeprecationDate.Format("2006-01-02")))
+		d.Logger.Body(f.Sprintf("Migrate your application to a supported version of %s before this time.", dependency.Name))
+	}
 }
