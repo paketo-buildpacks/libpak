@@ -43,6 +43,8 @@ type BuildpackDependency struct {
 	CPEPattern     string
 	PURL           string
 	PURLPattern    string
+	Source         string
+	SourceSHA256   string
 }
 
 func (b BuildpackDependency) Update(options ...Option) {
@@ -56,11 +58,13 @@ func (b BuildpackDependency) Update(options ...Option) {
 
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(b.ID, b.VersionPattern))
-	logger.Headerf("Version: %s", b.Version)
-	logger.Headerf("PURL:    %s", b.PURL)
-	logger.Headerf("CPEs:    %s", b.CPE)
-	logger.Headerf("URI:     %s", b.URI)
-	logger.Headerf("SHA256:  %s", b.SHA256)
+	logger.Headerf("Version:      %s", b.Version)
+	logger.Headerf("PURL:         %s", b.PURL)
+	logger.Headerf("CPEs:         %s", b.CPE)
+	logger.Headerf("URI:          %s", b.URI)
+	logger.Headerf("SHA256:       %s", b.SHA256)
+	logger.Headerf("Source:       %s", b.Source)
+	logger.Headerf("SourceSHA256: %s", b.SourceSHA256)
 
 	versionExp, err := regexp.Compile(b.VersionPattern)
 	if err != nil {
@@ -151,6 +155,8 @@ func (b BuildpackDependency) Update(options ...Option) {
 				dep["version"] = b.Version
 				dep["uri"] = b.URI
 				dep["sha256"] = b.SHA256
+				dep["source"] = b.Source
+				dep["source-sha256"] = b.SourceSHA256
 
 				purlUnwrapped, found := dep["purl"]
 				if found {
