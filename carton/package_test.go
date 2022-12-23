@@ -290,7 +290,7 @@ include-files = [
 			Expect(entryWriter.Calls[5].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
 		})
 
-		it.Focus("includes filter by version and id", func() {
+		it("includes filter by version and id", func() {
 			carton.Package{
 				Source:                  path,
 				Destination:             "test-destination",
