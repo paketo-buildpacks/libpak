@@ -55,15 +55,29 @@ func GetEnvWithDefault(name string, def string) string {
 // ResolveBool resolves a boolean value for a configuration option. Returns true for 1, t, T, TRUE, true, True. Returns
 // false for all other values or unset.
 func ResolveBool(name string) bool {
+	resolveBool, _ := ResolveBoolErr(name)
+	return resolveBool
+}
+
+// ResolveBoolErr resolves a boolean value for a configuration option.
+// Returns true, nil for 1, t, T, TRUE, true, True.
+// Returns false, nil for all other values or unset.
+// Returns false, error is the value could not be parsed into a bool
+func ResolveBoolErr(name string) (bool, error) {
 	s, ok := os.LookupEnv(name)
 	if !ok {
-		return false
+		return false, nil
 	}
 
-	t, err := strconv.ParseBool(s)
+	t := strings.TrimSpace(s)
+	p, err := strconv.ParseBool(t)
 	if err != nil {
-		return false
+		return false, fmt.Errorf(
+			"invalid value '%s' for key '%s': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]",
+			s,
+			name,
+		)
 	}
 
-	return t
+	return p, nil
 }
