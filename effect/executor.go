@@ -19,6 +19,8 @@ package effect
 import (
 	"io"
 	"os/exec"
+	"fmt"
+	"errors"
 )
 
 // Execution is information about a command to run.
@@ -73,5 +75,11 @@ func (CommandExecutor) Execute(execution Execution) error {
 	cmd.Stdout = execution.Stdout
 	cmd.Stderr = execution.Stderr
 
-	return cmd.Run()
+	if err := cmd.Run(); err != nil{
+		if errors.Is(err, exec.ErrDot) {
+			return fmt.Errorf("the command %s would resolve relative to the current directory, this is disallowed in Go versions 1.19+", execution.Command)
+		}
+		return fmt.Errorf("unable to run command %s\n%w", execution.Command, err)
+	}
+	return nil
 }
