@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
-	github.com/buildpacks/libcnb v1.27.0
+	github.com/buildpacks/libcnb v1.28.0
 	github.com/creack/pty v1.1.18
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
