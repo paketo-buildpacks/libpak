@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
@@ -202,8 +203,30 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
+		it("returns from cache path even with updated metadata", func() {
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, dependency.SHA256, "test-path"))
+			dependency.DeprecationDate = time.Now()
+			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+
+			a, err := dependencyCache.Artifact(dependency)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+		})
+
 		it("returns from download path", func() {
 			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
+			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+
+			a, err := dependencyCache.Artifact(dependency)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+		})
+
+		it("returns from download path even with updated metadata", func() {
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
+			dependency.DeprecationDate = time.Now()
 			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)

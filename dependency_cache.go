@@ -25,7 +25,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/buildpacks/libcnb"
@@ -33,6 +32,7 @@ import (
 	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/sherpa"
 )
 
 // DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download, or to download
@@ -103,7 +103,6 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...RequestModifierFunc) (*os.File, error) {
 
 	var (
-		actual   BuildpackDependency
 		artifact string
 		file     string
 		uri      = dependency.URI
@@ -130,29 +129,25 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	b, err := os.ReadFile(file)
-	if err != nil && !os.IsNotExist(err) {
+	exists, err := sherpa.Exists(file)
+
+	if err != nil {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}
-	if err := toml.Unmarshal(b, &actual); err != nil {
-		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
-	}
 
-	if reflect.DeepEqual(dependency, actual) {
+	if exists {
 		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(uri)))
 	}
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	b, err = os.ReadFile(file)
-	if err != nil && !os.IsNotExist(err) {
+	exists, err = sherpa.Exists(file)
+
+	if err != nil {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}
-	if err := toml.Unmarshal(b, &actual); err != nil {
-		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
-	}
 
-	if reflect.DeepEqual(dependency, actual) {
+	if exists {
 		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri)))
 	}
