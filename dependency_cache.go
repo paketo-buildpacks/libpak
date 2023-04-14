@@ -163,7 +163,6 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...RequestModifierFunc) (*os.File, error) {
 
 	var (
-		actual   BuildModuleDependency
 		artifact string
 		file     string
 		uri      = dependency.URI
@@ -190,29 +189,25 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 	}
 
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	b, err := os.ReadFile(file)
-	if err != nil && !os.IsNotExist(err) {
+	exists, err := sherpa.Exists(file)
+
+	if err != nil {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}
-	if err := toml.Unmarshal(b, &actual); err != nil {
-		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
-	}
 
-	if dependency.Equals(actual) {
+	if exists {
 		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(uri)))
 	}
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	b, err = os.ReadFile(file)
-	if err != nil && !os.IsNotExist(err) {
+	exists, err = sherpa.Exists(file)
+
+	if err != nil {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}
-	if err := toml.Unmarshal(b, &actual); err != nil {
-		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
-	}
 
-	if dependency.Equals(actual) {
+	if exists {
 		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri)))
 	}
