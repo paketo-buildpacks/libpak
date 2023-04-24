@@ -33,4 +33,32 @@ const (
 
 	// JammyTinyStackID is the ID for the Cloud Native Buildpacks jammy tiny stack.
 	JammyTinyStackID = "io.buildpacks.stacks.jammy.tiny"
+
+	// JammyStaticStackID is the ID for the Cloud Native Buildpacks jammy static stack.
+	JammyStaticStackID = "io.buildpacks.stacks.jammy.static"
 )
+
+// IsBionicStack returns true if the stack is one of the bionic variants
+func IsBionicStack(stack string) bool {
+	return BionicStackID == stack || BionicTinyStackID == stack || TinyStackID == stack
+}
+
+// IsJammyStack returns true if the stack is one of the jammy variants
+func IsJammyStack(stack string) bool {
+	return JammyStackID == stack || JammyTinyStackID == stack || JammyStaticStackID == stack
+}
+
+// IsTinyStack returns true if the stack is one of the tiny variants
+func IsTinyStack(stack string) bool {
+	return BionicTinyStackID == stack || JammyTinyStackID == stack || TinyStackID == stack
+}
+
+// IsStaticStack returns true if the stack is one of the static variants
+func IsStaticStack(stack string) bool {
+	return JammyStaticStackID == stack
+}
+
+// IsShellPresentOnStack returns true if the stack is known to have a shell
+func IsShellPresentOnStack(stack string) bool {
+	return BionicStackID == stack || JammyStackID == stack
+}
