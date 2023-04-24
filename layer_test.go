@@ -18,7 +18,6 @@ package libpak_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,10 +42,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-
-		layersDir, err = ioutil.TempDir("", "layer")
-		Expect(err).NotTo(HaveOccurred())
+		layersDir = t.TempDir()
 		layer.Path = filepath.Join(layersDir, "test-layer")
 
 		layer.Exec.Path = layer.Path
@@ -113,7 +109,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but no layer directory on cache layer", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.RemoveAll(layer.Path)).To(Succeed())
 				lc.ExpectedTypes.Cache = true
 
@@ -127,7 +123,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but no layer directory on build layer", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.RemoveAll(layer.Path)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
@@ -141,7 +137,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but an empty layer directory on build layer", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
@@ -155,9 +151,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("does not call function with matching metadata when layer directory exists and has a file in it", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0644)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
 				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
@@ -597,7 +593,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())
 
-			data, err := ioutil.ReadFile(outputFile)
+			data, err := os.ReadFile(outputFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
 			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))
@@ -657,8 +653,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			var err error
-
 			buildpack.Info = libcnb.BuildpackInfo{
 				ID:       "test-id",
 				Name:     "test-name",
@@ -666,14 +660,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Homepage: "test-homepage",
 			}
 
-			buildpack.Path, err = ioutil.TempDir("", "buildpack")
-			Expect(err).NotTo(HaveOccurred())
-
+			buildpack.Path = t.TempDir()
 			file := filepath.Join(buildpack.Path, "bin")
 			Expect(os.MkdirAll(file, 0755)).To(Succeed())
 
 			file = filepath.Join(file, "helper")
-			Expect(ioutil.WriteFile(file, []byte{}, 0755)).To(Succeed())
+			Expect(os.WriteFile(file, []byte{}, 0755)).To(Succeed())
 
 			hlc = libpak.HelperLayerContributor{
 				Path:          file,
@@ -787,7 +779,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())
 
-			data, err := ioutil.ReadFile(outputFile)
+			data, err := os.ReadFile(outputFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
 			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))

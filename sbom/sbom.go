@@ -3,7 +3,6 @@ package sbom
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/buildpacks/libcnb"
@@ -51,7 +50,7 @@ func (s SyftDependency) WriteTo(path string) error {
 		return fmt.Errorf("unable to marshal to JSON\n%w", err)
 	}
 
-	err = ioutil.WriteFile(path, output, 0644)
+	err = os.WriteFile(path, output, 0644)
 	if err != nil {
 		return fmt.Errorf("unable to write to path %s\n%w", path, err)
 	}

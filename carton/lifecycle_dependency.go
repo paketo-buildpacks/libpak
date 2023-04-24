@@ -18,7 +18,6 @@ package carton
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 
@@ -48,7 +47,7 @@ func (l LifecycleDependency) Update(options ...Option) {
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity("Lifecycle", l.Version))
 
-	c, err := ioutil.ReadFile(l.BuilderPath)
+	c, err := os.ReadFile(l.BuilderPath)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", l.BuilderPath, err))
 		return
@@ -64,7 +63,7 @@ func (l LifecycleDependency) Update(options ...Option) {
 	s := fmt.Sprintf(LifecycleDependencySubstitution, l.Version)
 	c = r.ReplaceAll(c, []byte(s))
 
-	if err := ioutil.WriteFile(l.BuilderPath, c, 0644); err != nil {
+	if err := os.WriteFile(l.BuilderPath, c, 0644); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", l.BuilderPath, err))
 		return
 	}

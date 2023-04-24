@@ -18,7 +18,6 @@ package carton
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 
@@ -48,7 +47,7 @@ func (i BuildImageDependency) Update(options ...Option) {
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity("Build Image", i.Version))
 
-	c, err := ioutil.ReadFile(i.BuilderPath)
+	c, err := os.ReadFile(i.BuilderPath)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", i.BuilderPath, err))
 		return
@@ -64,7 +63,7 @@ func (i BuildImageDependency) Update(options ...Option) {
 	s := fmt.Sprintf(ImageDependencySubstitution, i.Version)
 	c = r.ReplaceAll(c, []byte(s))
 
-	if err := ioutil.WriteFile(i.BuilderPath, c, 0644); err != nil {
+	if err := os.WriteFile(i.BuilderPath, c, 0644); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", i.BuilderPath, err))
 		return
 	}

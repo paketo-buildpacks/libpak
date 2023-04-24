@@ -19,7 +19,6 @@ package sherpa_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,20 +37,13 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-
-		path, err = ioutil.TempDir("", "file-listing")
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(path)).To(Succeed())
+		path = t.TempDir()
 	})
 
 	it("create listing", func() {
-		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
 
 		e, err := sherpa.NewFileListing(path)
 		Expect(err).NotTo(HaveOccurred())
@@ -61,13 +53,13 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 
 	it("create listing skipping .git folder", func() {
 		Expect(os.MkdirAll(filepath.Join(path, ".git"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, ".git", "HEAD"), []byte{1}, 0644)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, ".git", "config"), []byte{1}, 0644)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, ".git", "HEAD"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, ".git", "config"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory", ".git"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", ".git", "config"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "test-directory", ".git", "config"), []byte{1}, 0644)).To(Succeed())
 
 		e, err := sherpa.NewFileListing(path)
 		Expect(err).NotTo(HaveOccurred())
@@ -76,9 +68,9 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("create listing as hash with non-regular file", func() {
-		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "alpha.txt"), []byte{1}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{2}, 0644)).To(Succeed())
 		Expect(os.Symlink(filepath.Join(path, "test-directory"), filepath.Join(path, "symlink-test-dir")))
 		Expect(os.Symlink(filepath.Join(path, "test-directory", "bravo.txt"), filepath.Join(path, "symlink-bravo.txt")))
 		Expect(os.Symlink("alpha.txt", filepath.Join(path, "symlink-relative.txt")))
@@ -97,9 +89,9 @@ func testFileListing(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("create listing and get SHA256", func() {
-		Expect(ioutil.WriteFile(filepath.Join(path, "alpha.txt"), []byte{}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "alpha.txt"), []byte{}, 0644)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(path, "test-directory"), 0755)).To(Succeed())
-		Expect(ioutil.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{}, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "test-directory", "bravo.txt"), []byte{}, 0644)).To(Succeed())
 
 		e, err := sherpa.NewFileListing(path)
 		Expect(err).NotTo(HaveOccurred())

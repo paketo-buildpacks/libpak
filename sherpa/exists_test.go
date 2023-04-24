@@ -17,7 +17,6 @@
 package sherpa_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,13 +34,7 @@ func testExists(t *testing.T, when spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-		testPath, err = ioutil.TempDir("", "exists")
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(testPath)).To(Succeed())
+		testPath = t.TempDir()
 	})
 
 	when("checking something exists", func() {

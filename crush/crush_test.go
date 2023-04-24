@@ -17,7 +17,6 @@
 package crush_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,20 +29,11 @@ import (
 
 func testCrush(t *testing.T, context spec.G, it spec.S) {
 	var (
-		Expect = NewWithT(t).Expect
-
 		path string
 	)
 
 	it.Before(func() {
-		var err error
-
-		path, err = ioutil.TempDir("", "crush")
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(path)).To(Succeed())
+		path = t.TempDir()
 	})
 
 	context("Create", func() {
@@ -56,11 +46,10 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 		it.Before(func() {
 			var err error
 
-			out, err = ioutil.TempFile("", "crush-tar")
+			out, err = os.CreateTemp("", "crush-tar")
 			Expect(err).NotTo(HaveOccurred())
 
-			testPath, err = ioutil.TempDir("", "crush-tar")
-			Expect(err).NotTo(HaveOccurred())
+			testPath = t.TempDir()
 		})
 
 		it.After(func() {
@@ -70,10 +59,10 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("writes a TAR", func() {
-			Expect(ioutil.WriteFile(filepath.Join(path, "fileA.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "fileA.txt"), []byte(""), 0644)).To(Succeed())
 			Expect(os.MkdirAll(filepath.Join(path, "dirA"), 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0644)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileC.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "dirA", "fileC.txt"), []byte(""), 0644)).To(Succeed())
 			Expect(os.Symlink(filepath.Join(path, "dirA", "fileC.txt"), filepath.Join(path, "dirA", "fileD.txt"))).To(Succeed())
 
 			Expect(crush.CreateTar(out, path)).To(Succeed())
@@ -89,10 +78,10 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("writes a TAR.GZ", func() {
-			Expect(ioutil.WriteFile(filepath.Join(path, "fileA.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "fileA.txt"), []byte(""), 0644)).To(Succeed())
 			Expect(os.MkdirAll(filepath.Join(path, "dirA"), 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0644)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(path, "dirA", "fileC.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "dirA", "fileC.txt"), []byte(""), 0644)).To(Succeed())
 			Expect(os.Symlink(filepath.Join(path, "dirA", "fileC.txt"), filepath.Join(path, "dirA", "fileD.txt"))).To(Succeed())
 
 			Expect(crush.CreateTarGz(out, path)).To(Succeed())

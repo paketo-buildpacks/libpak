@@ -18,7 +18,6 @@ package internal
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -80,7 +79,7 @@ func (w EnvironmentWriter) Write(path string, environment map[string]string) err
 			return fmt.Errorf("unable to mkdir from key %s\n%w", filepath.Dir(f), err)
 		}
 
-		if err := ioutil.WriteFile(f, []byte(environment[k]), 0644); err != nil {
+		if err := os.WriteFile(f, []byte(environment[k]), 0644); err != nil {
 			return fmt.Errorf("unable to write file %s\n%w", f, err)
 		}
 	}

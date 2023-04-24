@@ -17,7 +17,6 @@
 package carton_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -43,7 +42,7 @@ func testBuildImageDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-image-dependency")
+		f, err := os.CreateTemp("", "carton-image-dependency")
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = f.WriteString(`test-prologue
@@ -67,7 +66,7 @@ test-epilogue
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`test-prologue
+		Expect(os.ReadFile(path)).To(Equal([]byte(`test-prologue
 build-image = "image-name:test-version-2"
 test-epilogue
 `)))
