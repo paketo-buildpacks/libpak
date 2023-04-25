@@ -17,7 +17,6 @@
 package carton_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -44,7 +43,7 @@ func testBuildpackDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-buildpack-dependency")
+		f, err := os.CreateTemp("", "carton-buildpack-dependency")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).To(Succeed())
 		path = f.Name()
@@ -55,7 +54,7 @@ func testBuildpackDependency(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("updates dependency", func() {
-		Expect(ioutil.WriteFile(path, []byte(`api = "0.6"
+		Expect(os.WriteFile(path, []byte(`api = "0.6"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -81,7 +80,7 @@ stacks  = [ "test-stack" ]
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.6"
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.6"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -97,7 +96,7 @@ stacks  = [ "test-stack" ]
 	})
 
 	it("updates dependency with purl & cpes", func() {
-		Expect(ioutil.WriteFile(path, []byte(`api = "0.7"
+		Expect(os.WriteFile(path, []byte(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -129,7 +128,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -147,7 +146,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*
 	})
 
 	it("updates multiple dependencies with different versions", func() {
-		Expect(ioutil.WriteFile(path, []byte(`api = "0.7"
+		Expect(os.WriteFile(path, []byte(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -189,7 +188,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -218,7 +217,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*
 	})
 
 	it("updates dependency with missing purl, still updates cpe", func() {
-		Expect(ioutil.WriteFile(path, []byte(`api = "0.7"
+		Expect(os.WriteFile(path, []byte(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -249,7 +248,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -266,7 +265,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*
 	})
 
 	it("updates dependency with invalid purl, still updates cpe", func() {
-		Expect(ioutil.WriteFile(path, []byte(`api = "0.7"
+		Expect(os.WriteFile(path, []byte(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -298,7 +297,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -316,7 +315,7 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*
 	})
 
 	it("updates dependency with invalid cpe, still updates purl", func() {
-		Expect(ioutil.WriteFile(path, []byte(`api = "0.7"
+		Expect(os.WriteFile(path, []byte(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -348,7 +347,7 @@ cpes    = 1234
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
 name = "Some Buildpack"
@@ -366,7 +365,7 @@ cpes    = 1234
 	})
 
 	it("updates indented dependency", func() {
-		Expect(ioutil.WriteFile(path, []byte(`# it should preserve
+		Expect(os.WriteFile(path, []byte(`# it should preserve
 #   these comments
 #      exactly
 
@@ -396,7 +395,7 @@ version = "1.2.3"
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		body, err := ioutil.ReadFile(path)
+		body, err := os.ReadFile(path)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(body)).To(HavePrefix(`# it should preserve
 #   these comments

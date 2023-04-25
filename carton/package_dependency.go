@@ -19,7 +19,6 @@ package carton
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -140,7 +139,7 @@ func updateByKey(key, id, version string) func(md map[string]interface{}) {
 }
 
 func updateFile(cfgPath string, f func(md map[string]interface{})) error {
-	c, err := ioutil.ReadFile(cfgPath)
+	c, err := os.ReadFile(cfgPath)
 	if err != nil {
 		return fmt.Errorf("unable to read %s\n%w", cfgPath, err)
 	}
@@ -170,7 +169,7 @@ func updateFile(cfgPath string, f func(md map[string]interface{})) error {
 
 	b = append(comments, b...)
 
-	if err := ioutil.WriteFile(cfgPath, b, 0644); err != nil {
+	if err := os.WriteFile(cfgPath, b, 0644); err != nil {
 		return fmt.Errorf("unable to write %s\n%w", cfgPath, err)
 	}
 

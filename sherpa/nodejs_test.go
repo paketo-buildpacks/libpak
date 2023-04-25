@@ -17,7 +17,6 @@
 package sherpa_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -36,14 +35,7 @@ func testNodeJS(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-
-		path, err = ioutil.TempDir("", "nodejs")
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(path)).To(Succeed())
+		path = t.TempDir()
 	})
 
 	it("returns server.js if no package.json exists", func() {
@@ -51,13 +43,13 @@ func testNodeJS(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("returns server.js if package.json does not have a main entry", func() {
-		Expect(ioutil.WriteFile(filepath.Join(path, "package.json"), []byte(`{}`), 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "package.json"), []byte(`{}`), 0644)).To(Succeed())
 
 		Expect(sherpa.NodeJSMainModule(path)).To(Equal("server.js"))
 	})
 
 	it("returns main module", func() {
-		Expect(ioutil.WriteFile(filepath.Join(path, "package.json"), []byte(`{ "main": "test-main" }`), 0644)).
+		Expect(os.WriteFile(filepath.Join(path, "package.json"), []byte(`{ "main": "test-main" }`), 0644)).
 			To(Succeed())
 
 		Expect(sherpa.NodeJSMainModule(path)).To(Equal("test-main"))

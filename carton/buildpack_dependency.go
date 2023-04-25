@@ -19,7 +19,6 @@ package carton
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 
@@ -81,7 +80,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 		return
 	}
 
-	c, err := ioutil.ReadFile(b.BuildpackPath)
+	c, err := os.ReadFile(b.BuildpackPath)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", b.BuildpackPath, err))
 		return
@@ -187,7 +186,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 
 	c = append(comments, c...)
 
-	if err := ioutil.WriteFile(b.BuildpackPath, c, 0644); err != nil {
+	if err := os.WriteFile(b.BuildpackPath, c, 0644); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", b.BuildpackPath, err))
 		return
 	}

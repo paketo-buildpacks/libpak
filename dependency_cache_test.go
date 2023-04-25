@@ -19,7 +19,6 @@ package libpak_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -131,10 +130,10 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		it.Before(func() {
 			var err error
 
-			cachePath, err = ioutil.TempDir("", "dependency-cache-cache-path")
+			cachePath = t.TempDir()
 			Expect(err).NotTo(HaveOccurred())
 
-			downloadPath, err = ioutil.TempDir("", "dependency-cache-download-path")
+			downloadPath = t.TempDir()
 			Expect(err).NotTo(HaveOccurred())
 
 			RegisterTestingT(t)
@@ -200,7 +199,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		it("returns from download path", func() {
@@ -210,7 +209,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		it("downloads", func() {
@@ -222,7 +221,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		context("uri is overridden HTTP", func() {
@@ -241,16 +240,15 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
 		})
 
 		context("uri is overridden FILE", func() {
 			it.Before(func() {
-				sourcePath, err := ioutil.TempDir("", "dependency-source-path")
-				Expect(err).NotTo(HaveOccurred())
+				sourcePath := t.TempDir()
 				sourceFile := filepath.Join(sourcePath, "source-file")
-				Expect(ioutil.WriteFile(sourceFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+				Expect(os.WriteFile(sourceFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
 
 				dependencyCache.Mappings = map[string]string{
 					dependency.SHA256: fmt.Sprintf("file://%s", sourceFile),
@@ -261,7 +259,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
 		})
 
@@ -284,7 +282,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
 		})
 
 		it("sets User-Agent", func() {
@@ -296,7 +294,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		it("modifies request", func() {
@@ -312,7 +310,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 	})
 }

@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -131,7 +130,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	b, err := ioutil.ReadFile(file)
+	b, err := os.ReadFile(file)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}
@@ -145,7 +144,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
-	b, err = ioutil.ReadFile(file)
+	b, err = os.ReadFile(file)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}

@@ -17,7 +17,6 @@
 package carton_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -43,7 +42,7 @@ func testLifecycleDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-builder-dependency")
+		f, err := os.CreateTemp("", "carton-builder-dependency")
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = f.WriteString(`test-prologue
@@ -70,7 +69,7 @@ test-epilogue
 
 		d.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(ioutil.ReadFile(path)).To(Equal([]byte(`test-prologue
+		Expect(os.ReadFile(path)).To(Equal([]byte(`test-prologue
 
 [lifecycle]
 uri = "https://github.com/buildpacks/lifecycle/releases/download/vtest-version-3/lifecycle-vtest-version-3+linux.x86-64.tgz"
