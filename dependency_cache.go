@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
@@ -240,7 +241,10 @@ func (d DependencyCache) downloadHttp(uri string, destination string, mods ...Re
 		}
 	}
 
-	client := http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
+	client := http.Client{
+		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
+		Timeout:   time.Minute * 1,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to request %s\n%w", uri, err)
