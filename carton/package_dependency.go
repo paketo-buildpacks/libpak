@@ -22,9 +22,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
-	"github.com/pelletier/go-toml"
 )
 
 type PackageDependency struct {
@@ -162,7 +162,7 @@ func updateFile(cfgPath string, f func(md map[string]interface{})) error {
 
 	f(md)
 
-	b, err := toml.Marshal(md)
+	b, err := internal.Marshal(md)
 	if err != nil {
 		return fmt.Errorf("unable to encode md %s\n%w", cfgPath, err)
 	}

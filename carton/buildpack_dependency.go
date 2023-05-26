@@ -22,9 +22,9 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/BurntSushi/toml"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
-	"github.com/pelletier/go-toml"
 )
 
 const (
@@ -178,7 +178,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 		}
 	}
 
-	c, err = toml.Marshal(md)
+	c, err = internal.Marshal(md)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to encode md %s\n%w", b.BuildpackPath, err))
 		return

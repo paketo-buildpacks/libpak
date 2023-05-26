@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/BurntSushi/toml"
 	"github.com/onsi/gomega/types"
-	"github.com/pelletier/go-toml"
 )
 
 func MatchTOML(expected interface{}) types.GomegaMatcher {

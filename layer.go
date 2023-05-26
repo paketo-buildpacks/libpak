@@ -23,11 +23,12 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/BurntSushi/toml"
 	"github.com/heroku/color"
-	"github.com/pelletier/go-toml"
 
 	"github.com/buildpacks/libcnb"
 
+	"github.com/paketo-buildpacks/libpak/internal"
 	"github.com/paketo-buildpacks/libpak/sbom"
 	"github.com/paketo-buildpacks/libpak/sherpa"
 
@@ -104,7 +105,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 }
 
 func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[string]interface{}, bool, error) {
-	raw, err := toml.Marshal(l.ExpectedMetadata)
+	raw, err := internal.Marshal(l.ExpectedMetadata)
 	if err != nil {
 		return map[string]interface{}{}, false, fmt.Errorf("unable to encode metadata\n%w", err)
 	}
