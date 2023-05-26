@@ -99,9 +99,8 @@ type BuildpackDependency struct {
 // Equals compares the 2 structs if they are equal. This is very simiar to reflect.DeepEqual
 // except that properties that will not work (e.g. DeprecationDate) are ignored.
 func (b1 BuildpackDependency) Equals(b2 BuildpackDependency) bool {
-
-	b1.DeprecationDate = time.Time{}
-	b2.DeprecationDate = time.Time{}
+	b1.DeprecationDate = b1.DeprecationDate.Truncate(time.Second).In(time.UTC)
+	b2.DeprecationDate = b2.DeprecationDate.Truncate(time.Second).In(time.UTC)
 
 	if len(b1.CPEs) == 0 {
 		b1.CPEs = nil
