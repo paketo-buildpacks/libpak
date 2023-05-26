@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
@@ -140,12 +141,13 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			server = ghttp.NewServer()
 
 			dependency = libpak.BuildpackDependency{
-				ID:      "test-id",
-				Name:    "test-name",
-				Version: "1.1.1",
-				URI:     fmt.Sprintf("%s/test-path", server.URL()),
-				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
-				Stacks:  []string{"test-stack"},
+				ID:              "test-id",
+				Name:            "test-name",
+				Version:         "1.1.1",
+				URI:             fmt.Sprintf("%s/test-path", server.URL()),
+				SHA256:          "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Stacks:          []string{"test-stack"},
+				DeprecationDate: time.Now(),
 				Licenses: []libpak.BuildpackDependencyLicense{
 					{
 						Type: "test-type",
