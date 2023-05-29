@@ -8,7 +8,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
-	github.com/imdario/mergo v0.3.15
+	github.com/imdario/mergo v0.3.16
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/onsi/gomega v1.27.7
 	github.com/pelletier/go-toml v1.9.5
