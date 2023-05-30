@@ -30,7 +30,7 @@ type Predicate func(bind libcnb.Binding) bool
 // case-insensitive.
 func OfType(t string) Predicate {
 	return func(bind libcnb.Binding) bool {
-		return strings.ToLower(bind.Type) == strings.ToLower(t)
+		return strings.EqualFold(bind.Type, t)
 	}
 }
 
@@ -38,7 +38,15 @@ func OfType(t string) Predicate {
 // case-insensitive.
 func OfProvider(p string) Predicate {
 	return func(bind libcnb.Binding) bool {
-		return strings.ToLower(bind.Provider) == strings.ToLower(p)
+		return strings.EqualFold(bind.Provider, p)
+	}
+}
+
+// WithName returns a Predicate that returns true if a given binding has Name that matches n. The comparison is
+// case-insensitive.
+func WithName(n string) Predicate {
+	return func(bind libcnb.Binding) bool {
+		return strings.EqualFold(bind.Name, n)
 	}
 }
 
@@ -46,9 +54,8 @@ func OfProvider(p string) Predicate {
 func Resolve(binds libcnb.Bindings, predicates ...Predicate) libcnb.Bindings {
 	var result libcnb.Bindings
 	// deep copy
-	for _, bind := range binds {
-		result = append(result, bind)
-	}
+	result = append(result, binds...)
+
 	// filter on predicates
 	for _, p := range predicates {
 		result = filter(result, p)
