@@ -703,14 +703,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("does not call function with matching metadata", func() {
 			buildpackInfo := map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
 			}
 			layer.Metadata["buildpackInfo"] = buildpackInfo
 			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}
@@ -728,28 +726,24 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			buildpackInfo := map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
 			}
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{"buildpackInfo": buildpackInfo, "helperNames": []interface{}{hlc.Names[0], hlc.Names[1]}}))
 		})
 
 		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
 			buildpackInfo := map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
 			}
 			layer.Metadata["buildpackInfo"] = buildpackInfo
 			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}

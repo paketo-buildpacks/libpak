@@ -25,12 +25,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 )
@@ -138,7 +137,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
 	}
 
-	if reflect.DeepEqual(dependency, actual) {
+	if dependency.Equals(actual) {
 		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(uri)))
 	}
@@ -152,7 +151,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		return nil, fmt.Errorf("unable to decode download metadata %s\n%w", file, err)
 	}
 
-	if reflect.DeepEqual(dependency, actual) {
+	if dependency.Equals(actual) {
 		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
 		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri)))
 	}

@@ -19,6 +19,7 @@ package libpak
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -93,6 +94,22 @@ type BuildpackDependency struct {
 
 	// DeprecationDate is the time when the dependency is deprecated
 	DeprecationDate time.Time `toml:"deprecation_date"`
+}
+
+// Equals compares the 2 structs if they are equal. This is very simiar to reflect.DeepEqual
+// except that properties that will not work (e.g. DeprecationDate) are ignored.
+func (b1 BuildpackDependency) Equals(b2 BuildpackDependency) bool {
+	b1.DeprecationDate = b1.DeprecationDate.Truncate(time.Second).In(time.UTC)
+	b2.DeprecationDate = b2.DeprecationDate.Truncate(time.Second).In(time.UTC)
+
+	if len(b1.CPEs) == 0 {
+		b1.CPEs = nil
+	}
+	if len(b2.CPEs) == 0 {
+		b2.CPEs = nil
+	}
+
+	return reflect.DeepEqual(b1, b2)
 }
 
 // AsBOMEntry renders a bill of materials entry describing the dependency.
