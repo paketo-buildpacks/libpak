@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/pelletier/go-toml"
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"

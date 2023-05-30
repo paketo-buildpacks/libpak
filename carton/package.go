@@ -24,9 +24,9 @@ import (
 	"sort"
 	"text/template"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"

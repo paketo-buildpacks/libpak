@@ -29,5 +29,6 @@ func TestUnit(t *testing.T) {
 	suite("EnvironmentWriter", testEnvironmentWriter)
 	suite("ExitHandler", testExitHandler)
 	suite("TOMLWriter", testTOMLWriter)
+	suite("TOMLMarshal", testTOMLMarshal)
 	suite.Run(t)
 }

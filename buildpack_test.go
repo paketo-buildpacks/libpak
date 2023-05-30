@@ -23,13 +23,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
-	"github.com/pelletier/go-toml"
+
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/internal"
 	"github.com/paketo-buildpacks/libpak/sbom"
 )
 
@@ -55,7 +57,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			},
 		}
 
-		bytes, err := toml.Marshal(dependency)
+		bytes, err := internal.Marshal(dependency)
 		Expect(err).NotTo(HaveOccurred())
 
 		var newDependency libpak.BuildpackDependency
