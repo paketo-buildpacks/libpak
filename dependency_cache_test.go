@@ -62,6 +62,36 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(dependencyCache.Mappings).To(Equal(map[string]string{}))
 		})
 
+		it("uses default timeout values", func() {
+			dependencyCache, err := libpak.NewDependencyCache(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(6 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(60 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.TLSHandshakeTimeout).To(Equal(5 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.ResponseHeaderTimeout).To(Equal(5 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.ExpectContinueTimeout).To(Equal(1 * time.Second))
+		})
+
+		context("custom timeout setttings", func() {
+			it.Before(func() {
+				t.Setenv("BP_DIALER_TIMEOUT", "7")
+				t.Setenv("BP_DIALER_KEEP_ALIVE", "50")
+				t.Setenv("BP_TLS_HANDSHAKE_TIMEOUT", "2")
+				t.Setenv("BP_RESPONSE_HEADER_TIMEOUT", "3")
+				t.Setenv("BP_EXPECT_CONTINUE_TIMEOUT", "2")
+			})
+
+			it("uses custom timeout values", func() {
+				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(7 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(50 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.TLSHandshakeTimeout).To(Equal(2 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.ResponseHeaderTimeout).To(Equal(3 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.ExpectContinueTimeout).To(Equal(2 * time.Second))
+			})
+		})
+
 		context("bindings with type dependencies exist", func() {
 			it.Before(func() {
 				ctx.Platform.Bindings = libcnb.Bindings{

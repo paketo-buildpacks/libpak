@@ -21,18 +21,30 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/sherpa"
 )
+
+type HttpClientTimeouts struct {
+	DialerTimeout         time.Duration
+	DialerKeepAlive       time.Duration
+	TLSHandshakeTimeout   time.Duration
+	ResponseHeaderTimeout time.Duration
+	ExpectContinueTimeout time.Duration
+}
 
 // DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download, or to download
 // directly.
@@ -52,6 +64,9 @@ type DependencyCache struct {
 
 	// Mappings optionally provides URIs mapping for BuildpackDependencies
 	Mappings map[string]string
+
+	// httpClientTimeouts contains the timeout values used by HTTP client
+	HttpClientTimeouts HttpClientTimeouts
 }
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
@@ -69,7 +84,54 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 		return DependencyCache{}, fmt.Errorf("unable to process dependency-mapping bindings\n%w", err)
 	}
 	cache.Mappings = mappings
+
+	clientTimeouts, err := customizeHttpClientTimeouts()
+	if err != nil {
+		return DependencyCache{}, fmt.Errorf("unable to read custom timeout settings\n%w", err)
+	}
+	cache.HttpClientTimeouts = *clientTimeouts
+
 	return cache, nil
+}
+
+func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
+	rawStr := sherpa.GetEnvWithDefault("BP_DIALER_TIMEOUT", "6")
+	dialerTimeout, err := strconv.Atoi(rawStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert BP_DIALER_TIMEOUT=%s to integer\n%w", rawStr, err)
+	}
+
+	rawStr = sherpa.GetEnvWithDefault("BP_DIALER_KEEP_ALIVE", "60")
+	dialerKeepAlive, err := strconv.Atoi(rawStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert BP_DIALER_KEEP_ALIVE=%s to integer\n%w", rawStr, err)
+	}
+
+	rawStr = sherpa.GetEnvWithDefault("BP_TLS_HANDSHAKE_TIMEOUT", "5")
+	tlsHandshakeTimeout, err := strconv.Atoi(rawStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert BP_TLS_HANDSHAKE_TIMEOUT=%s to integer\n%w", rawStr, err)
+	}
+
+	rawStr = sherpa.GetEnvWithDefault("BP_RESPONSE_HEADER_TIMEOUT", "5")
+	responseHeaderTimeout, err := strconv.Atoi(rawStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert BP_RESPONSE_HEADER_TIMEOUT=%s to integer\n%w", rawStr, err)
+	}
+
+	rawStr = sherpa.GetEnvWithDefault("BP_EXPECT_CONTINUE_TIMEOUT", "1")
+	expectContinueTimeout, err := strconv.Atoi(rawStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert BP_EXPECT_CONTINUE_TIMEOUT=%s to integer\n%w", rawStr, err)
+	}
+
+	return &HttpClientTimeouts{
+		DialerTimeout:         time.Duration(dialerTimeout) * time.Second,
+		DialerKeepAlive:       time.Duration(dialerKeepAlive) * time.Second,
+		TLSHandshakeTimeout:   time.Duration(tlsHandshakeTimeout) * time.Second,
+		ResponseHeaderTimeout: time.Duration(responseHeaderTimeout) * time.Second,
+		ExpectContinueTimeout: time.Duration(expectContinueTimeout) * time.Second,
+	}, nil
 }
 
 func mappingsFromBindings(bindings libcnb.Bindings) (map[string]string, error) {
@@ -239,7 +301,18 @@ func (d DependencyCache) downloadHttp(uri string, destination string, mods ...Re
 		}
 	}
 
-	client := http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
+	client := http.Client{
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   d.HttpClientTimeouts.DialerTimeout,
+				KeepAlive: d.HttpClientTimeouts.DialerKeepAlive,
+			}).Dial,
+			TLSHandshakeTimeout:   d.HttpClientTimeouts.TLSHandshakeTimeout,
+			ResponseHeaderTimeout: d.HttpClientTimeouts.ResponseHeaderTimeout,
+			ExpectContinueTimeout: d.HttpClientTimeouts.ExpectContinueTimeout,
+			Proxy:                 http.ProxyFromEnvironment,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to request %s\n%w", uri, err)
