@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,25 +23,26 @@ import (
 	"github.com/paketo-buildpacks/libpak/internal"
 )
 
-// Detect is called by the main function of a buildpack, for detection.
-func Detect(detector libcnb.DetectFunc, options ...libcnb.Option) {
-	libcnb.Detect(detectDelegate{delegate: detector}.Detect,
+// Generate is called by the main function of an extension, for generation.
+func Generate(generator libcnb.GenerateFunc, options ...libcnb.Option) {
+	libcnb.Generate(generateDelegate{delegate: generator}.Generate,
 		libcnb.NewConfig(append([]libcnb.Option{
+			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
 			libcnb.WithExitHandler(internal.NewExitHandler()),
 			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
 		}, options...)...))
 }
 
-type detectDelegate struct {
-	delegate libcnb.DetectFunc
+type generateDelegate struct {
+	delegate libcnb.GenerateFunc
 }
 
-func (d detectDelegate) Detect(context libcnb.DetectContext) (libcnb.DetectResult, error) {
-	result, err := d.delegate(context)
+func (b generateDelegate) Generate(context libcnb.GenerateContext) (libcnb.GenerateResult, error) {
+	result, err := b.delegate(context)
 	if err != nil {
 		err = bard.IdentifiableError{
-			Name:        context.Buildpack.Info.Name,
-			Description: context.Buildpack.Info.Version,
+			Name:        context.Extension.Info.Name,
+			Description: context.Extension.Info.Version,
 			Err:         err,
 		}
 	}

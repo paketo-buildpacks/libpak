@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
 
 	"github.com/sclevine/spec"
@@ -65,35 +64,6 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(dependency.Equals(newDependency)).To(BeTrue())
-	})
-
-	it("renders dependency as a BOMEntry", func() {
-		dependency := libpak.BuildpackDependency{
-			ID:      "test-id",
-			Name:    "test-name",
-			Version: "1.1.1",
-			URI:     "test-uri",
-			SHA256:  "test-sha256",
-			Stacks:  []string{"test-stack"},
-			Licenses: []libpak.BuildpackDependencyLicense{
-				{
-					Type: "test-type",
-					URI:  "test-uri",
-				},
-			},
-		}
-
-		Expect(dependency.AsBOMEntry()).To(Equal(libcnb.BOMEntry{
-			Name: dependency.ID,
-			Metadata: map[string]interface{}{
-				"name":     dependency.Name,
-				"version":  dependency.Version,
-				"uri":      dependency.URI,
-				"sha256":   dependency.SHA256,
-				"stacks":   dependency.Stacks,
-				"licenses": dependency.Licenses,
-			},
-		}))
 	})
 
 	it("renders dependency as a SyftArtifact", func() {

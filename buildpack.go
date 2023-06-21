@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,23 +110,6 @@ func (b1 BuildpackDependency) Equals(b2 BuildpackDependency) bool {
 	}
 
 	return reflect.DeepEqual(b1, b2)
-}
-
-// AsBOMEntry renders a bill of materials entry describing the dependency.
-//
-// Deprecated: as of Buildpacks RFC 95, use `BuildpackDependency.AsSyftArtifact` instead
-func (b BuildpackDependency) AsBOMEntry() libcnb.BOMEntry {
-	return libcnb.BOMEntry{
-		Name: b.ID,
-		Metadata: map[string]interface{}{
-			"name":     b.Name,
-			"version":  b.Version,
-			"uri":      b.URI,
-			"sha256":   b.SHA256,
-			"stacks":   b.Stacks,
-			"licenses": b.Licenses,
-		},
-	}
 }
 
 // AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.

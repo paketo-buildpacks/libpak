@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,9 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 	context("with BP_DEBUG", func() {
 		it.Before(func() {
-			Expect(os.Setenv("BP_DEBUG", "")).To(Succeed())
+			//libcnb defines BP_DEBUG as enabled if it has _any_ value
+			//this does not include empty string as previously tested here.
+			Expect(os.Setenv("BP_DEBUG", "true")).To(Succeed())
 			l = bard.NewLogger(b)
 		})
 
@@ -83,6 +85,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 	context("with debug disabled", func() {
 		it.Before(func() {
+			Expect(os.Unsetenv("BP_LOG_LEVEL")).To(Succeed())
 			l = bard.NewLoggerWithOptions(b)
 		})
 
@@ -103,29 +106,15 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 		it("indicates that debug is not enabled", func() {
 			Expect(l.IsDebugEnabled()).To(BeFalse())
 		})
-
-		it("writes info log", func() {
-			l.Info("test-message")
-			Expect(b.String()).To(Equal("test-message\n"))
-		})
-
-		it("writes info formatted log", func() {
-			l.Infof("test-%s", "message")
-			Expect(b.String()).To(Equal("test-message\n"))
-		})
-
-		it("returns info writer", func() {
-			Expect(l.InfoWriter()).NotTo(BeNil())
-		})
-
-		it("indicates that info is enabled", func() {
-			Expect(l.IsInfoEnabled()).To(BeTrue())
-		})
 	})
 
 	context("with debug enabled", func() {
 		it.Before(func() {
-			l = bard.NewLoggerWithOptions(b, bard.WithDebug(b))
+			Expect(os.Setenv("BP_LOG_LEVEL", "debug")).To(Succeed())
+			l = bard.NewLogger(b)
+		})
+		it.After(func() {
+			Expect(os.Unsetenv("BP_LOG_LEVEL")).To(Succeed())
 		})
 
 		it("writes body log", func() {
@@ -176,28 +165,6 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 		it("returns header writer", func() {
 			Expect(l.HeaderWriter()).NotTo(BeNil())
-		})
-
-		it("indicates header body is enabled", func() {
-			Expect(l.IsHeaderEnabled()).To(BeTrue())
-		})
-
-		it("writes info log", func() {
-			l.Info("test-message")
-			Expect(b.String()).To(Equal("test-message\n"))
-		})
-
-		it("writes info formatted log", func() {
-			l.Infof("test-%s", "message")
-			Expect(b.String()).To(Equal("test-message\n"))
-		})
-
-		it("returns info writer", func() {
-			Expect(l.InfoWriter()).NotTo(BeNil())
-		})
-
-		it("indicates that info is enabled", func() {
-			Expect(l.IsInfoEnabled()).To(BeTrue())
 		})
 
 		it("writes terminal error", func() {

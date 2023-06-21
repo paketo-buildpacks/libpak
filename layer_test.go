@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package libpak_test
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -60,6 +61,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
+			lc.Logger = bard.NewLogger(bytes.NewBuffer(nil))
 			lc.ExpectedMetadata = map[string]interface{}{
 				"alpha": "test-alpha",
 				"bravo": map[string]interface{}{
@@ -82,6 +84,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("calls function with non-matching metadata", func() {
+
 			layer.Metadata["alpha"] = "test-alpha"
 
 			var called bool
@@ -106,6 +109,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						"bravo-2": "test-bravo-2",
 					},
 				}
+				called = false
 			})
 
 			it("calls function with matching metadata but no layer directory on cache layer", func() {
@@ -279,102 +283,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("NewDependencyLayer", func() {
-		var dep libpak.BuildpackDependency
-
-		it.Before(func() {
-			dep = libpak.BuildpackDependency{
-				ID:      "test-id",
-				Name:    "test-name",
-				Version: "1.1.1",
-				URI:     "test-uri",
-				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
-				Stacks:  []string{"test-stack"},
-				Licenses: []libpak.BuildpackDependencyLicense{
-					{
-						Type: "test-type",
-						URI:  "test-uri",
-					},
-				},
-			}
-		})
-
-		it("returns a BOM entry for the layer", func() {
-			_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
-			Expect(entry.Name).To(Equal("test-id"))
-			Expect(entry.Metadata["name"]).To(Equal("test-name"))
-			Expect(entry.Metadata["version"]).To(Equal("1.1.1"))
-			Expect(entry.Metadata["uri"]).To(Equal("test-uri"))
-			Expect(entry.Metadata["sha256"]).To(Equal("576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1"))
-			Expect(entry.Metadata["licenses"]).To(Equal([]libpak.BuildpackDependencyLicense{
-				{
-					Type: "test-type",
-					URI:  "test-uri",
-				},
-			}))
-		})
-
-		context("launch layer type", func() {
-			it("only sets launch on the entry", func() {
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
-					Launch: true,
-				})
-				Expect(entry.Launch).To(BeTrue())
-				Expect(entry.Build).To(BeFalse())
-			})
-		})
-
-		context("launch and build layer type", func() {
-			it("sets launch and build on the entry", func() {
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
-					Launch: true,
-					Build:  true,
-				})
-				Expect(entry.Launch).To(BeTrue())
-				Expect(entry.Build).To(BeTrue())
-			})
-		})
-
-		context("launch and cache layer type", func() {
-			it("sets launch and build on the entry", func() {
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
-					Launch: true,
-					Cache:  true,
-				})
-				Expect(entry.Launch).To(BeTrue())
-				Expect(entry.Build).To(BeTrue())
-			})
-		})
-
-		context("build layer type", func() {
-			it("sets build on the entry", func() {
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
-					Build: true,
-				})
-				Expect(entry.Launch).To(BeFalse())
-				Expect(entry.Build).To(BeTrue())
-			})
-		})
-
-		context("cache layer type", func() {
-			it("sets build on the entry", func() {
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{
-					Cache: true,
-				})
-				Expect(entry.Launch).To(BeFalse())
-				Expect(entry.Build).To(BeTrue())
-			})
-		})
-
-		context("no layer types", func() {
-			it("sets build on the entry", func() {
-				_, entry := libpak.NewDependencyLayer(dep, libpak.DependencyCache{}, libcnb.LayerTypes{})
-				Expect(entry.Launch).To(BeFalse())
-				Expect(entry.Build).To(BeTrue())
-			})
-		})
-	})
-
 	context("DependencyLayerContributor", func() {
 		var (
 			dependency libpak.BuildpackDependency
@@ -409,6 +317,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			layer.Metadata = map[string]interface{}{}
 
+			dlc.Logger = bard.NewLogger(bytes.NewBuffer(nil))
 			dlc.ExpectedMetadata = dependency
 			dlc.Dependency = dependency
 			dlc.DependencyCache.CachePath = layer.Path
@@ -604,48 +513,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("NewHelperLayer", func() {
-		it("returns a BOM entry with version equal to buildpack version", func() {
-			_, entry := libpak.NewHelperLayer(libcnb.Buildpack{
-				API: "0.6",
-				Info: libcnb.BuildpackInfo{
-					Version: "test-version",
-				},
-			}, "test-name-1", "test-name-2")
-			Expect(entry).To(Equal(
-				libcnb.BOMEntry{
-					Name: filepath.Base("helper"),
-					Metadata: map[string]interface{}{
-						"layer":   "helper",
-						"names":   []string{"test-name-1", "test-name-2"},
-						"version": "test-version",
-					},
-					Launch: true,
-					Build:  false,
-				},
-			))
-		})
-
-		it("returns a BOM entry on API 0.7 too", func() {
-			_, entry := libpak.NewHelperLayer(libcnb.Buildpack{
-				API: "0.7",
-				Info: libcnb.BuildpackInfo{
-					Version: "test-version",
-				},
-			}, "test-name-1", "test-name-2")
-			Expect(entry).To(Equal(libcnb.BOMEntry{
-				Name: filepath.Base("helper"),
-				Metadata: map[string]interface{}{
-					"layer":   "helper",
-					"names":   []string{"test-name-1", "test-name-2"},
-					"version": "test-version",
-				},
-				Launch: true,
-				Build:  false,
-			}))
-		})
-	})
-
 	context("HelperLayerContributor", func() {
 		var (
 			buildpack libcnb.Buildpack
@@ -670,7 +537,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			hlc = libpak.HelperLayerContributor{
 				Path:          file,
 				BuildpackInfo: buildpack.Info,
-				Logger:        bard.Logger{},
+				Logger:        bard.NewLogger(bytes.NewBuffer(nil)),
 				Names:         []string{"test-name-1", "test-name-2"},
 			}
 		})
