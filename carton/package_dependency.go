@@ -80,12 +80,17 @@ func (p PackageDependency) Update(options ...Option) {
 					continue
 				}
 
-				buildpacks, ok := buildpacksUnwrapped.([]map[string]interface{})
+				buildpacks, ok := buildpacksUnwrapped.([]interface{})
 				if !ok {
 					continue
 				}
 
-				for _, bp := range buildpacks {
+				for _, bpw := range buildpacks {
+					bp, ok := bpw.(map[string]interface{})
+					if !ok {
+						continue
+					}
+
 					bpIdUnwrappd, found := bp["id"]
 					if !found {
 						continue
@@ -114,12 +119,17 @@ func updateByKey(key, id, version string) func(md map[string]interface{}) {
 			return
 		}
 
-		values, ok := valuesUnwrapped.([]map[string]interface{})
+		values, ok := valuesUnwrapped.([]interface{})
 		if !ok {
 			return
 		}
 
-		for _, bp := range values {
+		for _, bpw := range values {
+			bp, ok := bpw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
 			uriUnwrapped, found := bp["uri"]
 			if !found {
 				continue

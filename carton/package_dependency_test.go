@@ -90,22 +90,22 @@ include-files = [
 #      exactly
 
 api = "0.6"`))
+
 		Expect(body).To(internal.MatchTOML(`api = "0.6"
 [buildpack]
 id = "some-id"
 name = "some-name"
 
 [[order]]
-group = [
-	{ id = "paketo-buildpacks/test-1", version="test-version-3" },
-	{ id = "paketo-buildpacks/test-2", version="test-version-2" },
-]
+[[order.group]]
+	id = "paketo-buildpacks/test-1"
+	version="test-version-3"
+[[order.group]]
+    id = "paketo-buildpacks/test-2"
+	version="test-version-2"
 [metadata]
-include-files = [
-  "LICENSE",
-  "README.md",
-  "buildpack.toml",
-]`))
+include-files = ["LICENSE","README.md","buildpack.toml"]
+`))
 	})
 
 	it("updates paketo-buildpacks dependency id partial id", func() {
@@ -125,10 +125,12 @@ group = [
 		p.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[order]]
-group = [
-	{ id = "paketo-buildpacks/test-1", version="test-version-3" },
-	{ id = "paketo-buildpacks/test-2", version="test-version-2" },
-]`))
+		[[order.group]]
+			id = "paketo-buildpacks/test-1"
+			version="test-version-3"
+		[[order.group]]
+			id = "paketo-buildpacks/test-2"
+			version="test-version-2"`))
 	})
 
 	it("updates paketocommunity dependency", func() {
@@ -147,10 +149,12 @@ group = [
 		p.Update(carton.WithExitHandler(exitHandler))
 
 		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[order]]
-group = [
-	{ id = "paketocommunity/test-1", version="test-version-3" },
-	{ id = "paketocommunity/test-2", version="test-version-2" },
-]`))
+		[[order.group]]
+			id = "paketocommunity/test-1"
+			version="test-version-3"
+		[[order.group]]
+			id = "paketocommunity/test-2"
+			version="test-version-2"`))
 	})
 
 	it("updates builder dependency", func() {
@@ -167,10 +171,13 @@ group = [
 
 		p.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(os.ReadFile(path)).To(internal.MatchTOML(`buildpacks = [
-	{ id = "paketo-buildpacks/test-1", uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3" },
-	{ id = "paketo-buildpacks/test-2", uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
-]`))
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[buildpacks]]
+		id = "paketo-buildpacks/test-1"
+		uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3"
+	  
+	  [[buildpacks]]
+		id = "paketo-buildpacks/test-2"
+		uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2"`))
 	})
 
 	it("updates paketo-buildpacks package dependency", func() {
@@ -187,10 +194,11 @@ group = [
 
 		p.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(os.ReadFile(path)).To(internal.MatchTOML(`dependencies = [
-	{ uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3" },
-	{ uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
-]`))
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[dependencies]]
+		uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3"
+	  
+	  [[dependencies]]
+		uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2"`))
 	})
 
 	it("updates paketocommunity package dependency", func() {
@@ -207,10 +215,11 @@ group = [
 
 		p.Update(carton.WithExitHandler(exitHandler))
 
-		Expect(os.ReadFile(path)).To(internal.MatchTOML(`dependencies = [
-	{ uri = "docker://docker.io/paketocommunity/test-1:test-version-3" },
-	{ uri = "docker://docker.io/paketocommunity/test-2:test-version-2" },
-]`))
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[dependencies]]
+		uri = "docker://docker.io/paketocommunity/test-1:test-version-3"
+	  
+	  [[dependencies]]
+		uri = "docker://docker.io/paketocommunity/test-2:test-version-2"`))
 	})
 
 }

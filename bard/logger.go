@@ -21,7 +21,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/buildpacks/libcnb"
 	"github.com/buildpacks/libcnb/log"
 	"github.com/heroku/color"
 )
@@ -163,14 +162,13 @@ func (l Logger) IsTerminalErrorEnabled() bool {
 	return l.terminalHeader != nil && l.terminalBody != nil
 }
 
-// Title logs a message to the configured title writer.
-func (l Logger) Title(buildpack libcnb.Buildpack) {
+func (l Logger) Title(name string, version string, homepage string) {
 	if !l.IsTitleEnabled() {
 		return
 	}
 
-	l.printf(l.title, "\n%s", FormatIdentity(buildpack.Info.Name, buildpack.Info.Version))
-	l.Header(color.New(color.FgBlue, color.Faint, color.Italic).Sprint(buildpack.Info.Homepage))
+	l.printf(l.title, "\n%s", FormatIdentity(name, version))
+	l.Header(color.New(color.FgBlue, color.Faint, color.Italic).Sprint(homepage))
 }
 
 // TitleWriter returns the configured title writer.
