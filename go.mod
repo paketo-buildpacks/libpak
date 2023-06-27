@@ -2,12 +2,10 @@ module github.com/paketo-buildpacks/libpak
 
 go 1.20
 
-replace github.com/buildpacks/libcnb => ../libcnb
-
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/Masterminds/semver/v3 v3.2.1
-	github.com/buildpacks/libcnb v1.28.0
+	github.com/buildpacks/libcnb v1.24.1-0.20230627130937-5d3d3f6e6d16
 	github.com/creack/pty v1.1.18
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
