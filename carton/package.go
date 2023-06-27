@@ -78,22 +78,58 @@ func (p Package) Create(options ...Option) {
 
 	logger := bard.NewLogger(os.Stdout)
 
-	buildpack := libcnb.Buildpack{}
-	file = filepath.Join(p.Source, "buildpack.toml")
-	b, err := os.ReadFile(file)
-	if err != nil && !os.IsNotExist(err) {
-		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", file, err))
+	// Is this a buildpack or an extension?
+	bpfile := filepath.Join(p.Source, "buildpack.toml")
+	extnfile := filepath.Join(p.Source, "extension.toml")
+	var metadataMap map[string]interface{}
+	var id string
+	var name string
+	var version string
+	var homepage string
+	extension := false
+	if _, err := os.Stat(bpfile); err == nil {
+		s, err := os.ReadFile(bpfile)
+		if err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to read buildpack.toml %s\n%w", bpfile, err))
+			return
+		}
+		var b libcnb.Buildpack
+		if err := toml.Unmarshal(s, &b); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to decode %s\n%w", bpfile, err))
+			return
+		}
+		metadataMap = b.Metadata
+		id = b.Info.ID
+		name = b.Info.Name
+		version = b.Info.Version
+		homepage = b.Info.Homepage
+		logger.Debug("Buildpack: %+v", b)
+	} else if _, err := os.Stat(extnfile); err == nil {
+		s, err := os.ReadFile(extnfile)
+		if err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to read extension.toml %s\n%w", extnfile, err))
+			return
+		}
+		var e libcnb.Extension
+		if err := toml.Unmarshal(s, &e); err != nil {
+			config.exitHandler.Error(fmt.Errorf("unable to decode %s\n%w", extnfile, err))
+			return
+		}
+		metadataMap = e.Metadata
+		id = e.Info.ID
+		name = e.Info.Name
+		version = e.Info.Version
+		homepage = e.Info.Homepage
+		extension = true
+		logger.Debug("Extension: %+v", e)
+	} else {
+		config.exitHandler.Error(fmt.Errorf("unable to read buildpack/extension.toml at %s", p.Source))
 		return
 	}
-	if err := toml.Unmarshal(b, &buildpack); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to decode buildpack %s\n%w", file, err))
-		return
-	}
-	logger.Debug("Buildpack: %+v", buildpack)
 
-	metadata, err := libpak.NewBuildpackMetadata(buildpack.Metadata)
+	metadata, err := libpak.NewBuildpackMetadata(metadataMap)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to decode metadata %s\n%w", buildpack.Metadata, err))
+		config.exitHandler.Error(fmt.Errorf("unable to decode metadata %s\n%w", metadataMap, err))
 		return
 	}
 
@@ -105,18 +141,25 @@ func (p Package) Create(options ...Option) {
 	logger.Debug("Include files: %+v", entries)
 
 	if p.Version != "" {
-		buildpack.Info.Version = p.Version
+		version = p.Version
 
-		file = filepath.Join(p.Source, "buildpack.toml")
+		tomlName := ""
+		if extension {
+			tomlName = "extension"
+		} else {
+			tomlName = "buildpack"
+		}
+
+		file = filepath.Join(p.Source, tomlName+".toml")
 		t, err := template.ParseFiles(file)
 		if err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to parse template %s\n%w", file, err))
 			return
 		}
 
-		out, err := os.CreateTemp("", "buildpack-*.toml")
+		out, err := os.CreateTemp("", tomlName+"-*.toml")
 		if err != nil {
-			config.exitHandler.Error(fmt.Errorf("unable to open temporary buildpack.toml file\n%w", err))
+			config.exitHandler.Error(fmt.Errorf("unable to open temporary "+tomlName+".toml file\n%w", err))
 		}
 		defer out.Close()
 
@@ -125,10 +168,10 @@ func (p Package) Create(options ...Option) {
 			return
 		}
 
-		entries["buildpack.toml"] = out.Name()
+		entries[tomlName+".toml"] = out.Name()
 	}
 
-	logger.Title(buildpack)
+	logger.Title(name, version, homepage)
 	logger.Headerf("Creating package in %s", p.Destination)
 
 	if err = os.RemoveAll(p.Destination); err != nil {
@@ -154,7 +197,7 @@ func (p Package) Create(options ...Option) {
 	if p.IncludeDependencies {
 		cache := libpak.DependencyCache{
 			Logger:    logger,
-			UserAgent: fmt.Sprintf("%s/%s", buildpack.Info.ID, buildpack.Info.Version),
+			UserAgent: fmt.Sprintf("%s/%s", id, version),
 		}
 
 		if p.CacheLocation != "" {

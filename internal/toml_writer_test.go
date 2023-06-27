@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,8 +111,8 @@ other-field = "other-value"`))
 			it("aligns process types", func() {
 				err := tomlWriter.Write(path, libcnb.LaunchTOML{
 					Processes: []libcnb.Process{
-						{Type: "short", Command: "test-command-1"},
-						{Type: "a-very-long-type", Command: "test-command-2"},
+						{Type: "short", Command: []string{"test-command-1"}},
+						{Type: "a-very-long-type", Command: []string{"test-command-2"}},
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -127,7 +127,7 @@ other-field = "other-value"`))
 			it("appends arguments", func() {
 				err := tomlWriter.Write(path, libcnb.LaunchTOML{
 					Processes: []libcnb.Process{
-						{Type: "test-type", Command: "test-command", Arguments: []string{"test-arg-1", "test-arg-2"}},
+						{Type: "test-type", Command: []string{"test-command"}, Arguments: []string{"test-arg-1", "test-arg-2"}},
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -138,19 +138,6 @@ other-field = "other-value"`))
 					color.CyanString("test-type"))))
 			})
 
-			it("indicates direct", func() {
-				err := tomlWriter.Write(path, libcnb.LaunchTOML{
-					Processes: []libcnb.Process{
-						{Type: "test-type", Command: "test-command", Direct: true},
-					},
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(b.String()).To(Equal(fmt.Sprintf(`  Process types:
-    %s: test-command (direct)
-`,
-					color.CyanString("test-type"))))
-			})
 		})
 
 		it("logs libcnb.Store", func() {

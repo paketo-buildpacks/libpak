@@ -86,7 +86,8 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
+[[metadata.dependencies]]
+id      = "test-id"
 name    = "Test Name"
 version = "test-version-2"
 uri     = "test-uri-2"
@@ -134,7 +135,8 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
+[[metadata.dependencies]]
+id      = "test-id"
 name    = "Test Name"
 version = "test-version-2"
 uri     = "test-uri-2"
@@ -254,7 +256,8 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
+[[metadata.dependencies]]
+id      = "test-id"
 name    = "Test Name"
 version = "test-version-2"
 uri     = "test-uri-2"
@@ -303,7 +306,8 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
+[[metadata.dependencies]]
+id      = "test-id"
 name    = "Test Name"
 version = "test-version-2"
 uri     = "test-uri-2"
@@ -353,7 +357,8 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
+[[metadata.dependencies]]
+id      = "test-id"
 name    = "Test Name"
 version = "test-version-2"
 uri     = "test-uri-2"

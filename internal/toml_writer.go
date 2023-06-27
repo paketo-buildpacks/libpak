@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,14 +100,15 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 					sb.WriteString(" ")
 				}
 
-				sb.WriteString(p.Command)
+				for i, c := range p.Command {
+					if i != 0 {
+						sb.WriteString(" ")
+					}
+					sb.WriteString(c)
+				}
 
 				for _, a := range p.Arguments {
 					sb.WriteString(fmt.Sprintf(" %s", a))
-				}
-
-				if p.Direct {
-					sb.WriteString(" (direct)")
 				}
 
 				t.logger.Header(sb.String())

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,16 +32,16 @@ import (
 	"github.com/paketo-buildpacks/libpak/bard"
 )
 
-func testDetect(t *testing.T, context spec.G, it spec.S) {
+func testGenerate(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
 		applicationPath string
-		buildpackPath   string
+		extensionPath   string
 		buildPlanPath   string
 		commandPath     string
 		exitHandler     *mocks.ExitHandler
-		layersPath      string
+		outputPath      string
 		platformPath    string
 		tomlWriter      *mocks.TOMLWriter
 
@@ -55,28 +55,27 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		applicationPath, err = filepath.EvalSymlinks(applicationPath)
 		Expect(err).NotTo(HaveOccurred())
 
-		buildpackPath = t.TempDir()
-
-		f, err := os.CreateTemp("", "detect-buildplan-path")
+		f, err := os.CreateTemp("", "generate-buildplan-path")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).NotTo(HaveOccurred())
 		buildPlanPath = f.Name()
 
-		Expect(os.Setenv("CNB_BUILD_PLAN_PATH", buildPlanPath)).To(Succeed())
+		Expect(os.Setenv("CNB_BP_PLAN_PATH", buildPlanPath)).To(Succeed())
 
-		commandPath = filepath.Join(buildpackPath, "bin", "detect")
+		extensionPath = t.TempDir()
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(os.Setenv("CNB_EXTENSION_DIR", extensionPath)).To(Succeed())
+
+		outputPath = t.TempDir()
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(os.Setenv("CNB_OUTPUT_DIR", outputPath)).To(Succeed())
+
+		commandPath = filepath.Join(extensionPath, "bin", "generate")
 
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
-		exitHandler.On("Fail")
-		exitHandler.On("Pass")
-
-		Expect(os.Setenv("CNB_STACK_ID", "test-stack-id")).To(Succeed())
-
-		layersPath = t.TempDir()
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(os.Setenv("CNB_LAYERS_DIR", layersPath)).To(Succeed())
 
 		platformPath = t.TempDir()
 		Expect(err).NotTo(HaveOccurred())
@@ -88,10 +87,10 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(os.Setenv("CNB_STACK_ID", "test-stack-id")).To(Succeed())
 
-		buildpackPath = t.TempDir()
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(os.Setenv("CNB_BUILDPACK_DIR", buildpackPath)).To(Succeed())
+		exitHandler = &mocks.ExitHandler{}
+		exitHandler.On("Error", mock.Anything)
+		exitHandler.On("Fail")
+		exitHandler.On("Pass")
 
 		workingDir, err = os.Getwd()
 		Expect(err).NotTo(HaveOccurred())
@@ -100,32 +99,30 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	it.After(func() {
 		Expect(os.Chdir(workingDir)).To(Succeed())
-		Expect(os.Unsetenv("CNB_BINDINGS")).To(Succeed())
 		Expect(os.Unsetenv("CNB_STACK_ID")).To(Succeed())
-		Expect(os.Unsetenv("CNB_BUILDPACK_DIR")).To(Succeed())
-		Expect(os.Unsetenv("CNB_LAYERS_DIR")).To(Succeed())
+		Expect(os.Unsetenv("CNB_EXTENSION_DIR")).To(Succeed())
 		Expect(os.Unsetenv("CNB_PLATFORM_DIR")).To(Succeed())
-		Expect(os.Unsetenv("CNB_BUILD_PLAN_PATH")).To(Succeed())
+		Expect(os.Unsetenv("CNB_BP_PLAN_PATH")).To(Succeed())
+		Expect(os.Unsetenv("CNB_OUTPUT_PATH")).To(Succeed())
 
 		Expect(os.RemoveAll(applicationPath)).To(Succeed())
-		Expect(os.RemoveAll(buildpackPath)).To(Succeed())
+		Expect(os.RemoveAll(extensionPath)).To(Succeed())
 		Expect(os.RemoveAll(buildPlanPath)).To(Succeed())
-		Expect(os.RemoveAll(layersPath)).To(Succeed())
 		Expect(os.RemoveAll(platformPath)).To(Succeed())
-		Expect(os.RemoveAll(buildpackPath)).To(Succeed())
+		Expect(os.RemoveAll(outputPath)).To(Succeed())
 	})
 
-	it("handles error from Detector", func() {
-		Expect(os.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
+	it("handles error from Generate", func() {
+		Expect(os.WriteFile(filepath.Join(extensionPath, "extension.toml"), []byte(`
 api = "0.8"
 
-[buildpack]
+[extension]
 name    = "test-name"
 version = "test-version"`),
 			0644)).To(Succeed())
 
-		libpak.Detect(func(ctx libcnb.DetectContext) (libcnb.DetectResult, error) {
-			return libcnb.DetectResult{}, fmt.Errorf("test-error")
+		libpak.Generate(func(ctx libcnb.GenerateContext) (libcnb.GenerateResult, error) {
+			return libcnb.GenerateResult{}, fmt.Errorf("test-error")
 		},
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),
 			libcnb.WithExitHandler(exitHandler),

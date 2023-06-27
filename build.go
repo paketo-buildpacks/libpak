@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,22 +24,21 @@ import (
 )
 
 // Build is called by the main function of a buildpack, for build.
-func Build(builder libcnb.Builder, options ...libcnb.Option) {
-	libcnb.Build(buildDelegate{delegate: builder},
-		append([]libcnb.Option{
+func Build(builder libcnb.BuildFunc, options ...libcnb.Option) {
+	libcnb.Build(buildDelegate{delegate: builder}.Build,
+		libcnb.NewConfig(append([]libcnb.Option{
 			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
 			libcnb.WithExitHandler(internal.NewExitHandler()),
 			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
-		}, options...)...,
-	)
+		}, options...)...))
 }
 
 type buildDelegate struct {
-	delegate libcnb.Builder
+	delegate libcnb.BuildFunc
 }
 
 func (b buildDelegate) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
-	result, err := b.delegate.Build(context)
+	result, err := b.delegate(context)
 	if err != nil {
 		err = bard.IdentifiableError{
 			Name:        context.Buildpack.Info.Name,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,11 +35,9 @@ func testMain(t *testing.T, context spec.G, it spec.S) {
 		Expect = NewWithT(t).Expect
 
 		applicationPath   string
-		builder           *mocks.Builder
 		buildpackPath     string
 		buildpackPlanPath string
 		buildPlanPath     string
-		detector          *mocks.Detector
 		environmentWriter *mocks.EnvironmentWriter
 		exitHandler       *mocks.ExitHandler
 		layersPath        string
@@ -56,14 +54,14 @@ func testMain(t *testing.T, context spec.G, it spec.S) {
 		applicationPath, err = filepath.EvalSymlinks(applicationPath)
 		Expect(err).NotTo(HaveOccurred())
 
-		builder = &mocks.Builder{}
-
 		buildpackPath = t.TempDir()
 		Expect(os.Setenv("CNB_BUILDPACK_DIR", buildpackPath)).To(Succeed())
 
+		Expect(os.Setenv("CNB_STACK_ID", "test-stack-id")).To(Succeed())
+
 		Expect(os.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"),
 			[]byte(`
-api = "0.6"
+api = "0.8"
 
 [buildpack]
 id = "test-id"
@@ -92,6 +90,8 @@ test-key = "test-value"
 		Expect(f.Close()).NotTo(HaveOccurred())
 		buildpackPlanPath = f.Name()
 
+		Expect(os.Setenv("CNB_BP_PLAN_PATH", buildpackPlanPath)).To(Succeed())
+
 		Expect(os.WriteFile(buildpackPlanPath,
 			[]byte(`
 [[entries]]
@@ -109,7 +109,7 @@ test-key = "test-value"
 		Expect(f.Close()).NotTo(HaveOccurred())
 		buildPlanPath = f.Name()
 
-		detector = &mocks.Detector{}
+		Expect(os.Setenv("CNB_BUILD_PLAN_PATH", buildPlanPath)).To(Succeed())
 
 		environmentWriter = &mocks.EnvironmentWriter{}
 		environmentWriter.On("Write", mock.Anything, mock.Anything).Return(nil)
@@ -121,6 +121,8 @@ test-key = "test-value"
 
 		layersPath = t.TempDir()
 
+		Expect(os.Setenv("CNB_LAYERS_DIR", layersPath)).To(Succeed())
+
 		Expect(os.WriteFile(filepath.Join(layersPath, "store.toml"),
 			[]byte(`
 [metadata]
@@ -130,6 +132,8 @@ test-key = "test-value"
 		).To(Succeed())
 
 		platformPath = t.TempDir()
+
+		Expect(os.Setenv("CNB_PLATFORM_DIR", platformPath)).To(Succeed())
 
 		Expect(os.MkdirAll(filepath.Join(platformPath, "bindings", "alpha", "metadata"), 0755)).To(Succeed())
 		Expect(os.WriteFile(
@@ -160,18 +164,28 @@ test-key = "test-value"
 
 	it.After(func() {
 		Expect(os.Chdir(workingDir)).To(Succeed())
-		Expect(os.Unsetenv("CNB_BUILDPACK_DIR")).To(Succeed())
 		Expect(os.Unsetenv("CNB_STACK_ID")).To(Succeed())
+		Expect(os.Unsetenv("CNB_BUILDPACK_DIR")).To(Succeed())
+		Expect(os.Unsetenv("CNB_LAYERS_DIR")).To(Succeed())
+		Expect(os.Unsetenv("CNB_PLATFORM_DIR")).To(Succeed())
+		Expect(os.Unsetenv("CNB_BP_PLAN_PATH")).To(Succeed())
+		Expect(os.Unsetenv("CNB_BUILD_PLAN_PATH")).To(Succeed())
 
 		Expect(os.RemoveAll(applicationPath)).To(Succeed())
 		Expect(os.RemoveAll(buildpackPath)).To(Succeed())
 		Expect(os.RemoveAll(buildpackPlanPath)).To(Succeed())
 		Expect(os.RemoveAll(layersPath)).To(Succeed())
 		Expect(os.RemoveAll(platformPath)).To(Succeed())
+		Expect(os.RemoveAll(buildPlanPath)).To(Succeed())
 	})
 
 	it("encounters the wrong number of arguments", func() {
-		libpak.Main(detector, builder,
+		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+			return libcnb.DetectResult{Pass: true}, nil
+		}
+		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+
+		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{}),
 			libcnb.WithExitHandler(exitHandler),
 		)
@@ -180,10 +194,13 @@ test-key = "test-value"
 	})
 
 	it("calls builder for build command", func() {
-		builder.On("Build", mock.Anything).Return(libcnb.NewBuildResult(), nil)
+		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+			return libcnb.DetectResult{Pass: true}, nil
+		}
+		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "build")
 
-		libpak.Main(detector, builder,
+		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{commandPath, layersPath, platformPath, buildpackPlanPath}),
 			libcnb.WithExitHandler(exitHandler),
 		)
@@ -192,20 +209,26 @@ test-key = "test-value"
 	})
 
 	it("calls detector for detect command", func() {
-		detector.On("Detect", mock.Anything).Return(libcnb.DetectResult{Pass: true}, nil)
+		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+			return libcnb.DetectResult{Pass: true}, nil
+		}
+		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "detect")
 
-		libpak.Main(detector, builder,
+		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),
 			libcnb.WithExitHandler(exitHandler),
 		)
 	})
 
 	it("calls exitHandler.Pass() on detection pass", func() {
-		detector.On("Detect", mock.Anything).Return(libcnb.DetectResult{Pass: true}, nil)
+		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+			return libcnb.DetectResult{Pass: true}, nil
+		}
+		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "detect")
 
-		libpak.Main(detector, builder,
+		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),
 			libcnb.WithExitHandler(exitHandler),
 		)
@@ -214,10 +237,13 @@ test-key = "test-value"
 	})
 
 	it("calls exitHandler.Fail() on detection fail", func() {
-		detector.On("Detect", mock.Anything).Return(libcnb.DetectResult{Pass: false}, nil)
+		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+			return libcnb.DetectResult{Pass: false}, nil
+		}
+		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "detect")
 
-		libpak.Main(detector, builder,
+		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),
 			libcnb.WithExitHandler(exitHandler),
 		)
@@ -226,9 +252,13 @@ test-key = "test-value"
 	})
 
 	it("encounters an unknown command", func() {
+		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+			return libcnb.DetectResult{Pass: true}, nil
+		}
+		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "test-command")
 
-		libpak.Main(detector, builder,
+		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{commandPath}),
 			libcnb.WithExitHandler(exitHandler),
 		)

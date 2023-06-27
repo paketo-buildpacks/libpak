@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -181,27 +181,6 @@ type DependencyLayerContributor struct {
 	RequestModifierFuncs []RequestModifierFunc
 }
 
-// NewDependencyLayer returns a new DependencyLayerContributor for the given BuildpackDependency and a BOMEntry describing the layer contents.
-//
-// Deprecated: this method uses `libcnb.BOMEntry` which has been deprecated upstream, a future version will drop
-// support for `libcnb.BOMEntry` which will change this method signature. Use NewDependencyLayerContributor instead.
-func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) (DependencyLayerContributor, libcnb.BOMEntry) {
-	dlc := NewDependencyLayerContributor(dependency, cache, types)
-
-	entry := dependency.AsBOMEntry()
-	entry.Metadata["layer"] = dlc.LayerName()
-
-	if types.Launch {
-		entry.Launch = true
-	}
-	if !(types.Launch && !types.Cache && !types.Build) {
-		// launch-only layers are the only layers NOT guaranteed to be present in the build environment
-		entry.Build = true
-	}
-
-	return dlc, entry
-}
-
 // NewDependencyLayerContributor returns a new DependencyLayerContributor for the given BuildpackDependency
 func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) DependencyLayerContributor {
 	return DependencyLayerContributor{
@@ -268,24 +247,6 @@ type HelperLayerContributor struct {
 
 	// Names are the names of the helpers to create
 	Names []string
-}
-
-// NewHelperLayer returns a new HelperLayerContributor and a BOMEntry describing the layer contents.
-//
-// Deprecated: this method uses `libcnb.BOMEntry` which has been deprecated upstream, a future version will drop
-// support for `libcnb.BOMEntry` which will change this method signature. Use NewHelperLayerContributor instead.
-func NewHelperLayer(buildpack libcnb.Buildpack, names ...string) (HelperLayerContributor, libcnb.BOMEntry) {
-	hl := NewHelperLayerContributor(buildpack, names...)
-
-	return hl, libcnb.BOMEntry{
-		Name: "helper",
-		Metadata: map[string]interface{}{
-			"layer":   hl.Name(),
-			"names":   names,
-			"version": buildpack.Info.Version,
-		},
-		Launch: true,
-	}
 }
 
 // NewHelperLayerContributor returns a new HelperLayerContributor
