@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/heroku/color"
@@ -118,7 +119,37 @@ func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[strin
 	l.Logger.Debugf("Expected metadata: %+v", expected)
 	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
 
-	return expected, reflect.DeepEqual(expected, layer.Metadata), nil
+	match, err := l.Equals(expected,layer.Metadata)
+	if err != nil {
+		return map[string]interface{}{}, false, fmt.Errorf("unable to compare metadata\n%w", err)
+	}
+	return expected, match, nil
+}
+
+func (l *LayerContributor) Equals(expectedM map[string]interface{}, layerM map[string]interface{}) (bool, error) {
+	if dep, ok := expectedM["dependency"].(map[string]interface{}); ok {
+		for k, v := range dep {
+			if k == "deprecation_date" {
+				deprecationDate := v.(time.Time).Truncate(time.Second).In(time.UTC)
+				dep["deprecation_date"] = deprecationDate
+				break
+			}
+		}
+    }
+	if dep, ok := layerM["dependency"].(map[string]interface{}); ok {
+		for k, v := range dep {
+			if k == "deprecation_date" {
+				deprecationDate, err := time.Parse(time.RFC3339, v.(string))
+				if err != nil {
+					return false, fmt.Errorf("unable to parse deprecation_date %s", v.(string))
+				}
+				deprecationDate = deprecationDate.Truncate(time.Second).In(time.UTC)
+				dep["deprecation_date"] = deprecationDate
+				break
+			}
+		}
+	} 
+	return reflect.DeepEqual(expectedM, layerM), nil
 }
 
 func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error) {
