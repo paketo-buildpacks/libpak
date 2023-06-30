@@ -21,7 +21,7 @@ import (
 )
 
 // DependenciesFormatter is the formatter for a []BuildpackDependency.
-type DependenciesFormatter []BuildpackDependency
+type DependenciesFormatter []BuildModuleDependency
 
 func (d DependenciesFormatter) String() string {
 	var s []string

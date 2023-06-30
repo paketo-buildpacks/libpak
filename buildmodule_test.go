@@ -40,7 +40,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it("is equal after toml Marshal and Unmarshal", func() {
-		dependency := libpak.BuildpackDependency{
+		dependency := libpak.BuildModuleDependency{
 			ID:              "test-id",
 			Name:            "test-name",
 			Version:         "1.1.1",
@@ -48,7 +48,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			SHA256:          "test-sha256",
 			DeprecationDate: time.Now(),
 			Stacks:          []string{"test-stack"},
-			Licenses: []libpak.BuildpackDependencyLicense{
+			Licenses: []libpak.BuildModuleDependencyLicense{
 				{
 					Type: "test-type",
 					URI:  "test-uri",
@@ -59,7 +59,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		bytes, err := internal.Marshal(dependency)
 		Expect(err).NotTo(HaveOccurred())
 
-		var newDependency libpak.BuildpackDependency
+		var newDependency libpak.BuildModuleDependency
 		err = toml.Unmarshal(bytes, &newDependency)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -67,14 +67,14 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("renders dependency as a SyftArtifact", func() {
-		dependency := libpak.BuildpackDependency{
+		dependency := libpak.BuildModuleDependency{
 			ID:      "test-id",
 			Name:    "test-name",
 			Version: "1.1.1",
 			URI:     "test-uri",
 			SHA256:  "test-sha256",
 			Stacks:  []string{"test-stack"},
-			Licenses: []libpak.BuildpackDependencyLicense{
+			Licenses: []libpak.BuildModuleDependencyLicense{
 				{
 					Type: "test-type",
 					URI:  "test-uri",
@@ -98,12 +98,12 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("calculates dependency deprecation", func() {
-		deprecatedDependency := libpak.BuildpackDependency{
+		deprecatedDependency := libpak.BuildModuleDependency{
 			ID:              "test-id",
 			DeprecationDate: time.Now().UTC(),
 		}
 
-		soonDeprecatedDependency := libpak.BuildpackDependency{
+		soonDeprecatedDependency := libpak.BuildModuleDependency{
 			ID:              "test-id",
 			DeprecationDate: time.Now().UTC().Add(30 * 24 * time.Hour),
 		}
@@ -150,15 +150,15 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			deprecationDate, err := time.Parse(time.RFC3339, "2021-12-31T15:59:00-08:00")
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := libpak.BuildpackMetadata{
-				Configurations: []libpak.BuildpackConfiguration{
+			expected := libpak.BuildModuleMetadata{
+				Configurations: []libpak.BuildModuleConfiguration{
 					{
 						Name:        "test-name",
 						Default:     "test-default",
 						Description: "test-description",
 					},
 				},
-				Dependencies: []libpak.BuildpackDependency{
+				Dependencies: []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -166,7 +166,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						URI:     "test-uri",
 						SHA256:  "test-sha256",
 						Stacks:  []string{"test-stack"},
-						Licenses: []libpak.BuildpackDependencyLicense{
+						Licenses: []libpak.BuildModuleDependencyLicense{
 							{
 								Type: "test-type",
 								URI:  "test-uri",
@@ -181,14 +181,14 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				PrePackage:   "test-pre-package",
 			}
 
-			Expect(libpak.NewBuildpackMetadata(actual)).To(Equal(expected))
+			Expect(libpak.NewBuildModuleMetadata(actual)).To(Equal(expected))
 		})
 	})
 
 	context("ConfigurationResolver", func() {
 		var (
 			resolver = libpak.ConfigurationResolver{
-				Configurations: []libpak.BuildpackConfiguration{
+				Configurations: []libpak.BuildModuleConfiguration{
 					{Name: "TEST_KEY_1", Default: "test-default-value-1"},
 					{Name: "TEST_KEY_2", Default: "test-default-value-2"},
 					{Name: "TEST_BOOL_3", Default: "true"},
@@ -255,7 +255,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		context("Resolve", func() {
 
 			it("filters by id", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id-1",
 						Name:    "test-name",
@@ -275,7 +275,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-1"
 
-				Expect(resolver.Resolve("test-id-2", "1.0")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id-2", "1.0")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id-2",
 					Name:    "test-name",
 					Version: "1.0",
@@ -286,7 +286,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("filters by version constraint", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -306,7 +306,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-1"
 
-				Expect(resolver.Resolve("test-id", "2.0")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "2.0")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "2.0",
@@ -317,7 +317,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("filters by stack", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -337,7 +337,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-3"
 
-				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.0",
@@ -348,7 +348,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("filters by stack and supports the wildcard stack", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -368,7 +368,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-3"
 
-				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.0",
@@ -379,7 +379,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("filters by stack and treats no stacks as the wildcard stack", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -399,7 +399,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-3"
 
-				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.0",
@@ -410,7 +410,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns the best dependency", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -430,7 +430,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-1"
 
-				Expect(resolver.Resolve("test-id", "1.*")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "1.*")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.1",
@@ -441,7 +441,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns the best dependency after filtering", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id-1",
 						Name:    "test-name-1",
@@ -501,7 +501,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-2"
 
-				Expect(resolver.Resolve("test-id-2", "")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id-2", "")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id-2",
 					Name:    "test-name-2",
 					Version: "1.9.0",
@@ -512,7 +512,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("returns error if there are no matching dependencies", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -546,7 +546,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("substitutes all wildcard for unspecified version constraint", func() {
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "test-id",
 						Name:    "test-name",
@@ -558,7 +558,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 				resolver.StackID = "test-stack-1"
 
-				Expect(resolver.Resolve("test-id", "")).To(Equal(libpak.BuildpackDependency{
+				Expect(resolver.Resolve("test-id", "")).To(Equal(libpak.BuildModuleDependency{
 					ID:      "test-id",
 					Name:    "test-name",
 					Version: "1.1",
@@ -574,7 +574,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				resolver.Logger = &logger
 				soonDeprecated := time.Now().UTC().Add(30 * 24 * time.Hour)
 				notSoSoonDeprecated := time.Now().UTC().Add(60 * 24 * time.Hour)
-				resolver.Dependencies = []libpak.BuildpackDependency{
+				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:      "missing-deprecation-date",
 						Name:    "missing-deprecation-date",

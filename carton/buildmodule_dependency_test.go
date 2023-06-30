@@ -69,13 +69,13 @@ sha256  = "test-sha256-1"
 stacks  = [ "test-stack" ]
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-2",
+			URI:             "test-uri-2",
+			Version:         "test-version-2",
+			VersionPattern:  `test-version-[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -114,17 +114,17 @@ purl    = "pkg:generic/test-jre@different-version-1?arch=amd64"
 cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*:*"]
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
-			PURL:           "different-version-2",
-			PURLPattern:    `different-version-[\d]`,
-			CPE:            "test-version-2:patch2",
-			CPEPattern:     `test-version-[\d]:patch[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-2",
+			URI:             "test-uri-2",
+			Version:         "test-version-2",
+			VersionPattern:  `test-version-[\d]`,
+			PURL:            "different-version-2",
+			PURLPattern:     `different-version-[\d]`,
+			CPE:             "test-version-2:patch2",
+			CPEPattern:      `test-version-[\d]:patch[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -175,17 +175,17 @@ purl    = "pkg:generic/test-jre@different-version-2?arch=amd64"
 cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-3",
-			URI:            "test-uri-3",
-			Version:        "test-version-3",
-			VersionPattern: `test-version-1`,
-			PURL:           "different-version-3",
-			PURLPattern:    `different-version-[\d]`,
-			CPE:            "test-version-3:patch3",
-			CPEPattern:     `test-version-[\d]:patch[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-3",
+			URI:             "test-uri-3",
+			Version:         "test-version-3",
+			VersionPattern:  `test-version-1`,
+			PURL:            "different-version-3",
+			PURLPattern:     `different-version-[\d]`,
+			CPE:             "test-version-3:patch3",
+			CPEPattern:      `test-version-[\d]:patch[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -235,17 +235,17 @@ stacks  = [ "test-stack" ]
 cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*:*"]
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
-			PURL:           "different-version-2",
-			PURLPattern:    `different-version-[\d]`,
-			CPE:            "test-version-2:patch2",
-			CPEPattern:     `test-version-[\d]:patch[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-2",
+			URI:             "test-uri-2",
+			Version:         "test-version-2",
+			VersionPattern:  `test-version-[\d]`,
+			PURL:            "different-version-2",
+			PURLPattern:     `different-version-[\d]`,
+			CPE:             "test-version-2:patch2",
+			CPEPattern:      `test-version-[\d]:patch[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -285,17 +285,17 @@ purl    = 1234
 cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*:*"]
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
-			PURL:           "different-version-2",
-			PURLPattern:    `different-version-[\d]`,
-			CPE:            "test-version-2:patch2",
-			CPEPattern:     `test-version-[\d]:patch[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-2",
+			URI:             "test-uri-2",
+			Version:         "test-version-2",
+			VersionPattern:  `test-version-[\d]`,
+			PURL:            "different-version-2",
+			PURLPattern:     `different-version-[\d]`,
+			CPE:             "test-version-2:patch2",
+			CPEPattern:      `test-version-[\d]:patch[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -336,17 +336,17 @@ purl    = "pkg:generic/test-jre@different-version-1?arch=amd64"
 cpes    = 1234
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
-			PURL:           "different-version-2",
-			PURLPattern:    `different-version-[\d]`,
-			CPE:            "test-version-2:patch2",
-			CPEPattern:     `test-version-[\d]:patch[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-2",
+			URI:             "test-uri-2",
+			Version:         "test-version-2",
+			VersionPattern:  `test-version-[\d]`,
+			PURL:            "different-version-2",
+			PURLPattern:     `different-version-[\d]`,
+			CPE:             "test-version-2:patch2",
+			CPEPattern:      `test-version-[\d]:patch[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -389,13 +389,13 @@ version = "1.2.3"
   stacks  = [ "test-stack" ]
 `), 0644)).To(Succeed())
 
-		d := carton.BuildpackDependency{
-			BuildpackPath:  path,
-			ID:             "test-id",
-			SHA256:         "test-sha256-2",
-			URI:            "test-uri-2",
-			Version:        "test-version-2",
-			VersionPattern: `test-version-[\d]`,
+		d := carton.BuildModuleDependency{
+			BuildModulePath: path,
+			ID:              "test-id",
+			SHA256:          "test-sha256-2",
+			URI:             "test-uri-2",
+			Version:         "test-version-2",
+			VersionPattern:  `test-version-[\d]`,
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))

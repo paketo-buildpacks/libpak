@@ -127,7 +127,7 @@ func (p Package) Create(options ...Option) {
 		return
 	}
 
-	metadata, err := libpak.NewBuildpackMetadata(metadataMap)
+	metadata, err := libpak.NewBuildModuleMetadata(metadataMap)
 	if err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to decode metadata %s\n%w", metadataMap, err))
 		return
@@ -258,7 +258,7 @@ func (p Package) Create(options ...Option) {
 
 // matchDependency checks all filters against dependency and returns true if there is a match (or no filters) and false if there is no match
 // There is a match if a regular expression matches against the ID or Version
-func (p Package) matchDependency(dep libpak.BuildpackDependency) bool {
+func (p Package) matchDependency(dep libpak.BuildModuleDependency) bool {
 	if len(p.DependencyFilters) == 0 {
 		return true
 	}

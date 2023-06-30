@@ -59,6 +59,7 @@ func (p PackageDependency) Update(options ...Option) {
 		}
 	}
 
+	// Do we have a buildpack.toml with an order element? (composite buildpack)
 	if p.BuildpackPath != "" {
 		if err := updateFile(p.BuildpackPath, func(md map[string]interface{}) {
 			parts := strings.Split(p.ID, "/")
