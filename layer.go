@@ -206,7 +206,8 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 		}
 		defer artifact.Close()
 
-		sbomArtifact, err := d.Dependency.AsSyftArtifact()
+		// Only buildpacks can create layers, so source must be buildpack.toml
+		sbomArtifact, err := d.Dependency.AsSyftArtifact("buildpack.toml")
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to get SBOM artifact %s\n%w", d.Dependency.ID, err)
 		}

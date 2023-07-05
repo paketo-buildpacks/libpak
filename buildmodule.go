@@ -113,7 +113,7 @@ func (b1 BuildModuleDependency) Equals(b2 BuildModuleDependency) bool {
 }
 
 // AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.
-func (b BuildModuleDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
+func (b BuildModuleDependency) AsSyftArtifact(source string) (sbom.SyftArtifact, error) {
 	licenses := []string{}
 	for _, license := range b.Licenses {
 		licenses = append(licenses, license.Type)
@@ -125,7 +125,7 @@ func (b BuildModuleDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
 		Type:      "UnknownPackage",
 		FoundBy:   "libpak",
 		Licenses:  licenses,
-		Locations: []sbom.SyftLocation{{Path: "buildpack.toml"}}, // TODO this needs to alter based on xtn/bp
+		Locations: []sbom.SyftLocation{{Path: source}},
 		CPEs:      b.CPEs,
 		PURL:      b.PURL,
 	}

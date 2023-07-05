@@ -84,7 +84,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			PURL: "test-purl",
 		}
 
-		Expect(dependency.AsSyftArtifact()).To(Equal(sbom.SyftArtifact{
+		Expect(dependency.AsSyftArtifact("buildpack.toml")).To(Equal(sbom.SyftArtifact{
 			ID:        "46713835f08d90b7",
 			Name:      "test-name",
 			Version:   "1.1.1",
@@ -92,6 +92,37 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			FoundBy:   "libpak",
 			Licenses:  []string{"test-type"},
 			Locations: []sbom.SyftLocation{{Path: "buildpack.toml"}},
+			CPEs:      []string{"test-cpe1", "test-cpe2"},
+			PURL:      "test-purl",
+		}))
+	})
+
+	it("renders extension dependency as a SyftArtifact", func() {
+		dependency := libpak.BuildModuleDependency{
+			ID:      "test-id",
+			Name:    "test-name",
+			Version: "1.1.1",
+			URI:     "test-uri",
+			SHA256:  "test-sha256",
+			Stacks:  []string{"test-stack"},
+			Licenses: []libpak.BuildModuleDependencyLicense{
+				{
+					Type: "test-type",
+					URI:  "test-uri",
+				},
+			},
+			CPEs: []string{"test-cpe1", "test-cpe2"},
+			PURL: "test-purl",
+		}
+
+		Expect(dependency.AsSyftArtifact("extension.toml")).To(Equal(sbom.SyftArtifact{
+			ID:        "9a52b9f58469d126",
+			Name:      "test-name",
+			Version:   "1.1.1",
+			Type:      "UnknownPackage",
+			FoundBy:   "libpak",
+			Licenses:  []string{"test-type"},
+			Locations: []sbom.SyftLocation{{Path: "extension.toml"}},
 			CPEs:      []string{"test-cpe1", "test-cpe2"},
 			PURL:      "test-purl",
 		}))
