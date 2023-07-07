@@ -237,7 +237,7 @@ func NewDependencyLayer(dependency BuildpackDependency, cache DependencyCache, t
 func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) DependencyLayerContributor {
 	return DependencyLayerContributor{
 		Dependency:       dependency,
-		ExpectedMetadata: dependency,
+		ExpectedMetadata: dependency.GetMetadata(),
 		DependencyCache:  cache,
 		ExpectedTypes:    types,
 	}
