@@ -28,24 +28,24 @@ import (
 )
 
 const (
-	BuildpackDependencyPattern      = `(?m)([\s]*.*id[\s]+=[\s]+"%s"\n.*\n[\s]*version[\s]+=[\s]+")%s("\n[\s]*uri[\s]+=[\s]+").*("\n[\s]*sha256[\s]+=[\s]+").*(".*)`
-	BuildpackDependencySubstitution = "${1}%s${2}%s${3}%s${4}"
+	BuildModuleDependencyPattern      = `(?m)([\s]*.*id[\s]+=[\s]+"%s"\n.*\n[\s]*version[\s]+=[\s]+")%s("\n[\s]*uri[\s]+=[\s]+").*("\n[\s]*sha256[\s]+=[\s]+").*(".*)`
+	BuildModuleDependencySubstitution = "${1}%s${2}%s${3}%s${4}"
 )
 
-type BuildpackDependency struct {
-	BuildpackPath  string
-	ID             string
-	SHA256         string
-	URI            string
-	Version        string
-	VersionPattern string
-	CPE            string
-	CPEPattern     string
-	PURL           string
-	PURLPattern    string
+type BuildModuleDependency struct {
+	BuildModulePath string
+	ID              string
+	SHA256          string
+	URI             string
+	Version         string
+	VersionPattern  string
+	CPE             string
+	CPEPattern      string
+	PURL            string
+	PURLPattern     string
 }
 
-func (b BuildpackDependency) Update(options ...Option) {
+func (b BuildModuleDependency) Update(options ...Option) {
 	config := Config{
 		exitHandler: internal.NewExitHandler(),
 	}
@@ -80,9 +80,9 @@ func (b BuildpackDependency) Update(options ...Option) {
 		return
 	}
 
-	c, err := os.ReadFile(b.BuildpackPath)
+	c, err := os.ReadFile(b.BuildModulePath)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", b.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", b.BuildModulePath, err))
 		return
 	}
 
@@ -99,7 +99,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 
 	md := make(map[string]interface{})
 	if err := toml.Unmarshal(c, &md); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to decode md%s\n%w", b.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to decode md%s\n%w", b.BuildModulePath, err))
 		return
 	}
 
@@ -180,14 +180,14 @@ func (b BuildpackDependency) Update(options ...Option) {
 
 	c, err = internal.Marshal(md)
 	if err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to encode md %s\n%w", b.BuildpackPath, err))
+		config.exitHandler.Error(fmt.Errorf("unable to encode md %s\n%w", b.BuildModulePath, err))
 		return
 	}
 
 	c = append(comments, c...)
 
-	if err := os.WriteFile(b.BuildpackPath, c, 0644); err != nil {
-		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", b.BuildpackPath, err))
+	if err := os.WriteFile(b.BuildModulePath, c, 0644); err != nil {
+		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", b.BuildModulePath, err))
 		return
 	}
 }

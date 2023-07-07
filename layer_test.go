@@ -285,7 +285,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 	context("DependencyLayerContributor", func() {
 		var (
-			dependency libpak.BuildpackDependency
+			dependency libpak.BuildModuleDependency
 			dlc        libpak.DependencyLayerContributor
 			server     *ghttp.Server
 		)
@@ -297,14 +297,14 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			deprecationDate, err := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
 			Expect(err).ToNot(HaveOccurred())
 
-			dependency = libpak.BuildpackDependency{
+			dependency = libpak.BuildModuleDependency{
 				ID:      "test-id",
 				Name:    "test-name",
 				Version: "1.1.1",
 				URI:     fmt.Sprintf("%s/test-path", server.URL()),
 				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
 				Stacks:  []string{"test-stack"},
-				Licenses: []libpak.BuildpackDependencyLicense{
+				Licenses: []libpak.BuildModuleDependencyLicense{
 					{
 						Type: "test-type",
 						URI:  "test-uri",

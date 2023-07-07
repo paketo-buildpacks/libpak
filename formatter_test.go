@@ -33,7 +33,7 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	context("DependenciesFormatter", func() {
 
 		it("formats contents", func() {
-			deps := []libpak.BuildpackDependency{
+			deps := []libpak.BuildModuleDependency{
 				{
 					ID:      "test-id-1",
 					Version: "1.1.1",

@@ -163,7 +163,7 @@ func (l *LayerContributor) reset(layer libcnb.Layer) error {
 type DependencyLayerContributor struct {
 
 	// Dependency is the dependency being contributed.
-	Dependency BuildpackDependency
+	Dependency BuildModuleDependency
 
 	// DependencyCache is the cache to use to get the dependency.
 	DependencyCache DependencyCache
@@ -182,7 +182,7 @@ type DependencyLayerContributor struct {
 }
 
 // NewDependencyLayerContributor returns a new DependencyLayerContributor for the given BuildpackDependency
-func NewDependencyLayerContributor(dependency BuildpackDependency, cache DependencyCache, types libcnb.LayerTypes) DependencyLayerContributor {
+func NewDependencyLayerContributor(dependency BuildModuleDependency, cache DependencyCache, types libcnb.LayerTypes) DependencyLayerContributor {
 	return DependencyLayerContributor{
 		Dependency:       dependency,
 		ExpectedMetadata: dependency,
@@ -206,7 +206,8 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 		}
 		defer artifact.Close()
 
-		sbomArtifact, err := d.Dependency.AsSyftArtifact()
+		// Only buildpacks can create layers, so source must be buildpack.toml
+		sbomArtifact, err := d.Dependency.AsSyftArtifact("buildpack.toml")
 		if err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to get SBOM artifact %s\n%w", d.Dependency.ID, err)
 		}

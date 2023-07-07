@@ -34,7 +34,7 @@ import (
 )
 
 // BuildpackConfiguration represents a build or launch configuration parameter.
-type BuildpackConfiguration struct {
+type BuildModuleConfiguration struct {
 
 	// Build indicates whether the configuration is for build-time.  Optional.
 	Build bool `toml:"build"`
@@ -52,9 +52,9 @@ type BuildpackConfiguration struct {
 	Name string `toml:"name"`
 }
 
-// BuildpackDependencyLicense represents a license that a BuildpackDependency is distributed under.  At least one of
+// BuildModuleDependencyLicense represents a license that a BuildModuleDependency is distributed under.  At least one of
 // Name or URI MUST be specified.
-type BuildpackDependencyLicense struct {
+type BuildModuleDependencyLicense struct {
 
 	// Type is the type of the license.  This is typically the SPDX short identifier.
 	Type string `toml:"type"`
@@ -63,8 +63,8 @@ type BuildpackDependencyLicense struct {
 	URI string `toml:"uri"`
 }
 
-// BuildpackDependency describes a dependency known to the buildpack.
-type BuildpackDependency struct {
+// BuildModuleDependency describes a dependency known to the buildpack/extension
+type BuildModuleDependency struct {
 	// ID is the dependency ID.
 	ID string `toml:"id"`
 
@@ -84,7 +84,7 @@ type BuildpackDependency struct {
 	Stacks []string `toml:"stacks"`
 
 	// Licenses are the licenses the dependency is distributed under.
-	Licenses []BuildpackDependencyLicense `toml:"licenses"`
+	Licenses []BuildModuleDependencyLicense `toml:"licenses"`
 
 	// CPEs are the Common Platform Enumeration identifiers for the dependency
 	CPEs []string `toml:"cpes"`
@@ -98,7 +98,7 @@ type BuildpackDependency struct {
 
 // Equals compares the 2 structs if they are equal. This is very simiar to reflect.DeepEqual
 // except that properties that will not work (e.g. DeprecationDate) are ignored.
-func (b1 BuildpackDependency) Equals(b2 BuildpackDependency) bool {
+func (b1 BuildModuleDependency) Equals(b2 BuildModuleDependency) bool {
 	b1.DeprecationDate = b1.DeprecationDate.Truncate(time.Second).In(time.UTC)
 	b2.DeprecationDate = b2.DeprecationDate.Truncate(time.Second).In(time.UTC)
 
@@ -113,7 +113,7 @@ func (b1 BuildpackDependency) Equals(b2 BuildpackDependency) bool {
 }
 
 // AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.
-func (b BuildpackDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
+func (b BuildModuleDependency) AsSyftArtifact(source string) (sbom.SyftArtifact, error) {
 	licenses := []string{}
 	for _, license := range b.Licenses {
 		licenses = append(licenses, license.Type)
@@ -125,7 +125,7 @@ func (b BuildpackDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
 		Type:      "UnknownPackage",
 		FoundBy:   "libpak",
 		Licenses:  licenses,
-		Locations: []sbom.SyftLocation{{Path: "buildpack.toml"}},
+		Locations: []sbom.SyftLocation{{Path: source}},
 		CPEs:      b.CPEs,
 		PURL:      b.PURL,
 	}
@@ -139,27 +139,27 @@ func (b BuildpackDependency) AsSyftArtifact() (sbom.SyftArtifact, error) {
 	return sbomArtifact, nil
 }
 
-func (b BuildpackDependency) IsDeprecated() bool {
+func (b BuildModuleDependency) IsDeprecated() bool {
 	deprecationDate := b.DeprecationDate.UTC()
 	now := time.Now().UTC()
 	return deprecationDate.Equal(now) || deprecationDate.Before(now)
 }
 
-func (b BuildpackDependency) IsSoonDeprecated() bool {
+func (b BuildModuleDependency) IsSoonDeprecated() bool {
 	deprecationDate := b.DeprecationDate.UTC()
 	now := time.Now().UTC()
 	return deprecationDate.Add(-30*24*time.Hour).Before(now) && deprecationDate.After(now)
 }
 
-// BuildpackMetadata is an extension to libcnb.Buildpack's metadata with opinions.
-type BuildpackMetadata struct {
+// BuildpackMetadata is an extension to libcnb.Buildpack / libcnb.Extension's metadata with opinions.
+type BuildModuleMetadata struct {
 
 	// Configurations are environment variables that can be used at build time to configure the buildpack and launch
 	// time to configure the application.
-	Configurations []BuildpackConfiguration
+	Configurations []BuildModuleConfiguration
 
 	// Dependencies are the dependencies known to the buildpack.
-	Dependencies []BuildpackDependency
+	Dependencies []BuildModuleDependency
 
 	// IncludeFiles describes the files to include in the package.
 	IncludeFiles []string
@@ -169,12 +169,12 @@ type BuildpackMetadata struct {
 }
 
 // NewBuildpackMetadata creates a new instance of BuildpackMetadata from the contents of libcnb.Buildpack.Metadata
-func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, error) {
-	m := BuildpackMetadata{}
+func NewBuildModuleMetadata(metadata map[string]interface{}) (BuildModuleMetadata, error) {
+	m := BuildModuleMetadata{}
 
 	if v, ok := metadata["configurations"]; ok {
 		for _, v := range v.([]map[string]interface{}) {
-			var c BuildpackConfiguration
+			var c BuildModuleConfiguration
 
 			if v, ok := v["build"].(bool); ok {
 				c.Build = v
@@ -202,7 +202,7 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 
 	if v, ok := metadata["dependencies"]; ok {
 		for _, v := range v.([]map[string]interface{}) {
-			var d BuildpackDependency
+			var d BuildModuleDependency
 
 			if v, ok := v["id"].(string); ok {
 				d.ID = v
@@ -232,7 +232,7 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 
 			if v, ok := v["licenses"].([]map[string]interface{}); ok {
 				for _, v := range v {
-					var l BuildpackDependencyLicense
+					var l BuildModuleDependencyLicense
 
 					if v, ok := v["type"].(string); ok {
 						l.Type = v
@@ -260,7 +260,7 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 				deprecationDate, err := time.Parse(time.RFC3339, v)
 
 				if err != nil {
-					return BuildpackMetadata{}, fmt.Errorf("unable to parse deprecation date\n%w", err)
+					return BuildModuleMetadata{}, fmt.Errorf("unable to parse deprecation date\n%w", err)
 				}
 
 				d.DeprecationDate = deprecationDate
@@ -287,7 +287,7 @@ func NewBuildpackMetadata(metadata map[string]interface{}) (BuildpackMetadata, e
 type ConfigurationResolver struct {
 
 	// Configurations are the configurations to resolve against
-	Configurations []BuildpackConfiguration
+	Configurations []BuildModuleConfiguration
 }
 
 type configurationEntry struct {
@@ -323,7 +323,7 @@ func (c configurationEntry) String(nameLength int, valueLength int) string {
 // NewConfigurationResolver creates a new instance from buildpack metadata.  Logs configuration options to the body
 // level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
 func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (ConfigurationResolver, error) {
-	md, err := NewBuildpackMetadata(buildpack.Metadata)
+	md, err := NewBuildModuleMetadata(buildpack.Metadata)
 	if err != nil {
 		return ConfigurationResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
 	}
@@ -434,7 +434,7 @@ func (c *ConfigurationResolver) ResolveBool(name string) bool {
 type DependencyResolver struct {
 
 	// Dependencies are the dependencies to resolve against.
-	Dependencies []BuildpackDependency
+	Dependencies []BuildModuleDependency
 
 	// StackID is the stack id of the build.
 	StackID string
@@ -445,7 +445,7 @@ type DependencyResolver struct {
 
 // NewDependencyResolver creates a new instance from the buildpack metadata and stack id.
 func NewDependencyResolver(context libcnb.BuildContext) (DependencyResolver, error) {
-	md, err := NewBuildpackMetadata(context.Buildpack.Metadata)
+	md, err := NewBuildModuleMetadata(context.Buildpack.Metadata)
 	if err != nil {
 		return DependencyResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
 	}
@@ -472,21 +472,21 @@ func IsNoValidDependencies(err error) bool {
 // Resolve returns the latest version of a dependency within the collection of Dependencies.  The candidate set is first
 // filtered by the constraints, then the remaining candidates are sorted for the latest result by semver semantics.
 // Version can contain wildcards and defaults to "*" if not specified.
-func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDependency, error) {
+func (d *DependencyResolver) Resolve(id string, version string) (BuildModuleDependency, error) {
 	if version == "" {
 		version = "*"
 	}
 
 	vc, err := semver.NewConstraint(version)
 	if err != nil {
-		return BuildpackDependency{}, fmt.Errorf("invalid constraint %s\n%w", vc, err)
+		return BuildModuleDependency{}, fmt.Errorf("invalid constraint %s\n%w", vc, err)
 	}
 
-	var candidates []BuildpackDependency
+	var candidates []BuildModuleDependency
 	for _, c := range d.Dependencies {
 		v, err := semver.NewVersion(c.Version)
 		if err != nil {
-			return BuildpackDependency{}, fmt.Errorf("unable to parse version %s\n%w", c.Version, err)
+			return BuildModuleDependency{}, fmt.Errorf("unable to parse version %s\n%w", c.Version, err)
 		}
 
 		if c.ID == id && vc.Check(v) && d.contains(c.Stacks, d.StackID) {
@@ -495,7 +495,7 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 	}
 
 	if len(candidates) == 0 {
-		return BuildpackDependency{}, NoValidDependenciesError{
+		return BuildModuleDependency{}, NoValidDependenciesError{
 			Message: fmt.Sprintf("no valid dependencies for %s, %s, and %s in %s",
 				id, version, d.StackID, DependenciesFormatter(d.Dependencies)),
 		}
@@ -531,7 +531,7 @@ func (DependencyResolver) contains(candidates []string, value string) bool {
 	return false
 }
 
-func (d *DependencyResolver) printDependencyDeprecation(dependency BuildpackDependency) {
+func (d *DependencyResolver) printDependencyDeprecation(dependency BuildModuleDependency) {
 	if d.Logger == nil {
 		return
 	}

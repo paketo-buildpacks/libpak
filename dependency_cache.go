@@ -161,10 +161,10 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 //
 // If the BuildpackDependency's SHA256 is not set, the download can never be verified to be up to date and will always
 // download, skipping all the caches.
-func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...RequestModifierFunc) (*os.File, error) {
+func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...RequestModifierFunc) (*os.File, error) {
 
 	var (
-		actual   BuildpackDependency
+		actual   BuildModuleDependency
 		artifact string
 		file     string
 		uri      = dependency.URI

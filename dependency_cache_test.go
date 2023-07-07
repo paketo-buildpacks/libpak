@@ -153,7 +153,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		var (
 			cachePath       string
 			downloadPath    string
-			dependency      libpak.BuildpackDependency
+			dependency      libpak.BuildModuleDependency
 			dependencyCache libpak.DependencyCache
 			server          *ghttp.Server
 		)
@@ -170,7 +170,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			RegisterTestingT(t)
 			server = ghttp.NewServer()
 
-			dependency = libpak.BuildpackDependency{
+			dependency = libpak.BuildModuleDependency{
 				ID:              "test-id",
 				Name:            "test-name",
 				Version:         "1.1.1",
@@ -178,7 +178,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				SHA256:          "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
 				Stacks:          []string{"test-stack"},
 				DeprecationDate: time.Now(),
-				Licenses: []libpak.BuildpackDependencyLicense{
+				Licenses: []libpak.BuildModuleDependencyLicense{
 					{
 						Type: "test-type",
 						URI:  "test-uri",

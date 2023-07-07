@@ -27,10 +27,10 @@ import (
 )
 
 func main() {
-	b := carton.BuildpackDependency{}
+	b := carton.BuildModuleDependency{}
 
-	flagSet := pflag.NewFlagSet("Update Buildpack Dependency", pflag.ExitOnError)
-	flagSet.StringVar(&b.BuildpackPath, "buildpack-toml", "", "path to buildpack.toml")
+	flagSet := pflag.NewFlagSet("Update Build Module Dependency", pflag.ExitOnError)
+	flagSet.StringVar(&b.BuildModulePath, "buildmodule-toml", "", "path to buildpack.toml or extension.toml")
 	flagSet.StringVar(&b.ID, "id", "", "the id of the dependency")
 	flagSet.StringVar(&b.SHA256, "sha256", "", "the new sha256 of the dependency")
 	flagSet.StringVar(&b.URI, "uri", "", "the new uri of the dependency")
@@ -45,8 +45,8 @@ func main() {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
 	}
 
-	if b.BuildpackPath == "" {
-		log.Fatal("buildpack-toml must be set")
+	if b.BuildModulePath == "" {
+		log.Fatal("buildmodule toml path must be set")
 	}
 
 	if b.ID == "" {
