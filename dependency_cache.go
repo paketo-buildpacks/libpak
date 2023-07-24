@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,11 +46,11 @@ type HttpClientTimeouts struct {
 	ExpectContinueTimeout time.Duration
 }
 
-// DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download, or to download
+// DependencyCache allows a user to get an artifact either from a buildmodule's cache, a previous download, or to download
 // directly.
 type DependencyCache struct {
 
-	// CachePath is the location where the buildpack has cached its dependencies.
+	// CachePath is the location where the buildmodule has cached its dependencies.
 	CachePath string
 
 	// DownloadPath is the location of all downloads during this execution of the build.
@@ -62,24 +62,23 @@ type DependencyCache struct {
 	// UserAgent is the User-Agent string to use with requests.
 	UserAgent string
 
-	// Mappings optionally provides URIs mapping for BuildpackDependencies
+	// Mappings optionally provides URIs mapping for BuildModuleDependencies
 	Mappings map[string]string
 
 	// httpClientTimeouts contains the timeout values used by HTTP client
 	HttpClientTimeouts HttpClientTimeouts
 }
 
-// NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
-// agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
-// Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings"
-func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
+// NewDependencyCache creates a new instance setting the default cache path (<BUILDMODULE_PATH>/dependencies) and user
+// agent (<BUILDMODULE_ID>/<BUILDMODULE_VERSION>).
+func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildModulePath string, platformBindings libcnb.Bindings) (DependencyCache, error) {
 	cache := DependencyCache{
-		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
+		CachePath:    filepath.Join(buildModulePath, "dependencies"),
 		DownloadPath: os.TempDir(),
-		UserAgent:    fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
+		UserAgent:    fmt.Sprintf("%s/%s", buildModuleID, buildModuleVersion),
 		Mappings:     map[string]string{},
 	}
-	mappings, err := mappingsFromBindings(context.Platform.Bindings)
+	mappings, err := mappingsFromBindings(platformBindings)
 	if err != nil {
 		return DependencyCache{}, fmt.Errorf("unable to process dependency-mapping bindings\n%w", err)
 	}
