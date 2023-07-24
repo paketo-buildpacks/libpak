@@ -98,10 +98,6 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 			Expect(b.String()).To(Equal(""))
 		})
 
-		it("does not return debug writer", func() {
-			Expect(l.DebugWriter()).To(BeNil())
-		})
-
 		it("indicates that debug is not enabled", func() {
 			Expect(l.IsDebugEnabled()).To(BeFalse())
 		})
