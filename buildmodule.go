@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/bard"
@@ -320,13 +319,9 @@ func (c configurationEntry) String(nameLength int, valueLength int) string {
 	return sb.String()
 }
 
-// NewConfigurationResolver creates a new instance from buildpack metadata.  Logs configuration options to the body
+// NewConfigurationResolver creates a new instance from buildmodule metadata.  Logs configuration options to the body
 // level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
-func NewConfigurationResolver(buildpack libcnb.Buildpack, logger *bard.Logger) (ConfigurationResolver, error) {
-	md, err := NewBuildModuleMetadata(buildpack.Metadata)
-	if err != nil {
-		return ConfigurationResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
-	}
+func NewConfigurationResolver(md BuildModuleMetadata, logger *bard.Logger) (ConfigurationResolver, error) {
 
 	cr := ConfigurationResolver{Configurations: md.Configurations}
 
@@ -443,14 +438,9 @@ type DependencyResolver struct {
 	Logger *bard.Logger
 }
 
-// NewDependencyResolver creates a new instance from the buildpack metadata and stack id.
-func NewDependencyResolver(context libcnb.BuildContext) (DependencyResolver, error) {
-	md, err := NewBuildModuleMetadata(context.Buildpack.Metadata)
-	if err != nil {
-		return DependencyResolver{}, fmt.Errorf("unable to unmarshal buildpack metadata\n%w", err)
-	}
-
-	return DependencyResolver{Dependencies: md.Dependencies, StackID: context.StackID}, nil
+// NewDependencyResolver creates a new instance from the build module metadata and stack id.
+func NewDependencyResolver(md BuildModuleMetadata, stackId string) (DependencyResolver, error) {
+	return DependencyResolver{Dependencies: md.Dependencies, StackID: stackId}, nil
 }
 
 // NoValidDependenciesError is returned when the resolver cannot find any valid dependencies given the constraints.

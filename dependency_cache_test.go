@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("set default CachePath and UserAgent", func() {
-			dependencyCache, err := libpak.NewDependencyCache(ctx)
+			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dependencyCache.CachePath).To(Equal(filepath.Join("some/path/dependencies")))
 			Expect(dependencyCache.UserAgent).To(Equal("some-buildpack-id/some-buildpack-version"))
@@ -63,7 +63,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("uses default timeout values", func() {
-			dependencyCache, err := libpak.NewDependencyCache(ctx)
+			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(6 * time.Second))
 			Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(60 * time.Second))
@@ -82,7 +82,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("uses custom timeout values", func() {
-				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(7 * time.Second))
 				Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(50 * time.Second))
@@ -119,7 +119,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("sets Mappings", func() {
-				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dependencyCache.Mappings).To(Equal(
 					map[string]string{
@@ -142,7 +142,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("errors", func() {
-					_, err := libpak.NewDependencyCache(ctx)
+					_, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
 					Expect(err).To(HaveOccurred())
 				})
 			})
