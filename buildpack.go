@@ -113,7 +113,7 @@ type DependencyLayerContributorMetadata struct {
 
 // GetMetadata return the relevant metadata of this dependency
 func (b BuildpackDependency) GetMetadata() DependencyLayerContributorMetadata {
-	return BuildpackDependencyMetadata{
+	return DependencyLayerContributorMetadata{
 		ID:      b.ID,
 		Name:    b.Name,
 		Version: b.Version,
