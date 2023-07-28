@@ -285,6 +285,8 @@ func (d DependencyCache) downloadFile(source string, destination string, mods ..
 }
 
 func (d DependencyCache) downloadHttp(uri string, destination string, mods ...RequestModifierFunc) error {
+	// ensure query parameters are not included in the downloaded file name
+
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return fmt.Errorf("unable to create new GET request for %s\n%w", uri, err)
