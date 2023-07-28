@@ -96,8 +96,8 @@ type BuildpackDependency struct {
 	DeprecationDate time.Time `toml:"deprecation_date"`
 }
 
-// BuildpackDependencyMetadata describes the dependency
-type BuildpackDependencyMetadata struct {
+// DependencyLayerContributorMetadata returns the subset of data from BuildpackDependency that is use as expected metadata for the DependencyLayerContributor.
+type DependencyLayerContributorMetadata struct {
 	// ID is the dependency ID.
 	ID string `toml:"id"`
 
