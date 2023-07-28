@@ -182,7 +182,19 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
 		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
-		artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
+
+		// ensure query parameters are not included in the downloaded file name if the uri is http type
+		downloadUri, err := url.Parse(uri)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse the download uri %s\n%w", uri, err)
+		}
+
+		if(downloadUri.Scheme == "http" || downloadUri.Scheme == "https") {
+			artifact = filepath.Join(d.DownloadPath, filepath.Base(downloadUri.Path))
+		} else {
+			artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
+		}
+
 		if err := d.download(uri, artifact, mods...); err != nil {
 			return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 		}
