@@ -190,7 +190,10 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		}
 
 		if(downloadUri.Scheme == "http" || downloadUri.Scheme == "https") {
-			artifact = filepath.Join(d.DownloadPath, filepath.Base(downloadUri.Path))
+			hasher := sha256.New()
+			hasher.Write([]byte(uri))
+
+			artifact = filepath.Join(d.DownloadPath, hex.EncodeToString(hasher.Sum(nil)))
 		} else {
 			artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
 		}
