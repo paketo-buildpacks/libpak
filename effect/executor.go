@@ -46,7 +46,7 @@ type Execution struct {
 	Stderr io.Writer
 }
 
-//go:generate mockery -name Executor -case=underscore
+//go:generate mockery --name Executor --case=underscore
 
 // Executor is the interface for types that can execute an Execution.
 type Executor interface {

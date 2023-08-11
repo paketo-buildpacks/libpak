@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/effect"
 )
 
-//go:generate mockery -name SBOMScanner -case=underscore
+//go:generate mockery --name SBOMScanner --case=underscore
 
 type SBOMScanner interface {
 	ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error

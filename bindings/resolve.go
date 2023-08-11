@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 )
 
 // Predicate should return true if it matches a given binding.

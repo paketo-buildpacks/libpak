@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	mocks1 "github.com/buildpacks/libcnb/mocks"
+	mocks1 "github.com/buildpacks/libcnb/v2/mocks"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"

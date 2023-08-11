@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/bard"

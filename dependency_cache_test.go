@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/sclevine/spec"
