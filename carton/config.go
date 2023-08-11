@@ -17,12 +17,12 @@
 package carton
 
 import (
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 
 	"github.com/paketo-buildpacks/libpak/effect"
 )
 
-//go:generate mockery -name EntryWriter -case=underscore
+//go:generate mockery --name EntryWriter --case=underscore
 
 // EntryWriter is the interface implemented by a type that wants to write an entry.
 type EntryWriter interface {

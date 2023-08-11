@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"

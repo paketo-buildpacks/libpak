@@ -17,7 +17,7 @@
 package libpak
 
 import (
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"

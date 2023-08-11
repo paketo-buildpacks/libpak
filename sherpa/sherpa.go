@@ -44,7 +44,7 @@ func Execute(f ExecuteFunc, options ...Option) {
 	}
 }
 
-//go:generate mockery -name ExecD -case=underscore
+//go:generate mockery --name ExecD --case=underscore
 
 // ExecD describes an interface for types that Exec.d specification.
 type ExecD interface {

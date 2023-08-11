@@ -21,7 +21,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/buildpacks/libcnb/log"
+	"github.com/buildpacks/libcnb/v2/log"
 	"github.com/heroku/color"
 )
 

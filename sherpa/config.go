@@ -19,7 +19,7 @@ package sherpa
 import (
 	"io"
 
-	"github.com/buildpacks/libcnb"
+	"github.com/buildpacks/libcnb/v2"
 )
 
 // Config is an object that contains configurable properties for execution.
