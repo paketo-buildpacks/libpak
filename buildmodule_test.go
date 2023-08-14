@@ -28,10 +28,10 @@ import (
 
 	"github.com/sclevine/spec"
 
-	"github.com/paketo-buildpacks/libpak"
-	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/libpak/internal"
-	"github.com/paketo-buildpacks/libpak/sbom"
+	"github.com/paketo-buildpacks/libpak/v2"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/sbom"
 )
 
 func testBuildpack(t *testing.T, context spec.G, it spec.S) {

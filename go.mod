@@ -1,4 +1,4 @@
-module github.com/paketo-buildpacks/libpak
+module github.com/paketo-buildpacks/libpak/v2
 
 go 1.20
 

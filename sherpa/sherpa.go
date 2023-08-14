@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/v2/internal"
 )
 
 // ExecuteFunc is the callback function for buildpack helper application implementations.

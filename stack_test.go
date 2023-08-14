@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/v2"
 	"github.com/sclevine/spec"
 )
 

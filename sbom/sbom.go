@@ -7,8 +7,8 @@ import (
 
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/mitchellh/hashstructure/v2"
-	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/libpak/effect"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/effect"
 )
 
 //go:generate mockery --name SBOMScanner --case=underscore

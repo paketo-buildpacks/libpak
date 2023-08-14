@@ -5,7 +5,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/sclevine/spec"
 )
 
