@@ -28,8 +28,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/heroku/color"
 
-	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/libpak/sbom"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/sbom"
 )
 
 // BuildpackConfiguration represents a build or launch configuration parameter.

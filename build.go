@@ -19,8 +19,8 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/internal"
 )
 
 // Build is called by the main function of a buildpack, for build.

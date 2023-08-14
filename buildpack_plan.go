@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"dario.cat/mergo"
 	"github.com/buildpacks/libcnb/v2"
-	"github.com/imdario/mergo"
 )
 
 // PlanEntryResolver provides functionality for resolving a Buildpack Plan Entry given a name.

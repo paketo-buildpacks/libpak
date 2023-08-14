@@ -23,8 +23,8 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
-	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/internal"
 )
 
 const (
