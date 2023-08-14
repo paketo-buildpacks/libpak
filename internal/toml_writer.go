@@ -27,7 +27,7 @@ import (
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
 
-	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
 )
 
 // TOMLWriter is an implementation of the libcnb.TOMLWriter interface.

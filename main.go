@@ -18,7 +18,7 @@ package libpak
 
 import (
 	"github.com/buildpacks/libcnb/v2"
-	"github.com/paketo-buildpacks/libpak/internal"
+	"github.com/paketo-buildpacks/libpak/v2/internal"
 )
 
 // Main is called by the main function of a buildpack, encapsulating both detection and build in the same binary.

@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/libpak/sherpa"
+	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"

@@ -9,10 +9,10 @@ import (
 
 	"github.com/buildpacks/libcnb/v2"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/libpak/effect"
-	"github.com/paketo-buildpacks/libpak/effect/mocks"
-	"github.com/paketo-buildpacks/libpak/sbom"
+	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/effect"
+	"github.com/paketo-buildpacks/libpak/v2/effect/mocks"
+	"github.com/paketo-buildpacks/libpak/v2/sbom"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )
