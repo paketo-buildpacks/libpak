@@ -35,7 +35,40 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/bard"
 )
 
-// LayerContributor is a helper for implementing a libcnb.LayerContributor in order to get consistent logging and
+// libcnb.LayerContributor was removed as a concept from libcnb 2.x
+//
+// The capability is still useful, and is renamed here as Contributable to avoid clashing with the existing
+// libpak.LayerContributor struct. Create instances of Contributable as required, and flatten them to layers
+// when required using a FlattenContributableFn implementation. One is supplied as DefaultFlattenContributableFn
+// but you may wish to use your own for test, or other purposes.
+type Contributable interface {
+	// Contribute accepts a layer and transforms it, returning a layer.
+	Contribute(layer libcnb.Layer) (libcnb.Layer, error)
+	// Name is the name of the layer.
+	Name() string
+}
+
+// libcnb used to flatten libcnb.LayerContributors after the build had completed.
+// this was problematic for some buildpack implementations, so the flattening is now
+// able to be driven via buildpacks when required.
+type FlattenContributableFn func(Contributable, libcnb.BuildContext) (libcnb.Layer, error)
+
+// a default implementation of FlattenContributableFn that can be used by buildpacks to
+// flatten libpak.Contributables into libcnb.Layers
+func DefaultFlattenContributableFn(creator Contributable, ctx libcnb.BuildContext) (libcnb.Layer, error) {
+	name := creator.Name()
+	layer, err := ctx.Layers.Layer(name)
+	if err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to create layer %s\n%w", name, err)
+	}
+	layer, err = creator.Contribute(layer)
+	if err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to invoke layer creator\n%w", err)
+	}
+	return layer, nil
+}
+
+// LayerContributor is a helper for implementing a libpak.Contributable in order to get consistent logging and
 // avoidance.
 type LayerContributor struct {
 
@@ -64,7 +97,7 @@ func NewLayerContributor(name string, expectedMetadata interface{}, expectedType
 // LayerFunc is a callback function that is invoked when a layer needs to be contributed.
 type LayerFunc func() (libcnb.Layer, error)
 
-// Contribute is the function to call when implementing your libcnb.LayerContributor.
+// Contribute is the function to call when implementing your libpak.Contributable
 func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
 	layerRestored, err := l.checkIfLayerRestored(layer)
 	if err != nil {
@@ -158,7 +191,7 @@ func (l *LayerContributor) reset(layer libcnb.Layer) error {
 	return nil
 }
 
-// DependencyLayerContributor is a helper for implementing a libcnb.LayerContributor for a BuildpackDependency in order
+// DependencyLayerContributor is a helper for implementing a libpak.Contributable for a BuildpackDependency in order
 // to get consistent logging and avoidance.
 type DependencyLayerContributor struct {
 
@@ -194,7 +227,7 @@ func NewDependencyLayerContributor(dependency BuildModuleDependency, cache Depen
 // DependencyLayerFunc is a callback function that is invoked when a dependency needs to be contributed.
 type DependencyLayerFunc func(artifact *os.File) (libcnb.Layer, error)
 
-// Contribute is the function to call whe implementing your libcnb.LayerContributor.
+// Contribute is the function to call whe implementing your libpak.Contributable
 func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc) (libcnb.Layer, error) {
 	lc := NewLayerContributor(d.Name(), d.ExpectedMetadata, d.ExpectedTypes)
 	lc.Logger = d.Logger
@@ -233,7 +266,7 @@ func (d *DependencyLayerContributor) Name() string {
 	return fmt.Sprintf("%s %s", d.Dependency.Name, d.Dependency.Version)
 }
 
-// HelperLayerContributor is a helper for implementing a libcnb.LayerContributor for a buildpack helper application in
+// HelperLayerContributor is a helper for implementing a libpak.Contributable for a buildpack helper application in
 // order to get consistent logging and avoidance.
 type HelperLayerContributor struct {
 
@@ -264,7 +297,7 @@ func (h HelperLayerContributor) Name() string {
 	return filepath.Base(h.Path)
 }
 
-// Contribute is the function to call whe implementing your libcnb.LayerContributor.
+// Contribute is the function to call whe implementing your libpak.Contributable
 func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	expected := map[string]interface{}{"buildpackInfo": h.BuildpackInfo, "helperNames": h.Names}
 	lc := NewLayerContributor("Launch Helper", expected, libcnb.LayerTypes{
