@@ -35,10 +35,41 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/bard"
 )
 
-// LayerContributor is a helper for implementing a libcnb.LayerContributor in order to get consistent logging and
-// avoidance.
-type LayerContributor struct {
+// ContributableBuildFunc is a standard libcnb.BuildFunc implementation that delegates to a list of Contributables
+func ContributableBuildFunc(layerContributors []Contributable) libcnb.BuildFunc {
+	return func(context libcnb.BuildContext) (libcnb.BuildResult, error) {
+		result := libcnb.NewBuildResult()
 
+		for _, creator := range layerContributors {
+			name := creator.Name()
+			layer, err := context.Layers.Layer(name)
+			if err != nil {
+				return libcnb.BuildResult{}, fmt.Errorf("unable to create layer %s\n%w", name, err)
+			}
+
+			err = creator.Contribute(&layer)
+			if err != nil {
+				return libcnb.BuildResult{}, fmt.Errorf("unable to invoke layer creator\n%w", err)
+			}
+
+			result.Layers = append(result.Layers, layer)
+		}
+
+		return result, nil
+	}
+}
+
+// Contributable is an interface that is implemented when you want to contribute new layers
+type Contributable interface {
+	// Contribute accepts a new empty layer and transforms it
+	Contribute(layer *libcnb.Layer) error
+
+	// Name is the name of the layer.
+	Name() string
+}
+
+// LayerContributor is a helper for implementing Contributable in order to get consistent logging and avoidance.
+type LayerContributor struct {
 	// ExpectedMetadata is the metadata to compare against any existing layer metadata.
 	ExpectedMetadata interface{}
 
@@ -53,33 +84,34 @@ type LayerContributor struct {
 }
 
 // NewLayerContributor creates a new instance.
-func NewLayerContributor(name string, expectedMetadata interface{}, expectedTypes libcnb.LayerTypes) LayerContributor {
+func NewLayerContributor(name string, expectedMetadata interface{}, expectedTypes libcnb.LayerTypes, logger bard.Logger) LayerContributor {
 	return LayerContributor{
 		ExpectedMetadata: expectedMetadata,
-		Name:             name,
 		ExpectedTypes:    expectedTypes,
+		Logger:           logger,
+		Name:             name,
 	}
 }
 
 // LayerFunc is a callback function that is invoked when a layer needs to be contributed.
-type LayerFunc func() (libcnb.Layer, error)
+type LayerFunc func(*libcnb.Layer) error
 
-// Contribute is the function to call when implementing your libcnb.LayerContributor.
-func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.Layer, error) {
-	layerRestored, err := l.checkIfLayerRestored(layer)
+// Contribute is the function to call when implementing Contributable.
+func (l *LayerContributor) Contribute(layer *libcnb.Layer, f LayerFunc) error {
+	layerRestored, err := l.checkIfLayerRestored(*layer)
 	if err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to check metadata\n%w", err)
+		return fmt.Errorf("unable to check metadata\n%w", err)
 	}
 
-	expected, cached, err := l.checkIfMetadataMatches(layer)
+	expected, cached, err := l.checkIfMetadataMatches(*layer)
 	if err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to check metadata\n%w", err)
+		return fmt.Errorf("unable to check metadata\n%w", err)
 	}
 
 	if cached && layerRestored {
 		l.Logger.Headerf("%s: %s cached layer", color.BlueString(l.Name), color.GreenString("Reusing"))
 		layer.LayerTypes = l.ExpectedTypes
-		return layer, nil
+		return nil
 	}
 
 	if !layerRestored {
@@ -90,18 +122,18 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 
 	err = l.reset(layer)
 	if err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to reset\n%w", err)
+		return fmt.Errorf("unable to reset\n%w", err)
 	}
 
-	layer, err = f()
+	err = f(layer)
 	if err != nil {
-		return libcnb.Layer{}, err
+		return err
 	}
 
 	layer.LayerTypes = l.ExpectedTypes
 	layer.Metadata = expected
 
-	return layer, nil
+	return nil
 }
 
 func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[string]interface{}, bool, error) {
@@ -146,7 +178,7 @@ func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error
 	return !(tomlExists && (!layerDirExists || len(dirContents) == 0) && (l.ExpectedTypes.Cache || l.ExpectedTypes.Build)), nil
 }
 
-func (l *LayerContributor) reset(layer libcnb.Layer) error {
+func (l *LayerContributor) reset(layer *libcnb.Layer) error {
 	if err := os.RemoveAll(layer.Path); err != nil {
 		return fmt.Errorf("unable to remove existing layer directory %s\n%w", layer.Path, err)
 	}
@@ -158,7 +190,7 @@ func (l *LayerContributor) reset(layer libcnb.Layer) error {
 	return nil
 }
 
-// DependencyLayerContributor is a helper for implementing a libcnb.LayerContributor for a BuildpackDependency in order
+// DependencyLayerContributor is a helper for implementing a Contributable for a BuildpackDependency in order
 // to get consistent logging and avoidance.
 type DependencyLayerContributor struct {
 
@@ -192,34 +224,33 @@ func NewDependencyLayerContributor(dependency BuildModuleDependency, cache Depen
 }
 
 // DependencyLayerFunc is a callback function that is invoked when a dependency needs to be contributed.
-type DependencyLayerFunc func(artifact *os.File) (libcnb.Layer, error)
+type DependencyLayerFunc func(layer *libcnb.Layer, artifact *os.File) error
 
-// Contribute is the function to call whe implementing your libcnb.LayerContributor.
-func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f DependencyLayerFunc) (libcnb.Layer, error) {
-	lc := NewLayerContributor(d.Name(), d.ExpectedMetadata, d.ExpectedTypes)
-	lc.Logger = d.Logger
+// Contribute is the function to call whe implementing your Contributable.
+func (d *DependencyLayerContributor) Contribute(layer *libcnb.Layer, f DependencyLayerFunc) error {
+	lc := NewLayerContributor(d.Name(), d.ExpectedMetadata, d.ExpectedTypes, d.Logger)
 
-	return lc.Contribute(layer, func() (libcnb.Layer, error) {
+	return lc.Contribute(layer, func(_ *libcnb.Layer) error {
 		artifact, err := d.DependencyCache.Artifact(d.Dependency, d.RequestModifierFuncs...)
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
+			return fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
 		}
 		defer artifact.Close()
 
 		// Only buildpacks can create layers, so source must be buildpack.toml
 		sbomArtifact, err := d.Dependency.AsSyftArtifact("buildpack.toml")
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to get SBOM artifact %s\n%w", d.Dependency.ID, err)
+			return fmt.Errorf("unable to get SBOM artifact %s\n%w", d.Dependency.ID, err)
 		}
 
 		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
 		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{sbomArtifact})
 		d.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
 		if err := dep.WriteTo(sbomPath); err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to write SBOM\n%w", err)
+			return fmt.Errorf("unable to write SBOM\n%w", err)
 		}
 
-		return f(artifact)
+		return f(layer, artifact)
 	})
 }
 
@@ -233,7 +264,7 @@ func (d *DependencyLayerContributor) Name() string {
 	return fmt.Sprintf("%s %s", d.Dependency.Name, d.Dependency.Version)
 }
 
-// HelperLayerContributor is a helper for implementing a libcnb.LayerContributor for a buildpack helper application in
+// HelperLayerContributor is a helper for implementing a Contributable for a buildpack helper application in
 // order to get consistent logging and avoidance.
 type HelperLayerContributor struct {
 
@@ -264,25 +295,23 @@ func (h HelperLayerContributor) Name() string {
 	return filepath.Base(h.Path)
 }
 
-// Contribute is the function to call whe implementing your libcnb.LayerContributor.
-func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
+// Contribute is the function to call whe implementing your Contributable.
+func (h HelperLayerContributor) Contribute(layer *libcnb.Layer) error {
 	expected := map[string]interface{}{"buildpackInfo": h.BuildpackInfo, "helperNames": h.Names}
 	lc := NewLayerContributor("Launch Helper", expected, libcnb.LayerTypes{
 		Launch: true,
-	})
+	}, h.Logger)
 
-	lc.Logger = h.Logger
-
-	return lc.Contribute(layer, func() (libcnb.Layer, error) {
+	return lc.Contribute(layer, func(_ *libcnb.Layer) error {
 		in, err := os.Open(h.Path)
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to open %s\n%w", h.Path, err)
+			return fmt.Errorf("unable to open %s\n%w", h.Path, err)
 		}
 		defer in.Close()
 
 		out := filepath.Join(layer.Path, "helper")
 		if err := sherpa.CopyFile(in, out); err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to copy %s to %s", h.Path, out)
+			return fmt.Errorf("unable to copy %s to %s", h.Path, out)
 		}
 
 		for _, n := range h.Names {
@@ -291,27 +320,27 @@ func (h HelperLayerContributor) Contribute(layer libcnb.Layer) (libcnb.Layer, er
 
 			f := filepath.Dir(link)
 			if err := os.MkdirAll(f, 0755); err != nil {
-				return libcnb.Layer{}, fmt.Errorf("unable to create %s\n%w", f, err)
+				return fmt.Errorf("unable to create %s\n%w", f, err)
 			}
 
 			if err := os.Symlink(out, link); err != nil {
-				return libcnb.Layer{}, fmt.Errorf("unable to link %s to %s\n%w", out, link, err)
+				return fmt.Errorf("unable to link %s to %s\n%w", out, link, err)
 			}
 		}
 
 		sbomArtifact, err := h.AsSyftArtifact()
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to get SBOM artifact for helper\n%w", err)
+			return fmt.Errorf("unable to get SBOM artifact for helper\n%w", err)
 		}
 
 		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
 		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{sbomArtifact})
 		h.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
 		if err := dep.WriteTo(sbomPath); err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to write SBOM\n%w", err)
+			return fmt.Errorf("unable to write SBOM\n%w", err)
 		}
 
-		return layer, nil
+		return nil
 	})
 }
 
