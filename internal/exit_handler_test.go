@@ -25,8 +25,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testExitHandler(t *testing.T, context spec.G, it spec.S) {
@@ -43,7 +43,7 @@ func testExitHandler(t *testing.T, context spec.G, it spec.S) {
 
 		handler = internal.NewExitHandler(
 			internal.WithExitHandlerExitFunc(func(c int) { exitCode = c }),
-			internal.WithExitHandlerLogger(bard.NewLogger(b)),
+			internal.WithExitHandlerLogger(log.NewLogger(b)),
 			internal.WithExitHandlerWriter(b),
 		)
 	})
@@ -69,7 +69,7 @@ func testExitHandler(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("writes terminal error", func() {
-		handler.Error(bard.IdentifiableError{Name: "test-name", Description: "test-description", Err: fmt.Errorf("test-error")})
+		handler.Error(log.IdentifiableError{Name: "test-name", Description: "test-description", Err: fmt.Errorf("test-error")})
 		Expect(b).To(ContainSubstring("\x1b[31m\x1b[0m\n\x1b[31m\x1b[1mtest-name\x1b[0m\x1b[31m test-description\x1b[0m\n\x1b[31;1m  test-error\x1b[0m\n"))
 	})
 }

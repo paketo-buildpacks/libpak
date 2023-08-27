@@ -34,7 +34,7 @@ import (
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
@@ -57,7 +57,7 @@ type DependencyCache struct {
 	DownloadPath string
 
 	// Logger is the logger used to write to the console.
-	Logger bard.Logger
+	Logger log.Logger
 
 	// UserAgent is the User-Agent string to use with requests.
 	UserAgent string

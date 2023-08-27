@@ -28,7 +28,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/heroku/color"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
 )
 
@@ -321,7 +321,7 @@ func (c configurationEntry) String(nameLength int, valueLength int) string {
 
 // NewConfigurationResolver creates a new instance from buildmodule metadata.  Logs configuration options to the body
 // level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
-func NewConfigurationResolver(md BuildModuleMetadata, logger *bard.Logger) (ConfigurationResolver, error) {
+func NewConfigurationResolver(md BuildModuleMetadata, logger *log.Logger) (ConfigurationResolver, error) {
 
 	cr := ConfigurationResolver{Configurations: md.Configurations}
 
@@ -435,7 +435,7 @@ type DependencyResolver struct {
 	StackID string
 
 	// Logger is the logger used to write to the console.
-	Logger *bard.Logger
+	Logger *log.Logger
 }
 
 // NewDependencyResolver creates a new instance from the build module metadata and stack id.

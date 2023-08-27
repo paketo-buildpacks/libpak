@@ -29,9 +29,9 @@ import (
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/v2"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/effect"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 // Package is an object that contains the configuration for building a package.
@@ -76,7 +76,7 @@ func (p Package) Create(options ...Option) {
 		file string
 	)
 
-	logger := bard.NewLogger(os.Stdout)
+	logger := log.NewLogger(os.Stdout)
 
 	// Is this a buildpack or an extension?
 	bpfile := filepath.Join(p.Source, "buildpack.toml")

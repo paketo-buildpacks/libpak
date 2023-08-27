@@ -21,8 +21,8 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 const (
@@ -44,8 +44,8 @@ func (i BuildImageDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity("Build Image", i.Version))
+	logger := log.NewLogger(os.Stdout)
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity("Build Image", i.Version))
 
 	c, err := os.ReadFile(i.BuilderPath)
 	if err != nil {

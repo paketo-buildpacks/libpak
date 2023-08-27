@@ -26,30 +26,29 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
-
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 // TOMLWriter is an implementation of the libcnb.TOMLWriter interface.
 type TOMLWriter struct {
-	logger bard.Logger
+	logger log.Logger
 }
 
 // TOMLWriterOption is a function for configuring a TOMLWriter instance.
 type TOMLWriterOption func(writer TOMLWriter) TOMLWriter
 
 // WithTOMLWriterLogger creates an TOMLWriterOption that configures the logger.
-func WithTOMLWriterLogger(logger bard.Logger) TOMLWriterOption {
+func WithTOMLWriterLogger(logger log.Logger) TOMLWriterOption {
 	return func(writer TOMLWriter) TOMLWriter {
 		writer.logger = logger
 		return writer
 	}
 }
 
-// NewTOMLWriter creates a new instance that writes to the filesystem and writes to the default bard.Logger.
+// NewTOMLWriter creates a new instance that writes to the filesystem and writes to the default log.Logger.
 func NewTOMLWriter(options ...TOMLWriterOption) TOMLWriter {
 	w := TOMLWriter{
-		logger: bard.NewLogger(os.Stdout),
+		logger: log.NewLogger(os.Stdout),
 	}
 
 	for _, option := range options {

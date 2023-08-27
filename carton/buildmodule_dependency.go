@@ -23,8 +23,8 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 const (
@@ -54,8 +54,8 @@ func (b BuildModuleDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(b.ID, b.VersionPattern))
+	logger := log.NewLogger(os.Stdout)
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity(b.ID, b.VersionPattern))
 	logger.Headerf("Version: %s", b.Version)
 	logger.Headerf("PURL:    %s", b.PURL)
 	logger.Headerf("CPEs:    %s", b.CPE)

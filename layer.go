@@ -29,10 +29,9 @@ import (
 	"github.com/buildpacks/libcnb/v2"
 
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
-
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 )
 
 // ContributableBuildFunc is a standard libcnb.BuildFunc implementation that delegates to a list of Contributables
@@ -74,7 +73,7 @@ type LayerContributor struct {
 	ExpectedMetadata interface{}
 
 	// Logger is the logger to use.
-	Logger bard.Logger
+	Logger log.Logger
 
 	// Name is the user readable name of the contribution.
 	Name string
@@ -84,7 +83,7 @@ type LayerContributor struct {
 }
 
 // NewLayerContributor creates a new instance.
-func NewLayerContributor(name string, expectedMetadata interface{}, expectedTypes libcnb.LayerTypes, logger bard.Logger) LayerContributor {
+func NewLayerContributor(name string, expectedMetadata interface{}, expectedTypes libcnb.LayerTypes, logger log.Logger) LayerContributor {
 	return LayerContributor{
 		ExpectedMetadata: expectedMetadata,
 		ExpectedTypes:    expectedTypes,
@@ -207,7 +206,7 @@ type DependencyLayerContributor struct {
 	ExpectedMetadata interface{}
 
 	// Logger is the logger to use.
-	Logger bard.Logger
+	Logger log.Logger
 
 	// RequestModifierFuncs is an optional Request Modifier to use when downloading the dependency.
 	RequestModifierFuncs []RequestModifierFunc
@@ -275,7 +274,7 @@ type HelperLayerContributor struct {
 	BuildpackInfo libcnb.BuildpackInfo
 
 	// Logger is the logger to use.
-	Logger bard.Logger
+	Logger log.Logger
 
 	// Names are the names of the helpers to create
 	Names []string

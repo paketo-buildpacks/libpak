@@ -31,7 +31,7 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak/v2"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testLayer(t *testing.T, context spec.G, it spec.S) {
@@ -62,7 +62,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			lc.Logger = bard.NewLogger(bytes.NewBuffer(nil))
+			lc.Logger = log.NewLogger(bytes.NewBuffer(nil))
 			lc.ExpectedMetadata = map[string]interface{}{
 				"alpha": "test-alpha",
 				"bravo": map[string]interface{}{
@@ -318,7 +318,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			layer.Metadata = map[string]interface{}{}
 
-			dlc.Logger = bard.NewLogger(bytes.NewBuffer(nil))
+			dlc.Logger = log.NewLogger(bytes.NewBuffer(nil))
 			dlc.ExpectedMetadata = dependency
 			dlc.Dependency = dependency
 			dlc.DependencyCache.CachePath = layer.Path
@@ -538,7 +538,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			hlc = libpak.HelperLayerContributor{
 				Path:          file,
 				BuildpackInfo: buildpack.Info,
-				Logger:        bard.NewLogger(bytes.NewBuffer(nil)),
+				Logger:        log.NewLogger(bytes.NewBuffer(nil)),
 				Names:         []string{"test-name-1", "test-name-2"},
 			}
 		})
