@@ -43,7 +43,7 @@ func testExitHandler(t *testing.T, context spec.G, it spec.S) {
 
 		handler = internal.NewExitHandler(
 			internal.WithExitHandlerExitFunc(func(c int) { exitCode = c }),
-			internal.WithExitHandlerLogger(log.NewLogger(b)),
+			internal.WithExitHandlerLogger(log.NewPaketoLogger(b)),
 			internal.WithExitHandlerWriter(b),
 		)
 	})

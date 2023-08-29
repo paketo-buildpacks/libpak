@@ -192,7 +192,6 @@ func (l *LayerContributor) reset(layer *libcnb.Layer) error {
 // DependencyLayerContributor is a helper for implementing a Contributable for a BuildpackDependency in order
 // to get consistent logging and avoidance.
 type DependencyLayerContributor struct {
-
 	// Dependency is the dependency being contributed.
 	Dependency BuildModuleDependency
 
@@ -213,12 +212,13 @@ type DependencyLayerContributor struct {
 }
 
 // NewDependencyLayerContributor returns a new DependencyLayerContributor for the given BuildpackDependency
-func NewDependencyLayerContributor(dependency BuildModuleDependency, cache DependencyCache, types libcnb.LayerTypes) DependencyLayerContributor {
+func NewDependencyLayerContributor(dependency BuildModuleDependency, cache DependencyCache, types libcnb.LayerTypes, logger log.Logger) DependencyLayerContributor {
 	return DependencyLayerContributor{
 		Dependency:       dependency,
-		ExpectedMetadata: dependency,
 		DependencyCache:  cache,
+		ExpectedMetadata: dependency,
 		ExpectedTypes:    types,
+		Logger:           logger,
 	}
 }
 

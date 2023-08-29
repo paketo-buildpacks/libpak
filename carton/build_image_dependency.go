@@ -44,7 +44,7 @@ func (i BuildImageDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := log.NewLogger(os.Stdout)
+	logger := log.NewPaketoLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity("Build Image", i.Version))
 
 	c, err := os.ReadFile(i.BuilderPath)

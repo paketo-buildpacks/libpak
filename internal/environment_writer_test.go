@@ -41,7 +41,7 @@ func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {
 		path = t.TempDir()
 		Expect(os.RemoveAll(path)).To(Succeed())
 
-		writer = internal.EnvironmentWriter{}
+		writer = internal.NewEnvironmentWriter()
 	})
 
 	it("writes the given environment to a directory", func() {
@@ -85,7 +85,7 @@ func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {
 
 		it.Before(func() {
 			b = bytes.NewBuffer(nil)
-			writer = internal.NewEnvironmentWriter(internal.WithEnvironmentWriterLogger(log.NewLogger(b)))
+			writer = internal.NewEnvironmentWriter(internal.WithEnvironmentWriterLogger(log.NewPaketoLogger(b)))
 		})
 
 		it("logs environment", func() {

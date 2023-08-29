@@ -73,7 +73,7 @@ func WithExitHandlerWriter(writer io.Writer) ExitHandlerOption {
 func NewExitHandler(options ...ExitHandlerOption) ExitHandler {
 	h := ExitHandler{
 		exitFunc: os.Exit,
-		logger:   log.NewLogger(os.Stdout),
+		logger:   log.NewPaketoLogger(os.Stdout),
 		writer:   os.Stderr,
 	}
 

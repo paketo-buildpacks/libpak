@@ -41,7 +41,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 	context("without BP_DEBUG", func() {
 		it.Before(func() {
-			l = log.NewLogger(b)
+			l = log.NewPaketoLogger(b)
 		})
 
 		it("does not configure debug", func() {
@@ -53,12 +53,8 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 		it.Before(func() {
 			//libcnb defines BP_DEBUG as enabled if it has _any_ value
 			//this does not include empty string as previously tested here.
-			Expect(os.Setenv("BP_DEBUG", "true")).To(Succeed())
-			l = log.NewLogger(b)
-		})
-
-		it.After(func() {
-			Expect(os.Unsetenv("BP_DEBUG")).To(Succeed())
+			t.Setenv("BP_DEBUG", "true")
+			l = log.NewPaketoLogger(b)
 		})
 
 		it("configures debug", func() {
@@ -68,12 +64,8 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 	context("with BP_LOG_LEVEL set to DEBUG", func() {
 		it.Before(func() {
-			Expect(os.Setenv("BP_LOG_LEVEL", "DEBUG")).To(Succeed())
-			l = log.NewLogger(b)
-		})
-
-		it.After(func() {
-			Expect(os.Unsetenv("BP_LOG_LEVEL")).To(Succeed())
+			t.Setenv("BP_LOG_LEVEL", "DEBUG")
+			l = log.NewPaketoLogger(b)
 		})
 
 		it("configures debug", func() {
@@ -84,7 +76,7 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 	context("with debug disabled", func() {
 		it.Before(func() {
 			Expect(os.Unsetenv("BP_LOG_LEVEL")).To(Succeed())
-			l = log.NewLoggerWithOptions(b)
+			l = log.NewPaketoLoggerWithOptions(b)
 		})
 
 		it("does not write debug log", func() {
@@ -104,11 +96,8 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 	context("with debug enabled", func() {
 		it.Before(func() {
-			Expect(os.Setenv("BP_LOG_LEVEL", "debug")).To(Succeed())
-			l = log.NewLogger(b)
-		})
-		it.After(func() {
-			Expect(os.Unsetenv("BP_LOG_LEVEL")).To(Succeed())
+			t.Setenv("BP_LOG_LEVEL", "debug")
+			l = log.NewPaketoLogger(b)
 		})
 
 		it("writes body log", func() {
@@ -131,12 +120,12 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 		it("writes debug log", func() {
 			l.Debug("test-message")
-			Expect(b.String()).To(Equal("test-message\n"))
+			Expect(b.String()).To(Equal("\x1b[46mtest-message\x1b[0m\n"))
 		})
 
 		it("writes debug formatted log", func() {
 			l.Debugf("test-%s", "message")
-			Expect(b.String()).To(Equal("test-message\n"))
+			Expect(b.String()).To(Equal("\x1b[46mtest-message\x1b[0m\n"))
 		})
 
 		it("returns debug writer", func() {

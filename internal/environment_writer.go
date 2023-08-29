@@ -44,7 +44,7 @@ func WithEnvironmentWriterLogger(logger log.Logger) EnvironmentWriterOption {
 // NewEnvironmentWriter creates a new instance that writes to the filesystem and writes to the default log.Logger.
 func NewEnvironmentWriter(options ...EnvironmentWriterOption) EnvironmentWriter {
 	w := EnvironmentWriter{
-		logger: log.NewLogger(os.Stdout),
+		logger: log.NewPaketoLogger(os.Stdout),
 	}
 
 	for _, option := range options {

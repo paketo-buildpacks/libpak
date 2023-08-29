@@ -62,7 +62,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			lc.Logger = log.NewLogger(bytes.NewBuffer(nil))
+			lc.Logger = log.NewPaketoLogger(bytes.NewBuffer(nil))
 			lc.ExpectedMetadata = map[string]interface{}{
 				"alpha": "test-alpha",
 				"bravo": map[string]interface{}{
@@ -318,11 +318,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			layer.Metadata = map[string]interface{}{}
 
-			dlc.Logger = log.NewLogger(bytes.NewBuffer(nil))
+			dlc.Logger = log.NewDiscardLogger()
 			dlc.ExpectedMetadata = dependency
 			dlc.Dependency = dependency
 			dlc.DependencyCache.CachePath = layer.Path
 			dlc.DependencyCache.DownloadPath = layer.Path
+			dlc.DependencyCache.Logger = log.NewDiscardLogger()
 		})
 
 		it.After(func() {
@@ -538,7 +539,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			hlc = libpak.HelperLayerContributor{
 				Path:          file,
 				BuildpackInfo: buildpack.Info,
-				Logger:        log.NewLogger(bytes.NewBuffer(nil)),
+				Logger:        log.NewPaketoLogger(bytes.NewBuffer(nil)),
 				Names:         []string{"test-name-1", "test-name-2"},
 			}
 		})

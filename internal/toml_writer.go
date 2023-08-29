@@ -48,7 +48,7 @@ func WithTOMLWriterLogger(logger log.Logger) TOMLWriterOption {
 // NewTOMLWriter creates a new instance that writes to the filesystem and writes to the default log.Logger.
 func NewTOMLWriter(options ...TOMLWriterOption) TOMLWriter {
 	w := TOMLWriter{
-		logger: log.NewLogger(os.Stdout),
+		logger: log.NewPaketoLogger(os.Stdout),
 	}
 
 	for _, option := range options {

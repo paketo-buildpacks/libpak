@@ -1,7 +1,6 @@
 package sbom_test
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,7 +61,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			}).Return(nil)
 
 			// uses interface here intentionally, to force that inteface and implementation match
-			scanner = sbom.NewSyftCLISBOMScanner(layers, &executor, log.NewLogger(io.Discard))
+			scanner = sbom.NewSyftCLISBOMScanner(layers, &executor, log.NewDiscardLogger())
 
 			Expect(scanner.ScanBuild("something", format)).To(Succeed())
 
@@ -105,7 +104,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			}).Return(nil)
 
 			// uses interface here intentionally, to force that inteface and implementation match
-			scanner = sbom.NewSyftCLISBOMScanner(layers, &executor, log.NewLogger(io.Discard))
+			scanner = sbom.NewSyftCLISBOMScanner(layers, &executor, log.NewDiscardLogger())
 
 			Expect(scanner.ScanBuild("something", format)).To(Succeed())
 
@@ -133,7 +132,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			scanner := sbom.SyftCLISBOMScanner{
 				Executor: &executor,
 				Layers:   layers,
-				Logger:   log.NewLogger(io.Discard),
+				Logger:   log.NewDiscardLogger(),
 			}
 
 			Expect(scanner.ScanLayer(layer, "something", format)).To(Succeed())
@@ -160,7 +159,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			scanner := sbom.SyftCLISBOMScanner{
 				Executor: &executor,
 				Layers:   layers,
-				Logger:   log.NewLogger(io.Discard),
+				Logger:   log.NewDiscardLogger(),
 			}
 
 			Expect(scanner.ScanLaunch("something", libcnb.CycloneDXJSON, libcnb.SyftJSON, libcnb.SPDXJSON)).To(Succeed())

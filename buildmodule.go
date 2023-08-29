@@ -284,7 +284,6 @@ func NewBuildModuleMetadata(metadata map[string]interface{}) (BuildModuleMetadat
 
 // ConfigurationResolver provides functionality for resolving a configuration value.
 type ConfigurationResolver struct {
-
 	// Configurations are the configurations to resolve against
 	Configurations []BuildModuleConfiguration
 }
@@ -319,16 +318,20 @@ func (c configurationEntry) String(nameLength int, valueLength int) string {
 	return sb.String()
 }
 
-// NewConfigurationResolver creates a new instance from buildmodule metadata.  Logs configuration options to the body
-// level int the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
-func NewConfigurationResolver(md BuildModuleMetadata, logger *log.Logger) (ConfigurationResolver, error) {
-
+// NewConfigurationResolver creates a new instance from buildmodule metadata.
+func NewConfigurationResolver(md BuildModuleMetadata) (ConfigurationResolver, error) {
 	cr := ConfigurationResolver{Configurations: md.Configurations}
 
-	if logger == nil {
-		return cr, nil
-	}
+	sort.Slice(md.Configurations, func(i, j int) bool {
+		return md.Configurations[i].Name < md.Configurations[j].Name
+	})
 
+	return cr, nil
+}
+
+// LogConfiguration will write the configuration options to the body level in
+// the form 'Set $Name to configure $Description[. Default <i>$Default</i>.]'.
+func (c *ConfigurationResolver) LogConfiguration(logger log.Logger) {
 	var (
 		build   []configurationEntry
 		launch  []configurationEntry
@@ -338,16 +341,12 @@ func NewConfigurationResolver(md BuildModuleMetadata, logger *log.Logger) (Confi
 		valueLength int
 	)
 
-	sort.Slice(md.Configurations, func(i, j int) bool {
-		return md.Configurations[i].Name < md.Configurations[j].Name
-	})
-
-	for _, c := range md.Configurations {
-		s, _ := cr.Resolve(c.Name)
+	for _, config := range c.Configurations {
+		s, _ := c.Resolve(config.Name)
 
 		e := configurationEntry{
-			Name:        c.Name,
-			Description: c.Description,
+			Name:        config.Name,
+			Description: config.Description,
 			Value:       s,
 		}
 
@@ -359,15 +358,15 @@ func NewConfigurationResolver(md BuildModuleMetadata, logger *log.Logger) (Confi
 			valueLength = l
 		}
 
-		if c.Build {
+		if config.Build {
 			build = append(build, e)
 		}
 
-		if c.Launch {
+		if config.Launch {
 			launch = append(launch, e)
 		}
 
-		if !c.Build && !c.Launch {
+		if !config.Build && !config.Launch {
 			unknown = append(unknown, e)
 		}
 	}
@@ -394,8 +393,6 @@ func NewConfigurationResolver(md BuildModuleMetadata, logger *log.Logger) (Confi
 			logger.Body(e.String(nameLength, valueLength))
 		}
 	}
-
-	return cr, nil
 }
 
 // Resolve resolves the value for a configuration option, returning the default value and false if it was not set.
@@ -435,7 +432,7 @@ type DependencyResolver struct {
 	StackID string
 
 	// Logger is the logger used to write to the console.
-	Logger *log.Logger
+	Logger log.Logger
 }
 
 // NewDependencyResolver creates a new instance from the build module metadata and stack id.

@@ -65,7 +65,7 @@ other-field = "other-value"`))
 
 		it.Before(func() {
 			b = bytes.NewBuffer(nil)
-			tomlWriter = internal.NewTOMLWriter(internal.WithTOMLWriterLogger(log.NewLogger(b)))
+			tomlWriter = internal.NewTOMLWriter(internal.WithTOMLWriterLogger(log.NewPaketoLogger(b)))
 		})
 
 		it("does not log for uninteresting types", func() {

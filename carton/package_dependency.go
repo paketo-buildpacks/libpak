@@ -44,7 +44,7 @@ func (p PackageDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := log.NewLogger(os.Stdout)
+	logger := log.NewPaketoLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity(p.ID, p.Version))
 
 	if p.BuilderPath != "" {

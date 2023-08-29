@@ -19,6 +19,7 @@ package log
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/buildpacks/libcnb/v2/log"
@@ -30,10 +31,32 @@ func init() {
 	color.Enabled()
 }
 
-// Logger logs message to a writer.
-type Logger struct {
+type Logger interface {
 	log.Logger
 
+	Body(a ...interface{})
+	Bodyf(format string, a ...interface{})
+	BodyWriter() io.Writer
+	IsBodyEnabled() bool
+
+	Header(a ...interface{})
+	Headerf(format string, a ...interface{})
+	HeaderWriter() io.Writer
+	IsHeaderEnabled() bool
+
+	TerminalError(err IdentifiableError)
+	TerminalErrorWriter() io.Writer
+	IsTerminalErrorEnabled() bool
+
+	Title(name string, version string, homepage string)
+	Titlef(format string, a ...interface{})
+	TitleWriter() io.Writer
+	IsTitleEnabled() bool
+}
+
+// Logger logs message to a writer.
+type PaketoLogger struct {
+	debug          io.Writer
 	body           io.Writer
 	header         io.Writer
 	terminalBody   io.Writer
@@ -41,18 +64,35 @@ type Logger struct {
 	title          io.Writer
 }
 
-// NewLogger creates a new instance of Logger.  It configures debug logging if $BP_DEBUG is set.
-func NewLogger(writer io.Writer) Logger {
+// NewDiscard creates a new instance of PaketoLogger that discards all log messages. Useful in testing.
+func NewDiscardLogger() PaketoLogger {
+	return PaketoLogger{
+		debug:          io.Discard,
+		body:           io.Discard,
+		header:         io.Discard,
+		terminalBody:   io.Discard,
+		terminalHeader: io.Discard,
+		title:          io.Discard,
+	}
+}
+
+// NewPaketoLogger creates a new instance of PaketoLogger.  It configures debug logging if $BP_DEBUG is set.
+func NewPaketoLogger(writer io.Writer) PaketoLogger {
 	var options []Option
-	return NewLoggerWithOptions(writer, options...)
+	return NewPaketoLoggerWithOptions(writer, options...)
 }
 
 // Option is a function for configuring a Logger instance.
-type Option func(logger Logger) Logger
+type Option func(logger PaketoLogger) PaketoLogger
 
-func NewLoggerWithOptions(writer io.Writer, options ...Option) Logger {
-	l := Logger{
-		Logger:         log.New(writer),
+func NewPaketoLoggerWithOptions(writer io.Writer, options ...Option) PaketoLogger {
+	var debugWriter io.Writer
+	if strings.ToLower(os.Getenv("BP_LOG_LEVEL")) == "debug" || os.Getenv("BP_DEBUG") != "" {
+		debugWriter = NewWriter(writer, WithAttributes(color.BgCyan))
+	}
+
+	l := PaketoLogger{
+		debug:          debugWriter,
 		body:           NewWriter(writer, WithAttributes(color.Faint), WithIndent(2)),
 		header:         NewWriter(writer, WithIndent(1)),
 		terminalBody:   NewWriter(writer, WithAttributes(color.FgRed, color.Bold), WithIndent(1)),
@@ -69,7 +109,7 @@ func NewLoggerWithOptions(writer io.Writer, options ...Option) Logger {
 
 // Body formats using the default formats for its operands and logs a message to the configured body writer. Spaces
 // are added between operands when neither is a string.
-func (l Logger) Body(a ...interface{}) {
+func (l PaketoLogger) Body(a ...interface{}) {
 	if !l.IsBodyEnabled() {
 		return
 	}
@@ -78,7 +118,7 @@ func (l Logger) Body(a ...interface{}) {
 }
 
 // Bodyf formats according to a format specifier and logs a message to the configured body writer.
-func (l Logger) Bodyf(format string, a ...interface{}) {
+func (l PaketoLogger) Bodyf(format string, a ...interface{}) {
 	if !l.IsBodyEnabled() {
 		return
 	}
@@ -87,18 +127,18 @@ func (l Logger) Bodyf(format string, a ...interface{}) {
 }
 
 // BodyWriter returns the configured body writer.
-func (l Logger) BodyWriter() io.Writer {
+func (l PaketoLogger) BodyWriter() io.Writer {
 	return l.body
 }
 
 // IsBodyEnabled indicates whether body logging is enabled.
-func (l Logger) IsBodyEnabled() bool {
+func (l PaketoLogger) IsBodyEnabled() bool {
 	return l.body != nil
 }
 
 // Header formats using the default formats for its operands and logs a message to the configured header writer. Spaces
 // are added between operands when neither is a string.
-func (l Logger) Header(a ...interface{}) {
+func (l PaketoLogger) Header(a ...interface{}) {
 	if !l.IsHeaderEnabled() {
 		return
 	}
@@ -107,7 +147,7 @@ func (l Logger) Header(a ...interface{}) {
 }
 
 // Headerf formats according to a format specifier and logs a message to the configured header writer.
-func (l Logger) Headerf(format string, a ...interface{}) {
+func (l PaketoLogger) Headerf(format string, a ...interface{}) {
 	if !l.IsHeaderEnabled() {
 		return
 	}
@@ -116,18 +156,17 @@ func (l Logger) Headerf(format string, a ...interface{}) {
 }
 
 // HeaderWriter returns the configured header writer.
-func (l Logger) HeaderWriter() io.Writer {
+func (l PaketoLogger) HeaderWriter() io.Writer {
 	return l.header
 }
 
 // IsHeaderEnabled indicates whether header logging is enabled.
-func (l Logger) IsHeaderEnabled() bool {
+func (l PaketoLogger) IsHeaderEnabled() bool {
 	return l.header != nil
 }
 
 // IdentifiableError is an error associated with an Identifiable for logging purposes.
 type IdentifiableError struct {
-
 	// Name is the name of the identified object.
 	Name string
 
@@ -143,7 +182,7 @@ func (i IdentifiableError) Error() string {
 }
 
 // TerminalError logs a message to the configured terminal error writer.
-func (l Logger) TerminalError(err IdentifiableError) {
+func (l PaketoLogger) TerminalError(err IdentifiableError) {
 	if !l.IsTerminalErrorEnabled() {
 		return
 	}
@@ -153,16 +192,16 @@ func (l Logger) TerminalError(err IdentifiableError) {
 }
 
 // TerminalErrorWriter returns the configured terminal error writer.
-func (l Logger) TerminalErrorWriter() io.Writer {
+func (l PaketoLogger) TerminalErrorWriter() io.Writer {
 	return l.terminalBody
 }
 
 // IsTerminalErrorEnabled indicates whether terminal error logging is enabled.
-func (l Logger) IsTerminalErrorEnabled() bool {
+func (l PaketoLogger) IsTerminalErrorEnabled() bool {
 	return l.terminalHeader != nil && l.terminalBody != nil
 }
 
-func (l Logger) Title(name string, version string, homepage string) {
+func (l PaketoLogger) Title(name string, version string, homepage string) {
 	if !l.IsTitleEnabled() {
 		return
 	}
@@ -171,17 +210,67 @@ func (l Logger) Title(name string, version string, homepage string) {
 	l.Header(color.New(color.FgBlue, color.Faint, color.Italic).Sprint(homepage))
 }
 
+func (l PaketoLogger) Titlef(format string, a ...interface{}) {
+	if !l.IsTitleEnabled() {
+		return
+	}
+
+	l.printf(l.title, format, a...)
+}
+
 // TitleWriter returns the configured title writer.
-func (l Logger) TitleWriter() io.Writer {
+func (l PaketoLogger) TitleWriter() io.Writer {
 	return l.title
 }
 
 // IsTitleEnabled indicates whether title logging is enabled.
-func (l Logger) IsTitleEnabled() bool {
+func (l PaketoLogger) IsTitleEnabled() bool {
 	return l.title != nil
 }
 
-func (Logger) print(writer io.Writer, a ...interface{}) {
+// Debug formats using the default formats for its operands and writes to the configured debug writer. Spaces are added
+// between operands when neither is a string.
+func (l PaketoLogger) Debug(a ...interface{}) {
+	if !l.IsDebugEnabled() {
+		return
+	}
+
+	s := fmt.Sprint(a...)
+
+	if !strings.HasSuffix(s, "\n") {
+		s += "\n"
+	}
+
+	_, _ = fmt.Fprint(l.debug, s)
+}
+
+// Debugf formats according to a format specifier and writes to the configured debug writer.
+func (l PaketoLogger) Debugf(format string, a ...interface{}) {
+	if !l.IsDebugEnabled() {
+		return
+	}
+
+	if !strings.HasSuffix(format, "\n") {
+		format += "\n"
+	}
+
+	_, _ = fmt.Fprintf(l.debug, format, a...)
+}
+
+// DebugWriter returns the configured debug writer.
+func (l PaketoLogger) DebugWriter() io.Writer {
+	if l.IsDebugEnabled() {
+		return l.debug
+	}
+	return io.Discard
+}
+
+// IsDebugEnabled indicates whether debug logging is enabled.
+func (l PaketoLogger) IsDebugEnabled() bool {
+	return l.debug != nil
+}
+
+func (PaketoLogger) print(writer io.Writer, a ...interface{}) {
 	s := fmt.Sprint(a...)
 
 	if !strings.HasSuffix(s, "\n") {
@@ -191,7 +280,7 @@ func (Logger) print(writer io.Writer, a ...interface{}) {
 	_, _ = fmt.Fprint(writer, s)
 }
 
-func (Logger) printf(writer io.Writer, format string, a ...interface{}) {
+func (PaketoLogger) printf(writer io.Writer, format string, a ...interface{}) {
 	if !strings.HasSuffix(format, "\n") {
 		format = format + "\n"
 	}

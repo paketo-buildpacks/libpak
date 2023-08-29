@@ -54,7 +54,7 @@ func (b BuildModuleDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := log.NewLogger(os.Stdout)
+	logger := log.NewPaketoLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity(b.ID, b.VersionPattern))
 	logger.Headerf("Version: %s", b.Version)
 	logger.Headerf("PURL:    %s", b.PURL)

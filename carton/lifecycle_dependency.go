@@ -44,7 +44,7 @@ func (l LifecycleDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := log.NewLogger(os.Stdout)
+	logger := log.NewPaketoLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity("Lifecycle", l.Version))
 
 	c, err := os.ReadFile(l.BuilderPath)

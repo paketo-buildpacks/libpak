@@ -284,7 +284,6 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		context("Resolve", func() {
-
 			it("filters by id", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
@@ -601,8 +600,8 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 			it("prints outdated dependencies", func() {
 				buff := bytes.NewBuffer(nil)
-				logger := log.NewLogger(buff)
-				resolver.Logger = &logger
+				logger := log.NewPaketoLogger(buff)
+				resolver.Logger = logger
 				soonDeprecated := time.Now().UTC().Add(30 * 24 * time.Hour)
 				notSoSoonDeprecated := time.Now().UTC().Add(60 * 24 * time.Hour)
 				resolver.Dependencies = []libpak.BuildModuleDependency{
