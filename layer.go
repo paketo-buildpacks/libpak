@@ -281,11 +281,12 @@ type HelperLayerContributor struct {
 }
 
 // NewHelperLayerContributor returns a new HelperLayerContributor
-func NewHelperLayerContributor(buildpack libcnb.Buildpack, names ...string) HelperLayerContributor {
+func NewHelperLayerContributor(buildpack libcnb.Buildpack, logger log.Logger, names ...string) HelperLayerContributor {
 	return HelperLayerContributor{
-		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
-		Names:         names,
 		BuildpackInfo: buildpack.Info,
+		Logger:        logger,
+		Names:         names,
+		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
 	}
 }
 
