@@ -34,10 +34,18 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
+// ContributeLayersFunc takes a context and result pointer returning a list of Contributables, the list of Contributables will be turned into layers automatically
+type ContributeLayersFunc func(context libcnb.BuildContext, result *libcnb.BuildResult) ([]Contributable, error)
+
 // ContributableBuildFunc is a standard libcnb.BuildFunc implementation that delegates to a list of Contributables
-func ContributableBuildFunc(layerContributors []Contributable) libcnb.BuildFunc {
+func ContributableBuildFunc(contributeLayersFunc ContributeLayersFunc) libcnb.BuildFunc {
 	return func(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 		result := libcnb.NewBuildResult()
+
+		layerContributors, err := contributeLayersFunc(context, &result)
+		if err != nil {
+			return libcnb.BuildResult{}, fmt.Errorf("unable to fetch layer contributors\n%w", err)
+		}
 
 		for _, creator := range layerContributors {
 			name := creator.Name()

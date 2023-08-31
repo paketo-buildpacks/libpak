@@ -52,10 +52,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		layer.Profile = libcnb.Profile{}
 	})
 
-	it.After(func() {
-		Expect(os.RemoveAll(layersDir)).To(Succeed())
-	})
-
 	context("LayerContributor", func() {
 		var (
 			lc libpak.LayerContributor
