@@ -64,7 +64,7 @@ type PaketoLogger struct {
 	title          io.Writer
 }
 
-// NewDiscard creates a new instance of PaketoLogger that discards all log messages. Useful in testing.
+// NewDiscardLogger creates a new instance of PaketoLogger that discards all log messages. Useful in testing.
 func NewDiscardLogger() PaketoLogger {
 	return PaketoLogger{
 		debug:          io.Discard,
