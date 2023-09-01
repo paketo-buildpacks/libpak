@@ -43,8 +43,8 @@ type BuildpackDependency struct {
 	CPEPattern     string
 	PURL           string
 	PURLPattern    string
-	Source         string
-	SourceSHA256   string
+	Source         string `toml:"source,omitempty"`
+	SourceSHA256   string `toml:"source-sha256,omitempty"`
 }
 
 func (b BuildpackDependency) Update(options ...Option) {
@@ -155,8 +155,12 @@ func (b BuildpackDependency) Update(options ...Option) {
 				dep["version"] = b.Version
 				dep["uri"] = b.URI
 				dep["sha256"] = b.SHA256
-				dep["source"] = b.Source
-				dep["source-sha256"] = b.SourceSHA256
+				if b.SourceSHA256 != "" {
+					dep["source-sha256"] = b.SourceSHA256
+				}
+				if b.Source != "" {
+					dep["source"] = b.Source
+				}
 
 				purlUnwrapped, found := dep["purl"]
 				if found {
