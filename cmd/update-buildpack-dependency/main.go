@@ -87,10 +87,5 @@ func main() {
 		b.CPEPattern = b.VersionPattern
 	}
 
-	if b.Source == "" && b.SourceSHA256 == "" {
-		b.Source = b.URI
-		b.SourceSHA256 = b.SHA256
-	}
-
 	b.Update()
 }
