@@ -28,8 +28,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testTOMLWriter(t *testing.T, context spec.G, it spec.S) {
@@ -65,7 +65,7 @@ other-field = "other-value"`))
 
 		it.Before(func() {
 			b = bytes.NewBuffer(nil)
-			tomlWriter = internal.NewTOMLWriter(internal.WithTOMLWriterLogger(bard.NewLogger(b)))
+			tomlWriter = internal.NewTOMLWriter(internal.WithTOMLWriterLogger(log.NewPaketoLogger(b)))
 		})
 
 		it("does not log for uninteresting types", func() {

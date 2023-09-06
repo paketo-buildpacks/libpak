@@ -32,6 +32,7 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak/v2"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
@@ -55,7 +56,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("set default CachePath and UserAgent", func() {
-			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
+			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dependencyCache.CachePath).To(Equal(filepath.Join("some/path/dependencies")))
 			Expect(dependencyCache.UserAgent).To(Equal("some-buildpack-id/some-buildpack-version"))
@@ -63,7 +64,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("uses default timeout values", func() {
-			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
+			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(6 * time.Second))
 			Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(60 * time.Second))
@@ -82,7 +83,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("uses custom timeout values", func() {
-				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
+				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(7 * time.Second))
 				Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(50 * time.Second))
@@ -119,7 +120,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("sets Mappings", func() {
-				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
+				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dependencyCache.Mappings).To(Equal(
 					map[string]string{
@@ -142,7 +143,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				})
 
 				it("errors", func() {
-					_, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings)
+					_, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -191,6 +192,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			dependencyCache = libpak.DependencyCache{
 				CachePath:    cachePath,
 				DownloadPath: downloadPath,
+				Logger:       log.NewDiscardLogger(),
 				UserAgent:    "test-user-agent",
 			}
 		})

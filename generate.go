@@ -19,8 +19,8 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 // Generate is called by the main function of an extension, for generation.
@@ -40,7 +40,7 @@ type generateDelegate struct {
 func (b generateDelegate) Generate(context libcnb.GenerateContext) (libcnb.GenerateResult, error) {
 	result, err := b.delegate(context)
 	if err != nil {
-		err = bard.IdentifiableError{
+		err = log.IdentifiableError{
 			Name:        context.Extension.Info.Name,
 			Description: context.Extension.Info.Version,
 			Err:         err,

@@ -34,7 +34,7 @@ import (
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
@@ -49,7 +49,6 @@ type HttpClientTimeouts struct {
 // DependencyCache allows a user to get an artifact either from a buildmodule's cache, a previous download, or to download
 // directly.
 type DependencyCache struct {
-
 	// CachePath is the location where the buildmodule has cached its dependencies.
 	CachePath string
 
@@ -57,7 +56,7 @@ type DependencyCache struct {
 	DownloadPath string
 
 	// Logger is the logger used to write to the console.
-	Logger bard.Logger
+	Logger log.Logger
 
 	// UserAgent is the User-Agent string to use with requests.
 	UserAgent string
@@ -71,12 +70,13 @@ type DependencyCache struct {
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDMODULE_PATH>/dependencies) and user
 // agent (<BUILDMODULE_ID>/<BUILDMODULE_VERSION>).
-func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildModulePath string, platformBindings libcnb.Bindings) (DependencyCache, error) {
+func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildModulePath string, platformBindings libcnb.Bindings, logger log.Logger) (DependencyCache, error) {
 	cache := DependencyCache{
 		CachePath:    filepath.Join(buildModulePath, "dependencies"),
 		DownloadPath: os.TempDir(),
-		UserAgent:    fmt.Sprintf("%s/%s", buildModuleID, buildModuleVersion),
+		Logger:       logger,
 		Mappings:     map[string]string{},
+		UserAgent:    fmt.Sprintf("%s/%s", buildModuleID, buildModuleVersion),
 	}
 	mappings, err := mappingsFromBindings(platformBindings)
 	if err != nil {
@@ -161,7 +161,6 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 // If the BuildpackDependency's SHA256 is not set, the download can never be verified to be up to date and will always
 // download, skipping all the caches.
 func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...RequestModifierFunc) (*os.File, error) {
-
 	var (
 		artifact string
 		file     string

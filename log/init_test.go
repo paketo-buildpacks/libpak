@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package bard
+package log_test
 
 import (
-	"fmt"
+	"testing"
 
-	"github.com/heroku/color"
+	"github.com/sclevine/spec"
+	"github.com/sclevine/spec/report"
 )
 
-// FormatIdentity formats a name and an optional description in the form '<b>name</b>[ description]'.
-func FormatIdentity(name string, description string) string {
-	s := color.New(color.Bold).Sprint(name)
-
-	if description != "" {
-		s += fmt.Sprintf(" %s", description)
-	}
-
-	return s
+func TestUnit(t *testing.T) {
+	suite := spec.New("libpak/log", spec.Report(report.Terminal{}))
+	suite("Logger", testLogger)
+	suite("Formatter", testFormatter)
+	suite("Writer", testWriter)
+	suite.Run(t)
 }

@@ -29,9 +29,9 @@ import (
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/v2"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/effect"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 // Package is an object that contains the configuration for building a package.
@@ -76,7 +76,7 @@ func (p Package) Create(options ...Option) {
 		file string
 	)
 
-	logger := bard.NewLogger(os.Stdout)
+	logger := log.NewPaketoLogger(os.Stdout)
 
 	// Is this a buildpack or an extension?
 	bpfile := filepath.Join(p.Source, "buildpack.toml")
@@ -103,7 +103,7 @@ func (p Package) Create(options ...Option) {
 		name = b.Info.Name
 		version = b.Info.Version
 		homepage = b.Info.Homepage
-		logger.Debug("Buildpack: %+v", b)
+		logger.Debugf("Buildpack: %+v", b)
 	} else if _, err := os.Stat(extnfile); err == nil {
 		s, err := os.ReadFile(extnfile)
 		if err != nil {
@@ -121,7 +121,7 @@ func (p Package) Create(options ...Option) {
 		version = e.Info.Version
 		homepage = e.Info.Homepage
 		extension = true
-		logger.Debug("Extension: %+v", e)
+		logger.Debugf("Extension: %+v", e)
 	} else {
 		config.exitHandler.Error(fmt.Errorf("unable to read buildpack/extension.toml at %s", p.Source))
 		return
@@ -138,7 +138,7 @@ func (p Package) Create(options ...Option) {
 	for _, i := range metadata.IncludeFiles {
 		entries[i] = filepath.Join(p.Source, i)
 	}
-	logger.Debug("Include files: %+v", entries)
+	logger.Debugf("Include files: %+v", entries)
 
 	if p.Version != "" {
 		version = p.Version

@@ -19,8 +19,8 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 // Detect is called by the main function of a buildpack, for detection.
@@ -39,7 +39,7 @@ type detectDelegate struct {
 func (d detectDelegate) Detect(context libcnb.DetectContext) (libcnb.DetectResult, error) {
 	result, err := d.delegate(context)
 	if err != nil {
-		err = bard.IdentifiableError{
+		err = log.IdentifiableError{
 			Name:        context.Buildpack.Info.Name,
 			Description: context.Buildpack.Info.Version,
 			Err:         err,

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package bard_test
+package log_test
 
 import (
 	"bytes"
@@ -22,9 +22,8 @@ import (
 
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/sclevine/spec"
-
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 )
 
 func testWriter(t *testing.T, context spec.G, it spec.S) {
@@ -35,12 +34,12 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 	context("Writer", func() {
 		var (
 			buffer *bytes.Buffer
-			writer *bard.Writer
+			writer *log.Writer
 		)
 
 		it.Before(func() {
 			buffer = bytes.NewBuffer(nil)
-			writer = bard.NewWriter(buffer)
+			writer = log.NewWriter(buffer)
 		})
 
 		context("Write", func() {
@@ -52,7 +51,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 
 			context("when the writer has a color", func() {
 				it.Before(func() {
-					writer = bard.NewWriter(buffer, bard.WithAttributes(color.FgBlue))
+					writer = log.NewWriter(buffer, log.WithAttributes(color.FgBlue))
 				})
 
 				it("prints to the writer with the correct color codes", func() {
@@ -64,7 +63,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 
 			context("when the writer has an indent", func() {
 				it.Before(func() {
-					writer = bard.NewWriter(buffer, bard.WithIndent(2))
+					writer = log.NewWriter(buffer, log.WithIndent(2))
 				})
 
 				it("prints to the writer with the correct indentation", func() {
@@ -76,7 +75,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 
 			context("when the writer has a return prefix", func() {
 				it.Before(func() {
-					writer = bard.NewWriter(buffer, bard.WithAttributes(color.FgRed), bard.WithIndent(2))
+					writer = log.NewWriter(buffer, log.WithAttributes(color.FgRed), log.WithIndent(2))
 				})
 
 				it("prints to the writer with the correct indentation", func() {
@@ -88,7 +87,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 
 			context("when the writer has a newline suffix", func() {
 				it.Before(func() {
-					writer = bard.NewWriter(buffer, bard.WithAttributes(color.FgRed), bard.WithIndent(2))
+					writer = log.NewWriter(buffer, log.WithAttributes(color.FgRed), log.WithIndent(2))
 				})
 
 				it("prints to the writer with the correct indentation", func() {
@@ -100,7 +99,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 
 			context("when there is multiple input", func() {
 				it.Before(func() {
-					writer = bard.NewWriter(buffer, bard.WithIndent(2))
+					writer = log.NewWriter(buffer, log.WithIndent(2))
 				})
 
 				it("skips indentation if there was not a line break", func() {
@@ -126,7 +125,7 @@ func testWriter(t *testing.T, context spec.G, it spec.S) {
 
 			context("when the input has a percent symbol", func() {
 				it.Before(func() {
-					writer = bard.NewWriter(buffer, bard.WithAttributes(color.FgMagenta))
+					writer = log.NewWriter(buffer, log.WithAttributes(color.FgMagenta))
 				})
 
 				it("prints to the writer with the correct indentation", func() {

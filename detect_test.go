@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/paketo-buildpacks/libpak/v2"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testDetect(t *testing.T, context spec.G, it spec.S) {
@@ -131,7 +131,7 @@ version = "test-version"`),
 			libcnb.WithExitHandler(exitHandler),
 		)
 
-		Expect(exitHandler.Calls[0].Arguments.Get(0)).To(MatchError(bard.IdentifiableError{
+		Expect(exitHandler.Calls[0].Arguments.Get(0)).To(MatchError(log.IdentifiableError{
 			Name:        "test-name",
 			Description: "test-version",
 			Err:         fmt.Errorf("test-error"),

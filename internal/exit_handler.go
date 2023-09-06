@@ -21,7 +21,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 const (
@@ -38,7 +38,7 @@ const (
 // ExitHandler is an implementation of the libcnb.ExitHandler interface.
 type ExitHandler struct {
 	exitFunc func(int)
-	logger   bard.Logger
+	logger   log.Logger
 	writer   io.Writer
 }
 
@@ -54,7 +54,7 @@ func WithExitHandlerExitFunc(exitFunc func(int)) ExitHandlerOption {
 }
 
 // WithExitHandlerLogger creates an ExitHandlerOption that configures the logger.
-func WithExitHandlerLogger(logger bard.Logger) ExitHandlerOption {
+func WithExitHandlerLogger(logger log.Logger) ExitHandlerOption {
 	return func(handler ExitHandler) ExitHandler {
 		handler.logger = logger
 		return handler
@@ -69,11 +69,11 @@ func WithExitHandlerWriter(writer io.Writer) ExitHandlerOption {
 	}
 }
 
-// NewExitHandler creates a new instance that calls os.Exit and writes to the default bard.Logger and os.stderr.
+// NewExitHandler creates a new instance that calls os.Exit and writes to the default log.Logger and os.stderr.
 func NewExitHandler(options ...ExitHandlerOption) ExitHandler {
 	h := ExitHandler{
 		exitFunc: os.Exit,
-		logger:   bard.NewLogger(os.Stdout),
+		logger:   log.NewPaketoLogger(os.Stdout),
 		writer:   os.Stderr,
 	}
 
@@ -85,7 +85,7 @@ func NewExitHandler(options ...ExitHandlerOption) ExitHandler {
 }
 
 func (e ExitHandler) Error(err error) {
-	if i, ok := err.(bard.IdentifiableError); ok {
+	if i, ok := err.(log.IdentifiableError); ok {
 		e.logger.TerminalError(i)
 	} else {
 		_, _ = fmt.Fprintln(e.writer, err)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package bard_test
+package log_test
 
 import (
 	"fmt"
@@ -22,9 +22,8 @@ import (
 
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/sclevine/spec"
-
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 )
 
 func testFormatter(t *testing.T, context spec.G, it spec.S) {
@@ -35,12 +34,12 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	context("FormatIdentity", func() {
 
 		it("it formats name", func() {
-			Expect(bard.FormatIdentity("test-name", "")).
+			Expect(log.FormatIdentity("test-name", "")).
 				To(Equal(color.New(color.Bold).Sprint("test-name")))
 		})
 
 		it("formats name and description", func() {
-			Expect(bard.FormatIdentity("test-name", "test-description")).
+			Expect(log.FormatIdentity("test-name", "test-description")).
 				To(Equal(fmt.Sprintf("%s test-description", color.New(color.Bold).Sprint("test-name"))))
 		})
 	})

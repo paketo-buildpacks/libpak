@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 type PackageDependency struct {
@@ -44,8 +44,8 @@ func (p PackageDependency) Update(options ...Option) {
 		config = option(config)
 	}
 
-	logger := bard.NewLogger(os.Stdout)
-	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(p.ID, p.Version))
+	logger := log.NewPaketoLogger(os.Stdout)
+	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", log.FormatIdentity(p.ID, p.Version))
 
 	if p.BuilderPath != "" {
 		if err := updateFile(p.BuilderPath, updateByKey("buildpacks", p.ID, p.Version)); err != nil {

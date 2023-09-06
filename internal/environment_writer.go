@@ -22,29 +22,29 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/paketo-buildpacks/libpak/v2/bard"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 // EnvironmentWriter is an implementation of the libcnb.EnvironmentWriter interface.
 type EnvironmentWriter struct {
-	logger bard.Logger
+	logger log.Logger
 }
 
 // EnvironmentWriterOption is a function for configuring a EnvironmentWriter instance.
 type EnvironmentWriterOption func(writer EnvironmentWriter) EnvironmentWriter
 
 // WithEnvironmentWriterLogger creates an EnvironmentWriterOption that configures the logger.
-func WithEnvironmentWriterLogger(logger bard.Logger) EnvironmentWriterOption {
+func WithEnvironmentWriterLogger(logger log.Logger) EnvironmentWriterOption {
 	return func(writer EnvironmentWriter) EnvironmentWriter {
 		writer.logger = logger
 		return writer
 	}
 }
 
-// NewEnvironmentWriter creates a new instance that writes to the filesystem and writes to the default bard.Logger.
+// NewEnvironmentWriter creates a new instance that writes to the filesystem and writes to the default log.Logger.
 func NewEnvironmentWriter(options ...EnvironmentWriterOption) EnvironmentWriter {
 	w := EnvironmentWriter{
-		logger: bard.NewLogger(os.Stdout),
+		logger: log.NewPaketoLogger(os.Stdout),
 	}
 
 	for _, option := range options {

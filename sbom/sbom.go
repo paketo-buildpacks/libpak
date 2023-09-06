@@ -7,8 +7,8 @@ import (
 
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/mitchellh/hashstructure/v2"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/effect"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 //go:generate mockery --name SBOMScanner --case=underscore
@@ -105,10 +105,10 @@ type SyftSchema struct {
 type SyftCLISBOMScanner struct {
 	Executor effect.Executor
 	Layers   libcnb.Layers
-	Logger   bard.Logger
+	Logger   log.Logger
 }
 
-func NewSyftCLISBOMScanner(layers libcnb.Layers, executor effect.Executor, logger bard.Logger) SyftCLISBOMScanner {
+func NewSyftCLISBOMScanner(layers libcnb.Layers, executor effect.Executor, logger log.Logger) SyftCLISBOMScanner {
 	return SyftCLISBOMScanner{
 		Executor: executor,
 		Layers:   layers,

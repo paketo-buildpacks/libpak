@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package bard
+package log
 
 import (
 	"bytes"

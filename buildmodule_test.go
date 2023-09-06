@@ -29,8 +29,8 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak/v2"
-	"github.com/paketo-buildpacks/libpak/v2/bard"
 	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
 )
 
@@ -284,7 +284,6 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		context("Resolve", func() {
-
 			it("filters by id", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
@@ -601,8 +600,8 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 			it("prints outdated dependencies", func() {
 				buff := bytes.NewBuffer(nil)
-				logger := bard.NewLogger(buff)
-				resolver.Logger = &logger
+				logger := log.NewPaketoLogger(buff)
+				resolver.Logger = logger
 				soonDeprecated := time.Now().UTC().Add(30 * 24 * time.Hour)
 				notSoSoonDeprecated := time.Now().UTC().Add(60 * 24 * time.Hour)
 				resolver.Dependencies = []libpak.BuildModuleDependency{
