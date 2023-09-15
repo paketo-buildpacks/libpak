@@ -167,7 +167,9 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		actual   BuildpackDependency
 		artifact string
 		file     string
+		hasher   = sha256.New()
 		uri      = dependency.URI
+		uriSha   string
 	)
 
 	for d, u := range d.Mappings {
@@ -177,12 +179,18 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		}
 	}
 
+	// downloaded artifact will have the uri sha as its filename
+	hasher.Write([]byte(uri))
+	uriSha = hex.EncodeToString(hasher.Sum(nil))
+
 	if dependency.SHA256 == "" {
 		d.Logger.Headerf("%s Dependency has no SHA256. Skipping cache.",
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
 		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
-		artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
+
+		artifact = filepath.Join(d.DownloadPath, uriSha)
+
 		if err := d.download(uri, artifact, mods...); err != nil {
 			return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 		}
@@ -219,7 +227,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
-	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri))
+	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, uriSha)
 	if err := d.download(uri, artifact, mods...); err != nil {
 		return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
 	}
