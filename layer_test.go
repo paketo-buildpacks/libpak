@@ -18,7 +18,6 @@ package libpak_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,10 +42,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-
-		layersDir, err = ioutil.TempDir("", "layer")
-		Expect(err).NotTo(HaveOccurred())
+		layersDir = t.TempDir()
 		layer.Path = filepath.Join(layersDir, "test-layer")
 
 		layer.Exec.Path = layer.Path
@@ -113,7 +109,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but no layer directory on cache layer", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.RemoveAll(layer.Path)).To(Succeed())
 				lc.ExpectedTypes.Cache = true
 
@@ -127,7 +123,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but no layer directory on build layer", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.RemoveAll(layer.Path)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
@@ -141,7 +137,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but an empty layer directory on build layer", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
@@ -155,9 +151,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("does not call function with matching metadata when layer directory exists and has a file in it", func() {
-				Expect(ioutil.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-				Expect(ioutil.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0644)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
 				_, err := lc.Contribute(layer, func() (libcnb.Layer, error) {
@@ -507,6 +503,107 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(called).To(BeFalse())
 		})
 
+		it("does not call function with non-matching deprecation_date format", func() {
+			dependency = libpak.BuildpackDependency{
+				ID:      "test-id",
+				Name:    "test-name",
+				Version: "1.1.1",
+				URI:     fmt.Sprintf("%s/test-path", server.URL()),
+				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Stacks:  []string{"test-stack"},
+				Licenses: []libpak.BuildpackDependencyLicense{
+					{
+						Type: "test-type",
+						URI:  "test-uri",
+					},
+				},
+				CPEs:            []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURL:            "pkg:generic/some-java11@11.0.2?arch=amd64",
+				DeprecationDate: dependency.DeprecationDate, // parsed as '2021-04-01 00:00:00 +0000 UTC'
+			}
+			dlc.ExpectedMetadata = map[string]interface{}{ "dependency":dependency}
+
+			layer.Metadata = map[string]interface{}{ "dependency": map[string]interface{}{
+				"id":      dependency.ID,
+				"name":    dependency.Name,
+				"version": dependency.Version,
+				"uri":     dependency.URI,
+				"sha256":  dependency.SHA256,
+				"stacks":  []interface{}{dependency.Stacks[0]},
+				"licenses": []map[string]interface{}{
+					{
+						"type": dependency.Licenses[0].Type,
+						"uri":  dependency.Licenses[0].URI,
+					},
+				},
+				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"deprecation_date": "2021-04-01T00:00:00Z", // does not match without truncation
+			}}
+
+			var called bool
+
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+		})
+
+		it("does not call function with missing deprecation_date", func() {
+			dependency = libpak.BuildpackDependency{
+				ID:      "test-id",
+				Name:    "test-name",
+				Version: "1.1.1",
+				URI:     fmt.Sprintf("%s/test-path", server.URL()),
+				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Stacks:  []string{"test-stack"},
+				Licenses: []libpak.BuildpackDependencyLicense{
+					{
+						Type: "test-type",
+						URI:  "test-uri",
+					},
+				},
+				CPEs:            []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURL:            "pkg:generic/some-java11@11.0.2?arch=amd64",
+			}
+			dlc.ExpectedMetadata = map[string]interface{}{ "dependency":dependency}
+
+			layer.Metadata = map[string]interface{}{ "dependency": map[string]interface{}{
+				"id":      dependency.ID,
+				"name":    dependency.Name,
+				"version": dependency.Version,
+				"uri":     dependency.URI,
+				"sha256":  dependency.SHA256,
+				"stacks":  []interface{}{dependency.Stacks[0]},
+				"licenses": []map[string]interface{}{
+					{
+						"type": dependency.Licenses[0].Type,
+						"uri":  dependency.Licenses[0].URI,
+					},
+				},
+				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"deprecation_date": "0001-01-01T00:00:00Z",
+			}}
+
+			var called bool
+
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+		})
+
 		it("returns function error", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
@@ -597,7 +694,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())
 
-			data, err := ioutil.ReadFile(outputFile)
+			data, err := os.ReadFile(outputFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
 			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))
@@ -657,8 +754,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			var err error
-
 			buildpack.Info = libcnb.BuildpackInfo{
 				ID:       "test-id",
 				Name:     "test-name",
@@ -666,14 +761,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Homepage: "test-homepage",
 			}
 
-			buildpack.Path, err = ioutil.TempDir("", "buildpack")
-			Expect(err).NotTo(HaveOccurred())
-
+			buildpack.Path = t.TempDir()
 			file := filepath.Join(buildpack.Path, "bin")
 			Expect(os.MkdirAll(file, 0755)).To(Succeed())
 
 			file = filepath.Join(file, "helper")
-			Expect(ioutil.WriteFile(file, []byte{}, 0755)).To(Succeed())
+			Expect(os.WriteFile(file, []byte{}, 0755)).To(Succeed())
 
 			hlc = libpak.HelperLayerContributor{
 				Path:          file,
@@ -711,14 +804,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("does not call function with matching metadata", func() {
 			buildpackInfo := map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
 			}
 			layer.Metadata["buildpackInfo"] = buildpackInfo
 			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}
@@ -736,28 +827,24 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			buildpackInfo := map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
 			}
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{"buildpackInfo": buildpackInfo, "helperNames": []interface{}{hlc.Names[0], hlc.Names[1]}}))
 		})
 
 		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
 			buildpackInfo := map[string]interface{}{
-				"id":           buildpack.Info.ID,
-				"name":         buildpack.Info.Name,
-				"version":      buildpack.Info.Version,
-				"homepage":     buildpack.Info.Homepage,
-				"clear-env":    buildpack.Info.ClearEnvironment,
-				"description":  "",
-				"sbom-formats": []interface{}{},
-				"keywords":     []interface{}{},
+				"id":          buildpack.Info.ID,
+				"name":        buildpack.Info.Name,
+				"version":     buildpack.Info.Version,
+				"homepage":    buildpack.Info.Homepage,
+				"clear-env":   buildpack.Info.ClearEnvironment,
+				"description": "",
 			}
 			layer.Metadata["buildpackInfo"] = buildpackInfo
 			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}
@@ -787,7 +874,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())
 
-			data, err := ioutil.ReadFile(outputFile)
+			data, err := os.ReadFile(outputFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
 			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))

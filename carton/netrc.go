@@ -18,7 +18,6 @@ package carton
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/user"
@@ -48,7 +47,7 @@ func (n Netrc) BasicAuth(request *http.Request) (*http.Request, error) {
 }
 
 func ParseNetrc(path string) (Netrc, error) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {

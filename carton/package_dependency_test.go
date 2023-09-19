@@ -17,7 +17,6 @@
 package carton_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -44,7 +43,7 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		f, err := ioutil.TempFile("", "carton-package-dependency")
+		f, err := os.CreateTemp("", "carton-package-dependency")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).To(Succeed())
 		path = f.Name()
@@ -55,7 +54,7 @@ func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("updates paketo-buildpacks dependency without losing other fields", func() {
-		Expect(ioutil.WriteFile(path, []byte(`# it should preserve
+		Expect(os.WriteFile(path, []byte(`# it should preserve
 #   these comments
 #      exactly
 
@@ -87,7 +86,7 @@ include-files = [
 
 		p.Update(carton.WithExitHandler(exitHandler))
 
-		body, err := ioutil.ReadFile(path)
+		body, err := os.ReadFile(path)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(body)).To(HavePrefix(`# it should preserve
 #   these comments

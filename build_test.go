@@ -18,7 +18,6 @@ package libpak_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,17 +53,17 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		applicationPath, err = ioutil.TempDir("", "build-application-path")
+		applicationPath = t.TempDir()
 		Expect(err).NotTo(HaveOccurred())
 		applicationPath, err = filepath.EvalSymlinks(applicationPath)
 		Expect(err).NotTo(HaveOccurred())
 
 		builder = &mocks.Builder{}
 
-		buildpackPath, err = ioutil.TempDir("", "build-buildpack-path")
+		buildpackPath = t.TempDir()
 		Expect(err).NotTo(HaveOccurred())
 
-		f, err := ioutil.TempFile("", "build-buildpackplan-path")
+		f, err := os.CreateTemp("", "build-buildpackplan-path")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).NotTo(HaveOccurred())
 		buildpackPlanPath = f.Name()
@@ -77,10 +76,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		layersPath, err = ioutil.TempDir("", "build-layers-path")
+		layersPath = t.TempDir()
 		Expect(err).NotTo(HaveOccurred())
 
-		platformPath, err = ioutil.TempDir("", "build-platform-path")
+		platformPath = t.TempDir()
 		Expect(err).NotTo(HaveOccurred())
 
 		tomlWriter = &mocks.TOMLWriter{}
@@ -105,7 +104,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("handles error from Builder", func() {
-		Expect(ioutil.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
+		Expect(os.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
 api = "0.6"
 
 [buildpack]

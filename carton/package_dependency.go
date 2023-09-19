@@ -19,13 +19,12 @@ package carton
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/internal"
-	"github.com/pelletier/go-toml"
 )
 
 type PackageDependency struct {
@@ -140,7 +139,7 @@ func updateByKey(key, id, version string) func(md map[string]interface{}) {
 }
 
 func updateFile(cfgPath string, f func(md map[string]interface{})) error {
-	c, err := ioutil.ReadFile(cfgPath)
+	c, err := os.ReadFile(cfgPath)
 	if err != nil {
 		return fmt.Errorf("unable to read %s\n%w", cfgPath, err)
 	}
@@ -163,14 +162,14 @@ func updateFile(cfgPath string, f func(md map[string]interface{})) error {
 
 	f(md)
 
-	b, err := toml.Marshal(md)
+	b, err := internal.Marshal(md)
 	if err != nil {
 		return fmt.Errorf("unable to encode md %s\n%w", cfgPath, err)
 	}
 
 	b = append(comments, b...)
 
-	if err := ioutil.WriteFile(cfgPath, b, 0644); err != nil {
+	if err := os.WriteFile(cfgPath, b, 0644); err != nil {
 		return fmt.Errorf("unable to write %s\n%w", cfgPath, err)
 	}
 

@@ -17,18 +17,21 @@
 package libpak_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/pelletier/go-toml"
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
@@ -60,6 +63,36 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(dependencyCache.CachePath).To(Equal(filepath.Join("some/path/dependencies")))
 			Expect(dependencyCache.UserAgent).To(Equal("some-buildpack-id/some-buildpack-version"))
 			Expect(dependencyCache.Mappings).To(Equal(map[string]string{}))
+		})
+
+		it("uses default timeout values", func() {
+			dependencyCache, err := libpak.NewDependencyCache(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(6 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(60 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.TLSHandshakeTimeout).To(Equal(5 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.ResponseHeaderTimeout).To(Equal(5 * time.Second))
+			Expect(dependencyCache.HttpClientTimeouts.ExpectContinueTimeout).To(Equal(1 * time.Second))
+		})
+
+		context("custom timeout setttings", func() {
+			it.Before(func() {
+				t.Setenv("BP_DIALER_TIMEOUT", "7")
+				t.Setenv("BP_DIALER_KEEP_ALIVE", "50")
+				t.Setenv("BP_TLS_HANDSHAKE_TIMEOUT", "2")
+				t.Setenv("BP_RESPONSE_HEADER_TIMEOUT", "3")
+				t.Setenv("BP_EXPECT_CONTINUE_TIMEOUT", "2")
+			})
+
+			it("uses custom timeout values", func() {
+				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(7 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(50 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.TLSHandshakeTimeout).To(Equal(2 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.ResponseHeaderTimeout).To(Equal(3 * time.Second))
+				Expect(dependencyCache.HttpClientTimeouts.ExpectContinueTimeout).To(Equal(2 * time.Second))
+			})
 		})
 
 		context("bindings with type dependencies exist", func() {
@@ -125,28 +158,32 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			downloadPath    string
 			dependency      libpak.BuildpackDependency
 			dependencyCache libpak.DependencyCache
+			hasher          hash.Hash
 			server          *ghttp.Server
 		)
 
 		it.Before(func() {
 			var err error
 
-			cachePath, err = ioutil.TempDir("", "dependency-cache-cache-path")
+			cachePath = t.TempDir()
 			Expect(err).NotTo(HaveOccurred())
 
-			downloadPath, err = ioutil.TempDir("", "dependency-cache-download-path")
+			hasher = sha256.New()
+
+			downloadPath = t.TempDir()
 			Expect(err).NotTo(HaveOccurred())
 
 			RegisterTestingT(t)
 			server = ghttp.NewServer()
 
 			dependency = libpak.BuildpackDependency{
-				ID:      "test-id",
-				Name:    "test-name",
-				Version: "1.1.1",
-				URI:     fmt.Sprintf("%s/test-path", server.URL()),
-				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
-				Stacks:  []string{"test-stack"},
+				ID:              "test-id",
+				Name:            "test-name",
+				Version:         "1.1.1",
+				URI:             fmt.Sprintf("%s/test-path", server.URL()),
+				SHA256:          "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Stacks:          []string{"test-stack"},
+				DeprecationDate: time.Now(),
 				Licenses: []libpak.BuildpackDependencyLicense{
 					{
 						Type: "test-type",
@@ -200,7 +237,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		it("returns from download path", func() {
@@ -210,7 +247,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		it("downloads", func() {
@@ -222,7 +259,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		context("uri is overridden HTTP", func() {
@@ -241,16 +278,15 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
 		})
 
 		context("uri is overridden FILE", func() {
 			it.Before(func() {
-				sourcePath, err := ioutil.TempDir("", "dependency-source-path")
-				Expect(err).NotTo(HaveOccurred())
+				sourcePath := t.TempDir()
 				sourceFile := filepath.Join(sourcePath, "source-file")
-				Expect(ioutil.WriteFile(sourceFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+				Expect(os.WriteFile(sourceFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
 
 				dependencyCache.Mappings = map[string]string{
 					dependency.SHA256: fmt.Sprintf("file://%s", sourceFile),
@@ -261,7 +297,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
 		})
 
@@ -284,7 +320,33 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
+		})
+
+		it("sets downloaded file name to uri's sha256", func() {
+			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+
+			hasher.Write([]byte(dependency.URI))
+
+			a, err := dependencyCache.Artifact(dependency)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(filepath.Base(a.Name())).To(Equal(hex.EncodeToString(hasher.Sum(nil))))
+		})
+
+		it("sets downloaded file name to uri's sha256 with empty SHA256 and query parameters in the uri", func() {
+			dependency.SHA256 = ""
+			dependency.URI = fmt.Sprintf("%s/test-path?param1=value1&param2=value2", server.URL())
+			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
+
+			hasher.Write([]byte(dependency.URI))
+
+			a, err := dependencyCache.Artifact(dependency)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
+			Expect(filepath.Base(a.Name())).To(Equal(hex.EncodeToString(hasher.Sum(nil))))
 		})
 
 		it("sets User-Agent", func() {
@@ -296,7 +358,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 
 		it("modifies request", func() {
@@ -312,7 +374,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(ioutil.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 		})
 	})
 }

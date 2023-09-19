@@ -17,7 +17,6 @@
 package sherpa_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -38,7 +37,7 @@ func testCopyFile(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		source, err = ioutil.TempFile("", "copy-file")
+		source, err = os.CreateTemp("", "copy-file")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = source.WriteString("test")
 		Expect(err).NotTo(HaveOccurred())
@@ -46,7 +45,7 @@ func testCopyFile(t *testing.T, context spec.G, it spec.S) {
 		source, err = os.Open(source.Name())
 		Expect(err).NotTo(HaveOccurred())
 
-		f, err := ioutil.TempFile("", "copy-file")
+		f, err := os.CreateTemp("", "copy-file")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).To(Succeed())
 		destination = f.Name()
@@ -60,6 +59,6 @@ func testCopyFile(t *testing.T, context spec.G, it spec.S) {
 	it("create listing", func() {
 		defer source.Close()
 		Expect(sherpa.CopyFile(source, destination)).To(Succeed())
-		Expect(ioutil.ReadFile(destination)).To(Equal([]byte("test")))
+		Expect(os.ReadFile(destination)).To(Equal([]byte("test")))
 	})
 }

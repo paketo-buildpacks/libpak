@@ -18,7 +18,6 @@ package libpak_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -52,15 +51,13 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		applicationPath, err = ioutil.TempDir("", "detect-application-path")
-		Expect(err).NotTo(HaveOccurred())
+		applicationPath = t.TempDir()
 		applicationPath, err = filepath.EvalSymlinks(applicationPath)
 		Expect(err).NotTo(HaveOccurred())
 
-		buildpackPath, err = ioutil.TempDir("", "detect-buildpack-path")
-		Expect(err).NotTo(HaveOccurred())
+		buildpackPath = t.TempDir()
 
-		f, err := ioutil.TempFile("", "detect-buildplan-path")
+		f, err := os.CreateTemp("", "detect-buildplan-path")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).NotTo(HaveOccurred())
 		buildPlanPath = f.Name()
@@ -74,8 +71,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		exitHandler.On("Fail")
 		exitHandler.On("Pass")
 
-		platformPath, err = ioutil.TempDir("", "detect-platform-path")
-		Expect(err).NotTo(HaveOccurred())
+		platformPath = t.TempDir()
 
 		tomlWriter = &mocks.TOMLWriter{}
 		tomlWriter.On("Write", mock.Anything, mock.Anything).Return(nil)
@@ -99,7 +95,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("handles error from Detector", func() {
-		Expect(ioutil.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
+		Expect(os.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
 api = "0.6"
 
 [buildpack]

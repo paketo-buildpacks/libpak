@@ -22,12 +22,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/heroku/color"
-	"github.com/pelletier/go-toml"
 
 	"github.com/buildpacks/libcnb"
 
+	"github.com/paketo-buildpacks/libpak/internal"
 	"github.com/paketo-buildpacks/libpak/sbom"
 	"github.com/paketo-buildpacks/libpak/sherpa"
 
@@ -104,7 +106,7 @@ func (l *LayerContributor) Contribute(layer libcnb.Layer, f LayerFunc) (libcnb.L
 }
 
 func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[string]interface{}, bool, error) {
-	raw, err := toml.Marshal(l.ExpectedMetadata)
+	raw, err := internal.Marshal(l.ExpectedMetadata)
 	if err != nil {
 		return map[string]interface{}{}, false, fmt.Errorf("unable to encode metadata\n%w", err)
 	}
@@ -117,7 +119,37 @@ func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[strin
 	l.Logger.Debugf("Expected metadata: %+v", expected)
 	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
 
-	return expected, reflect.DeepEqual(expected, layer.Metadata), nil
+	match, err := l.Equals(expected,layer.Metadata)
+	if err != nil {
+		return map[string]interface{}{}, false, fmt.Errorf("unable to compare metadata\n%w", err)
+	}
+	return expected, match, nil
+}
+
+func (l *LayerContributor) Equals(expectedM map[string]interface{}, layerM map[string]interface{}) (bool, error) {
+	if dep, ok := expectedM["dependency"].(map[string]interface{}); ok {
+		for k, v := range dep {
+			if k == "deprecation_date" {
+				deprecationDate := v.(time.Time).Truncate(time.Second).In(time.UTC)
+				dep["deprecation_date"] = deprecationDate
+				break
+			}
+		}
+    }
+	if dep, ok := layerM["dependency"].(map[string]interface{}); ok {
+		for k, v := range dep {
+			if k == "deprecation_date" {
+				deprecationDate, err := time.Parse(time.RFC3339, v.(string))
+				if err != nil {
+					return false, fmt.Errorf("unable to parse deprecation_date %s", v.(string))
+				}
+				deprecationDate = deprecationDate.Truncate(time.Second).In(time.UTC)
+				dep["deprecation_date"] = deprecationDate
+				break
+			}
+		}
+	} 
+	return reflect.DeepEqual(expectedM, layerM), nil
 }
 
 func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error) {

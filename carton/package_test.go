@@ -17,7 +17,6 @@
 package carton_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -44,8 +43,6 @@ func testPackage(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-
 		entryWriter = &cMocks.EntryWriter{}
 		entryWriter.On("Write", mock.Anything, mock.Anything).Return(nil)
 
@@ -55,10 +52,9 @@ func testPackage(t *testing.T, context spec.G, it spec.S) {
 		exitHandler = &mocks.ExitHandler{}
 		exitHandler.On("Error", mock.Anything)
 
-		path, err = ioutil.TempDir("", "carton-package")
-		Expect(err).NotTo(HaveOccurred())
+		path = t.TempDir()
 
-		Expect(ioutil.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
+		Expect(os.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
 api = "0.0.0"
 
 [buildpack]
@@ -134,7 +130,7 @@ include-files = [
 		Expect(entryWriter.Calls[1].Arguments[0]).To(Equal(filepath.Join(path, "test-include-files")))
 		Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "test-include-files")))
 
-		Expect(ioutil.ReadFile(entryWriter.Calls[0].Arguments[0].(string))).To(Equal([]byte(`
+		Expect(os.ReadFile(entryWriter.Calls[0].Arguments[0].(string))).To(Equal([]byte(`
 api = "0.0.0"
 
 [buildpack]
@@ -164,7 +160,7 @@ include-files = [
 
 	context("includes dependencies", func() {
 		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
+			Expect(os.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
 api = "0.0.0"
 
 [buildpack]

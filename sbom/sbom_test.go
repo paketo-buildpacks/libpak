@@ -2,7 +2,6 @@ package sbom_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,12 +28,9 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-
 		executor = mocks.Executor{}
 
-		layers.Path, err = ioutil.TempDir("", "buildpack-layers")
-		Expect(err).NotTo(HaveOccurred())
+		layers.Path = t.TempDir()
 
 		layer = libcnb.Layer{
 			Path: filepath.Join(layers.Path, "layer"),
@@ -42,10 +38,6 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 		}
 
 		Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(layers.Path)).To(Succeed())
 	})
 
 	context("syft", func() {
@@ -66,7 +58,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					strings.HasPrefix(e.Args[3], "json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
-				Expect(ioutil.WriteFile(outputPath, []byte("succeed1"), 0644)).To(Succeed())
+				Expect(os.WriteFile(outputPath, []byte("succeed1"), 0644)).To(Succeed())
 			}).Return(nil)
 
 			// uses interface here intentionally, to force that inteface and implementation match
@@ -74,7 +66,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(scanner.ScanBuild("something", format)).To(Succeed())
 
-			result, err := ioutil.ReadFile(outputPath)
+			result, err := os.ReadFile(outputPath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(Equal("succeed1"))
 		})
@@ -89,7 +81,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					strings.HasPrefix(e.Args[3], "cyclonedx-json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
-				Expect(ioutil.WriteFile(outputPath, []byte(`{
+				Expect(os.WriteFile(outputPath, []byte(`{
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
   "serialNumber": "urn:uuid:fcfa5e19-bf49-47b4-8c85-ab61e2728f8e",
@@ -117,7 +109,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(scanner.ScanBuild("something", format)).To(Succeed())
 
-			result, err := ioutil.ReadFile(outputPath)
+			result, err := os.ReadFile(outputPath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).ToNot(ContainSubstring("serialNumber"))
 			Expect(string(result)).ToNot(ContainSubstring("urn:uuid:fcfa5e19-bf49-47b4-8c85-ab61e2728f8e"))
@@ -135,7 +127,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					strings.HasPrefix(e.Args[3], "json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(args mock.Arguments) {
-				Expect(ioutil.WriteFile(outputPath, []byte("succeed2"), 0644)).To(Succeed())
+				Expect(os.WriteFile(outputPath, []byte("succeed2"), 0644)).To(Succeed())
 			}).Return(nil)
 
 			scanner := sbom.SyftCLISBOMScanner{
@@ -146,7 +138,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(scanner.ScanLayer(layer, "something", format)).To(Succeed())
 
-			result, err := ioutil.ReadFile(outputPath)
+			result, err := os.ReadFile(outputPath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(Equal("succeed2"))
 		})
@@ -160,9 +152,9 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					strings.HasPrefix(e.Args[7], sbom.SBOMFormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
 					e.Args[8] == "dir:something"
 			})).Run(func(args mock.Arguments) {
-				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0644)).To(Succeed())
-				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte(`{"succeed":2}`), 0644)).To(Succeed())
-				Expect(ioutil.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0644)).To(Succeed())
+				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0644)).To(Succeed())
+				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte(`{"succeed":2}`), 0644)).To(Succeed())
+				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0644)).To(Succeed())
 			}).Return(nil)
 
 			scanner := sbom.SyftCLISBOMScanner{
@@ -173,15 +165,15 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(scanner.ScanLaunch("something", libcnb.CycloneDXJSON, libcnb.SyftJSON, libcnb.SPDXJSON)).To(Succeed())
 
-			result, err := ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON))
+			result, err := os.ReadFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(HavePrefix(`{"succeed":1}`))
 
-			result, err = ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.SyftJSON))
+			result, err = os.ReadFile(layers.LaunchSBOMPath(libcnb.SyftJSON))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(HavePrefix(`{"succeed":2}`))
 
-			result, err = ioutil.ReadFile(layers.LaunchSBOMPath(libcnb.SPDXJSON))
+			result, err = os.ReadFile(layers.LaunchSBOMPath(libcnb.SPDXJSON))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(HavePrefix(`{"succeed":3}`))
 		})
@@ -223,7 +215,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(dep.WriteTo(outputFile)).To(Succeed())
 			Expect(outputFile).To(BeARegularFile())
 
-			data, err := ioutil.ReadFile(outputFile)
+			data, err := os.ReadFile(outputFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
 			Expect(string(data)).To(ContainSubstring(`"FoundBy":"java-buildpack",`))
@@ -257,7 +249,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(dep.WriteTo(outputFile)).To(Succeed())
 			Expect(outputFile).To(BeARegularFile())
 
-			data, err := ioutil.ReadFile(outputFile)
+			data, err := os.ReadFile(outputFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
 			Expect(string(data)).To(ContainSubstring(`"FoundBy":"java-buildpack",`))

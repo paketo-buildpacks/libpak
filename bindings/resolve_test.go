@@ -50,6 +50,11 @@ func testResolve(t *testing.T, context spec.G, it spec.S) {
 				Type:     "other-type",
 				Provider: "some-provider",
 			},
+			{
+				Name:     "name1",
+				Type:     "unknown",
+				Provider: "unknown",
+			},
 		}
 	})
 
@@ -96,6 +101,26 @@ func testResolve(t *testing.T, context spec.G, it spec.S) {
 						Name:     "name3",
 						Type:     "other-type",
 						Provider: "some-provider",
+					},
+				}))
+			})
+		})
+
+		context("WithName", func() {
+			it("returns all with matching name", func() {
+				resolved := bindings.Resolve(binds,
+					bindings.WithName("Name1"),
+				)
+				Expect(resolved).To(Equal(libcnb.Bindings{
+					{
+						Name:     "name1",
+						Type:     "some-type",
+						Provider: "some-provider",
+					},
+					{
+						Name:     "name1",
+						Type:     "unknown",
+						Provider: "unknown",
 					},
 				}))
 			})

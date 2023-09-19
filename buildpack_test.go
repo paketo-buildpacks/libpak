@@ -23,12 +23,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
+
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/internal"
 	"github.com/paketo-buildpacks/libpak/sbom"
 )
 
@@ -36,6 +39,33 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 	)
+
+	it("is equal after toml Marshal and Unmarshal", func() {
+		dependency := libpak.BuildpackDependency{
+			ID:              "test-id",
+			Name:            "test-name",
+			Version:         "1.1.1",
+			URI:             "test-uri",
+			SHA256:          "test-sha256",
+			DeprecationDate: time.Now(),
+			Stacks:          []string{"test-stack"},
+			Licenses: []libpak.BuildpackDependencyLicense{
+				{
+					Type: "test-type",
+					URI:  "test-uri",
+				},
+			},
+		}
+
+		bytes, err := internal.Marshal(dependency)
+		Expect(err).NotTo(HaveOccurred())
+
+		var newDependency libpak.BuildpackDependency
+		err = toml.Unmarshal(bytes, &newDependency)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(dependency.Equals(newDependency)).To(BeTrue())
+	})
 
 	it("renders dependency as a BOMEntry", func() {
 		dependency := libpak.BuildpackDependency{
@@ -573,6 +603,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				logger := bard.NewLogger(buff)
 				resolver.Logger = &logger
 				soonDeprecated := time.Now().UTC().Add(30 * 24 * time.Hour)
+				notSoSoonDeprecated := time.Now().UTC().Add(60 * 24 * time.Hour)
 				resolver.Dependencies = []libpak.BuildpackDependency{
 					{
 						ID:      "missing-deprecation-date",
@@ -583,7 +614,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						ID:              "valid-dependency",
 						Name:            "valid-dependency",
 						Version:         "1.1",
-						DeprecationDate: time.Now().UTC().Add(60 * 24 * time.Hour),
+						DeprecationDate: notSoSoonDeprecated,
 					},
 					{
 						ID:              "soon-deprecated-dependency",

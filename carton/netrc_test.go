@@ -17,7 +17,6 @@
 package carton_test
 
 import (
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/user"
@@ -40,7 +39,7 @@ func testNetrc(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		f, err := ioutil.TempFile("", "netrc")
+		f, err := os.CreateTemp("", "netrc")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).To(Succeed())
 		path = f.Name()
@@ -75,7 +74,7 @@ func testNetrc(t *testing.T, context spec.G, it spec.S) {
 
 	context("parse", func() {
 		it("parses one-liner", func() {
-			Expect(ioutil.WriteFile(path, []byte(`machine test-machine login test-login password test-password`), 0644)).To(Succeed())
+			Expect(os.WriteFile(path, []byte(`machine test-machine login test-login password test-password`), 0644)).To(Succeed())
 
 			Expect(carton.ParseNetrc(path)).To(Equal(carton.Netrc{
 				{
@@ -87,7 +86,7 @@ func testNetrc(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("parses multi-liner", func() {
-			Expect(ioutil.WriteFile(path, []byte(`
+			Expect(os.WriteFile(path, []byte(`
 machine test-machine 
 login test-login 
 password test-password
@@ -103,7 +102,7 @@ password test-password
 		})
 
 		it("ignores macdef", func() {
-			Expect(ioutil.WriteFile(path, []byte(`
+			Expect(os.WriteFile(path, []byte(`
 macdef uploadtest
 	cd /pub/tests
 	bin
@@ -123,7 +122,7 @@ machine test-machine login test-login password test-password
 		})
 
 		it("ignores all after default", func() {
-			Expect(ioutil.WriteFile(path, []byte(`
+			Expect(os.WriteFile(path, []byte(`
 machine test-machine-1 login test-login-1 password test-password-1
 
 default

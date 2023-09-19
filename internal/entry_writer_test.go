@@ -17,7 +17,6 @@
 package internal_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -42,14 +41,14 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 			f   *os.File
 		)
 
-		f, err = ioutil.TempFile("", "entry-writer-source")
+		f, err = os.CreateTemp("", "entry-writer-source")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = f.WriteString("test-value")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).To(Succeed())
 		source = f.Name()
 
-		f, err = ioutil.TempFile("", "entry-writer-destination")
+		f, err = os.CreateTemp("", "entry-writer-destination")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).To(Succeed())
 		Expect(os.RemoveAll(f.Name())).To(Succeed())
@@ -65,7 +64,7 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 
 	it("writes file", func() {
 		Expect(writer.Write(source, destination)).To(Succeed())
-		Expect(ioutil.ReadFile(destination)).To(Equal([]byte("test-value")))
+		Expect(os.ReadFile(destination)).To(Equal([]byte("test-value")))
 	})
 
 	it("sets executable bit", func() {
@@ -84,7 +83,7 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 		)
 
 		it.Before(func() {
-			f, err := ioutil.TempFile("", "entry-writer-symlink-source")
+			f, err := os.CreateTemp("", "entry-writer-symlink-source")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(f.Close()).To(Succeed())
 			Expect(os.RemoveAll(f.Name())).To(Succeed())

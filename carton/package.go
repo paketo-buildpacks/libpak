@@ -18,16 +18,15 @@ package carton
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"text/template"
 
+	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
-	"github.com/pelletier/go-toml"
 
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
@@ -81,7 +80,7 @@ func (p Package) Create(options ...Option) {
 
 	buildpack := libcnb.Buildpack{}
 	file = filepath.Join(p.Source, "buildpack.toml")
-	b, err := ioutil.ReadFile(file)
+	b, err := os.ReadFile(file)
 	if err != nil && !os.IsNotExist(err) {
 		config.exitHandler.Error(fmt.Errorf("unable to read %s\n%w", file, err))
 		return
@@ -115,7 +114,7 @@ func (p Package) Create(options ...Option) {
 			return
 		}
 
-		out, err := ioutil.TempFile("", "buildpack-*.toml")
+		out, err := os.CreateTemp("", "buildpack-*.toml")
 		if err != nil {
 			config.exitHandler.Error(fmt.Errorf("unable to open temporary buildpack.toml file\n%w", err))
 		}

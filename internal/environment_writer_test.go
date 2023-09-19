@@ -18,7 +18,6 @@ package internal_test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,16 +38,10 @@ func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	it.Before(func() {
-		var err error
-		path, err = ioutil.TempDir("", "environment-writer")
-		Expect(err).NotTo(HaveOccurred())
+		path = t.TempDir()
 		Expect(os.RemoveAll(path)).To(Succeed())
 
 		writer = internal.EnvironmentWriter{}
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(path)).To(Succeed())
 	})
 
 	it("writes the given environment to a directory", func() {
@@ -58,11 +51,11 @@ func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		content, err := ioutil.ReadFile(filepath.Join(path, "some-name"))
+		content, err := os.ReadFile(filepath.Join(path, "some-name"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(content)).To(Equal("some-content"))
 
-		content, err = ioutil.ReadFile(filepath.Join(path, "other-name"))
+		content, err = os.ReadFile(filepath.Join(path, "other-name"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(content)).To(Equal("other-content"))
 	})
@@ -73,7 +66,7 @@ func testEnvironmentWriter(t *testing.T, context spec.G, it spec.S) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		content, err := ioutil.ReadFile(filepath.Join(path, "some-proc", "some-name"))
+		content, err := os.ReadFile(filepath.Join(path, "some-proc", "some-name"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(content)).To(Equal("some-content"))
 	})

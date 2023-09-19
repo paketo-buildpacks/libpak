@@ -33,5 +33,6 @@ func TestUnit(t *testing.T) {
 	suite("Formatter", testFormatter)
 	suite("Layer", testLayer)
 	suite("Main", testMain)
+	suite("Stack", testStack)
 	suite.Run(t)
 }
