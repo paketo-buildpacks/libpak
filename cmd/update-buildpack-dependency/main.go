@@ -40,6 +40,8 @@ func main() {
 	flagSet.StringVar(&b.PURLPattern, "purl-pattern", "", "the purl version pattern of the dependency, if not set defaults to version-pattern")
 	flagSet.StringVar(&b.CPE, "cpe", "", "the new version use in all CPEs, if not set defaults to version")
 	flagSet.StringVar(&b.CPEPattern, "cpe-pattern", "", "the cpe version pattern of the dependency, if not set defaults to version-pattern")
+	flagSet.StringVar(&b.Source, "source", "", "the new uri of the dependency source")
+	flagSet.StringVar(&b.SourceSHA256, "source-sha256", "", "the new sha256 of the dependency source")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))

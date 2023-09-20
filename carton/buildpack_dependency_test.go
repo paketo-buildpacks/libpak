@@ -61,12 +61,14 @@ name = "Some Buildpack"
 version = "1.2.3"
 
 [[metadata.dependencies]]
-id      = "test-id"
-name    = "Test Name"
-version = "test-version-1"
-uri     = "test-uri-1"
-sha256  = "test-sha256-1"
-stacks  = [ "test-stack" ]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-1"
+uri           = "test-uri-1"
+sha256        = "test-sha256-1"
+stacks        = [ "test-stack" ]
+source        = "test-source-uri-1"
+source-sha256 = "test-source-sha256-1"
 `), 0644)).To(Succeed())
 
 		d := carton.BuildpackDependency{
@@ -76,6 +78,8 @@ stacks  = [ "test-stack" ]
 			URI:            "test-uri-2",
 			Version:        "test-version-2",
 			VersionPattern: `test-version-[\d]`,
+			Source:         "test-source-uri-2",
+			SourceSHA256:   "test-source-sha256-2",
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -86,12 +90,15 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+source        = "test-source-uri-2"
+source-sha256 = "test-source-sha256-2"
 `))
 	})
 
@@ -134,18 +141,19 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
-purl    = "pkg:generic/test-jre@different-version-2?arch=amd64"
-cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-2?arch=amd64"
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
 `))
 	})
 
-	it("updates multiple dependencies with different versions", func() {
+	it("updates dependency with source & sourceSha", func() {
 		Expect(os.WriteFile(path, []byte(`api = "0.7"
 [buildpack]
 id = "some-buildpack"
@@ -161,16 +169,75 @@ sha256  = "test-sha256-1"
 stacks  = [ "test-stack" ]
 purl    = "pkg:generic/test-jre@different-version-1?arch=amd64"
 cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*:*"]
+`), 0644)).To(Succeed())
+
+		d := carton.BuildpackDependency{
+			BuildpackPath:  path,
+			ID:             "test-id",
+			SHA256:         "test-sha256-2",
+			URI:            "test-uri-2",
+			Version:        "test-version-2",
+			VersionPattern: `test-version-[\d]`,
+			PURL:           "different-version-2",
+			PURLPattern:    `different-version-[\d]`,
+			CPE:            "test-version-2:patch2",
+			CPEPattern:     `test-version-[\d]:patch[\d]`,
+			Source:          "test-new-source",
+			SourceSHA256:    "test-new-source-sha",
+		}
+
+		d.Update(carton.WithExitHandler(exitHandler))
+
+		Expect(os.ReadFile(path)).To(internal.MatchTOML(`api = "0.7"
+[buildpack]
+id = "some-buildpack"
+name = "Some Buildpack"
+version = "1.2.3"
 
 [[metadata.dependencies]]
-id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
-purl    = "pkg:generic/test-jre@different-version-2?arch=amd64"
-cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-2?arch=amd64"
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+source        = "test-new-source"
+source-sha256 = "test-new-source-sha"
+`))
+	})
+
+	it("updates multiple dependencies with different versions", func() {
+		Expect(os.WriteFile(path, []byte(`api = "0.7"
+[buildpack]
+id = "some-buildpack"
+name = "Some Buildpack"
+version = "1.2.3"
+
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-1"
+uri           = "test-uri-1"
+sha256        = "test-sha256-1"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-1?arch=amd64"
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-1:patch1:*:*:*:*:*:*:*"]
+source        = "test-source-uri-1"
+source-sha256 = "test-source-sha256-1"
+
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-2?arch=amd64"
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+source        = "test-source-uri-2"
+source-sha256 = "test-source-sha256-2"
 `), 0644)).To(Succeed())
 
 		d := carton.BuildpackDependency{
@@ -184,6 +251,8 @@ cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*
 			PURLPattern:    `different-version-[\d]`,
 			CPE:            "test-version-3:patch3",
 			CPEPattern:     `test-version-[\d]:patch[\d]`,
+			Source:         "test-source-uri-3",
+			SourceSHA256:   "test-source-sha256-3",
 		}
 
 		d.Update(carton.WithExitHandler(exitHandler))
@@ -195,24 +264,28 @@ name = "Some Buildpack"
 version = "1.2.3"
 
 [[metadata.dependencies]]
-id      = "test-id"
-name    = "Test Name"
-version = "test-version-3"
-uri     = "test-uri-3"
-sha256  = "test-sha256-3"
-stacks  = [ "test-stack" ]
-purl    = "pkg:generic/test-jre@different-version-3?arch=amd64"
-cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-3:patch3:*:*:*:*:*:*:*"]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-3"
+uri           = "test-uri-3"
+sha256        = "test-sha256-3"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-3?arch=amd64"
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-3:patch3:*:*:*:*:*:*:*"]
+source        = "test-source-uri-3"
+source-sha256 = "test-source-sha256-3"
 
 [[metadata.dependencies]]
-id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
-purl    = "pkg:generic/test-jre@different-version-2?arch=amd64"
-cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-2?arch=amd64"
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+source        = "test-source-uri-2"
+source-sha256 = "test-source-sha256-2"
 `))
 	})
 
@@ -254,13 +327,14 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
-cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
 `))
 	})
 
@@ -303,14 +377,15 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
-purl    = 1234
-cpes    = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+purl          = 1234
+cpes          = ["cpe:2.3:a:test-vendor:test-product:test-version-2:patch2:*:*:*:*:*:*:*"]
 `))
 	})
 
@@ -353,14 +428,15 @@ id = "some-buildpack"
 name = "Some Buildpack"
 version = "1.2.3"
 
-[[metadata.dependencies]]id      = "test-id"
-name    = "Test Name"
-version = "test-version-2"
-uri     = "test-uri-2"
-sha256  = "test-sha256-2"
-stacks  = [ "test-stack" ]
-purl    = "pkg:generic/test-jre@different-version-2?arch=amd64"
-cpes    = 1234
+[[metadata.dependencies]]
+id            = "test-id"
+name          = "Test Name"
+version       = "test-version-2"
+uri           = "test-uri-2"
+sha256        = "test-sha256-2"
+stacks        = [ "test-stack" ]
+purl          = "pkg:generic/test-jre@different-version-2?arch=amd64"
+cpes          = 1234
 `))
 	})
 
@@ -409,12 +485,12 @@ name = "Some Buildpack"
 version = "1.2.3"
 
 [[metadata.dependencies]]
-  id      = "test-id"
-  name    = "Test Name"
-  version = "test-version-2"
-  uri     = "test-uri-2"
-  sha256  = "test-sha256-2"
-  stacks  = [ "test-stack" ]
+  id            = "test-id"
+  name          = "Test Name"
+  version       = "test-version-2"
+  uri           = "test-uri-2"
+  sha256        = "test-sha256-2"
+  stacks        = [ "test-stack" ]
 `))
 	})
 }
