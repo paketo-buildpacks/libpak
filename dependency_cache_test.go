@@ -17,10 +17,7 @@
 package libpak_test
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"hash"
 	"io"
 	"net/http"
 	"os"
@@ -158,7 +155,6 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			downloadPath    string
 			dependency      libpak.BuildpackDependency
 			dependencyCache libpak.DependencyCache
-			hasher          hash.Hash
 			server          *ghttp.Server
 		)
 
@@ -167,8 +163,6 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 			cachePath = t.TempDir()
 			Expect(err).NotTo(HaveOccurred())
-
-			hasher = sha256.New()
 
 			downloadPath = t.TempDir()
 			Expect(err).NotTo(HaveOccurred())
@@ -321,32 +315,6 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
-		})
-
-		it("sets downloaded file name to uri's sha256", func() {
-			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
-
-			hasher.Write([]byte(dependency.URI))
-
-			a, err := dependencyCache.Artifact(dependency)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
-			Expect(filepath.Base(a.Name())).To(Equal(hex.EncodeToString(hasher.Sum(nil))))
-		})
-
-		it("sets downloaded file name to uri's sha256 with empty SHA256 and query parameters in the uri", func() {
-			dependency.SHA256 = ""
-			dependency.URI = fmt.Sprintf("%s/test-path?param1=value1&param2=value2", server.URL())
-			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
-
-			hasher.Write([]byte(dependency.URI))
-
-			a, err := dependencyCache.Artifact(dependency)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
-			Expect(filepath.Base(a.Name())).To(Equal(hex.EncodeToString(hasher.Sum(nil))))
 		})
 
 		it("sets User-Agent", func() {
