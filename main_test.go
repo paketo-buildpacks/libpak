@@ -265,5 +265,4 @@ test-key = "test-value"
 
 		Expect(exitHandler.Calls[0].Arguments.Get(0)).To(MatchError("unsupported command test-command"))
 	})
-
 }

@@ -81,7 +81,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("calls function with non-matching metadata", func() {
-
 			layer.Metadata["alpha"] = "test-alpha"
 
 			var called bool
@@ -548,7 +547,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).To(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).To(BeAnExistingFile())
 		})
 
 		it("calls function with non-matching metadata", func() {
@@ -557,11 +556,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			file := filepath.Join(layer.Exec.FilePath("test-name-1"))
+			file := layer.Exec.FilePath("test-name-1")
 			Expect(file).To(BeAnExistingFile())
 			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
 
-			file = filepath.Join(layer.Exec.FilePath("test-name-2"))
+			file = layer.Exec.FilePath("test-name-2")
 			Expect(file).To(BeAnExistingFile())
 			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
 		})
@@ -582,8 +581,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-2")).NotTo(BeAnExistingFile())
 		})
 
 		it("adds expected metadata to layer", func() {
@@ -618,8 +617,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-2")).NotTo(BeAnExistingFile())
 
 			Expect(layer.LayerTypes.Launch).To(BeTrue())
 			Expect(layer.LayerTypes.Cache).To(BeFalse())
@@ -632,8 +631,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).To(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).To(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).To(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-2")).To(BeAnExistingFile())
 
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())

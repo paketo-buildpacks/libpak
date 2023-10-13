@@ -101,5 +101,4 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.Readlink(destination)).To(Equal(source))
 		})
 	})
-
 }

@@ -118,9 +118,7 @@ func NewSyftCLISBOMScanner(layers libcnb.Layers, executor effect.Executor, logge
 
 // ScanLayer will use syft CLI to scan the scanDir and write it's output to the layer SBoM file in the given formats
 func (b SyftCLISBOMScanner) ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(func(fmt libcnb.SBOMFormat) string {
-		return layer.SBOMPath(fmt)
-	}, scanDir, formats...)
+	return b.scan(layer.SBOMPath, scanDir, formats...)
 }
 
 // ScanBuild will use syft CLI to scan the scanDir and write it's output to the build SBoM file in the given formats

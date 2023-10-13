@@ -67,5 +67,4 @@ func (i BuildImageDependency) Update(options ...Option) {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", i.BuilderPath, err))
 		return
 	}
-
 }

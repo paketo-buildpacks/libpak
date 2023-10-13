@@ -49,6 +49,6 @@ jobs:
 
                 set -euo pipefail
 
-                richgo test ./...
+                GOCMD=richgo make
               env:
                 RICHGO_FORCE_COLOR: "1"

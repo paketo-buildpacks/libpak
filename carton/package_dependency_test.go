@@ -174,7 +174,7 @@ group = [
 		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[buildpacks]]
 		id = "paketo-buildpacks/test-1"
 		uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3"
-	  
+
 	  [[buildpacks]]
 		id = "paketo-buildpacks/test-2"
 		uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2"`))
@@ -196,7 +196,7 @@ group = [
 
 		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[dependencies]]
 		uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-3"
-	  
+
 	  [[dependencies]]
 		uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2"`))
 	})
@@ -217,9 +217,8 @@ group = [
 
 		Expect(os.ReadFile(path)).To(internal.MatchTOML(`[[dependencies]]
 		uri = "docker://docker.io/paketocommunity/test-1:test-version-3"
-	  
+
 	  [[dependencies]]
 		uri = "docker://docker.io/paketocommunity/test-2:test-version-2"`))
 	})
-
 }

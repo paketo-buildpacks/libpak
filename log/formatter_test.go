@@ -32,7 +32,6 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	context("FormatIdentity", func() {
-
 		it("it formats name", func() {
 			Expect(log.FormatIdentity("test-name", "")).
 				To(Equal(color.New(color.Bold).Sprint("test-name")))
@@ -43,5 +42,4 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 				To(Equal(fmt.Sprintf("%s test-description", color.New(color.Bold).Sprint("test-name"))))
 		})
 	})
-
 }

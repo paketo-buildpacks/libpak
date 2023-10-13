@@ -32,9 +32,7 @@ func testEnvVar(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	context("AppendToEnvVar", func() {
-
 		context("No Existing", func() {
-
 			it("append one", func() {
 				Expect(sherpa.AppendToEnvVar("TEST_KEY", "|", "test-value-2")).
 					To(Equal("test-value-2"))
@@ -159,7 +157,6 @@ func testEnvVar(t *testing.T, context spec.G, it spec.S) {
 				Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
 			})
 		})
-
 	})
 
 	context("ResolveBool", func() {

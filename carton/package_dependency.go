@@ -92,17 +92,17 @@ func (p PackageDependency) Update(options ...Option) {
 						continue
 					}
 
-					bpIdUnwrappd, found := bp["id"]
+					bpIDUnwrappd, found := bp["id"]
 					if !found {
 						continue
 					}
 
-					bpId, ok := bpIdUnwrappd.(string)
+					bpID, ok := bpIDUnwrappd.(string)
 					if !ok {
 						continue
 					}
 
-					if bpId == id {
+					if bpID == id {
 						bp["version"] = p.Version
 					}
 				}

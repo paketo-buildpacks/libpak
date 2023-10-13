@@ -258,5 +258,4 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(data)).To(ContainSubstring(`"Source":{`))
 		})
 	})
-
 }

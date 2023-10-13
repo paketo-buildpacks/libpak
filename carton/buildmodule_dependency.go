@@ -128,16 +128,16 @@ func (b BuildModuleDependency) Update(options ...Option) {
 	}
 
 	for _, dep := range dependencies {
-		depIdUnwrapped, found := dep["id"]
+		depIDUnwrapped, found := dep["id"]
 		if !found {
 			continue
 		}
-		depId, ok := depIdUnwrapped.(string)
+		depID, ok := depIDUnwrapped.(string)
 		if !ok {
 			continue
 		}
 
-		if depId == b.ID {
+		if depID == b.ID {
 			depVersionUnwrapped, found := dep["version"]
 			if !found {
 				continue

@@ -51,8 +51,8 @@ func testLogger(t *testing.T, context spec.G, it spec.S) {
 
 	context("with BP_DEBUG", func() {
 		it.Before(func() {
-			//libcnb defines BP_DEBUG as enabled if it has _any_ value
-			//this does not include empty string as previously tested here.
+			// libcnb defines BP_DEBUG as enabled if it has _any_ value
+			// this does not include empty string as previously tested here.
 			t.Setenv("BP_DEBUG", "true")
 			l = log.NewPaketoLogger(b)
 		})

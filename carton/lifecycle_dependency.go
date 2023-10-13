@@ -67,5 +67,4 @@ func (l LifecycleDependency) Update(options ...Option) {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", l.BuilderPath, err))
 		return
 	}
-
 }

@@ -81,7 +81,6 @@ include-files = [
   "buildpack.toml",
 ]
 `), 0644)).To(Succeed())
-
 		})
 
 		it.After(func() {
@@ -355,7 +354,6 @@ include-files = [
   "extension.toml",
 ]
 `), 0644)).To(Succeed())
-
 		})
 
 		it.After(func() {
@@ -593,5 +591,4 @@ include-files = [
 			})
 		})
 	})
-
 }

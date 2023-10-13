@@ -38,7 +38,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
-type HttpClientTimeouts struct {
+type HTTPlientTimeouts struct {
 	DialerTimeout         time.Duration
 	DialerKeepAlive       time.Duration
 	TLSHandshakeTimeout   time.Duration
@@ -65,7 +65,7 @@ type DependencyCache struct {
 	Mappings map[string]string
 
 	// httpClientTimeouts contains the timeout values used by HTTP client
-	HttpClientTimeouts HttpClientTimeouts
+	HTTPClientTimeouts HTTPlientTimeouts
 }
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDMODULE_PATH>/dependencies) and user
@@ -84,16 +84,16 @@ func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildMo
 	}
 	cache.Mappings = mappings
 
-	clientTimeouts, err := customizeHttpClientTimeouts()
+	clientTimeouts, err := customizeHTTPClientTimeouts()
 	if err != nil {
 		return DependencyCache{}, fmt.Errorf("unable to read custom timeout settings\n%w", err)
 	}
-	cache.HttpClientTimeouts = *clientTimeouts
+	cache.HTTPClientTimeouts = *clientTimeouts
 
 	return cache, nil
 }
 
-func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
+func customizeHTTPClientTimeouts() (*HTTPlientTimeouts, error) {
 	rawStr := sherpa.GetEnvWithDefault("BP_DIALER_TIMEOUT", "6")
 	dialerTimeout, err := strconv.Atoi(rawStr)
 	if err != nil {
@@ -124,7 +124,7 @@ func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
 		return nil, fmt.Errorf("unable to convert BP_EXPECT_CONTINUE_TIMEOUT=%s to integer\n%w", rawStr, err)
 	}
 
-	return &HttpClientTimeouts{
+	return &HTTPlientTimeouts{
 		DialerTimeout:         time.Duration(dialerTimeout) * time.Second,
 		DialerKeepAlive:       time.Duration(dialerKeepAlive) * time.Second,
 		TLSHandshakeTimeout:   time.Duration(tlsHandshakeTimeout) * time.Second,
@@ -250,7 +250,7 @@ func (d DependencyCache) download(uri string, destination string, mods ...Reques
 		return d.downloadFile(url.Path, destination, mods...)
 	}
 
-	return d.downloadHttp(uri, destination, mods...)
+	return d.downloadHTTP(uri, destination, mods...)
 }
 
 func (d DependencyCache) downloadFile(source string, destination string, mods ...RequestModifierFunc) error {
@@ -277,7 +277,7 @@ func (d DependencyCache) downloadFile(source string, destination string, mods ..
 	return nil
 }
 
-func (d DependencyCache) downloadHttp(uri string, destination string, mods ...RequestModifierFunc) error {
+func (d DependencyCache) downloadHTTP(uri string, destination string, mods ...RequestModifierFunc) error {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return fmt.Errorf("unable to create new GET request for %s\n%w", uri, err)
@@ -297,12 +297,12 @@ func (d DependencyCache) downloadHttp(uri string, destination string, mods ...Re
 	client := http.Client{
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
-				Timeout:   d.HttpClientTimeouts.DialerTimeout,
-				KeepAlive: d.HttpClientTimeouts.DialerKeepAlive,
+				Timeout:   d.HTTPClientTimeouts.DialerTimeout,
+				KeepAlive: d.HTTPClientTimeouts.DialerKeepAlive,
 			}).Dial,
-			TLSHandshakeTimeout:   d.HttpClientTimeouts.TLSHandshakeTimeout,
-			ResponseHeaderTimeout: d.HttpClientTimeouts.ResponseHeaderTimeout,
-			ExpectContinueTimeout: d.HttpClientTimeouts.ExpectContinueTimeout,
+			TLSHandshakeTimeout:   d.HTTPClientTimeouts.TLSHandshakeTimeout,
+			ResponseHeaderTimeout: d.HTTPClientTimeouts.ResponseHeaderTimeout,
+			ExpectContinueTimeout: d.HTTPClientTimeouts.ExpectContinueTimeout,
 			Proxy:                 http.ProxyFromEnvironment,
 		},
 	}
