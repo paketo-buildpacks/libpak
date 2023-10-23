@@ -224,7 +224,7 @@ func NewDependencyLayerContributor(dependency BuildModuleDependency, cache Depen
 	return DependencyLayerContributor{
 		Dependency:       dependency,
 		DependencyCache:  cache,
-		ExpectedMetadata: dependency,
+		ExpectedMetadata: dependency.GetMetadata(),
 		ExpectedTypes:    types,
 		Logger:           logger,
 	}

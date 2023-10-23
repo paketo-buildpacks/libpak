@@ -95,6 +95,31 @@ type BuildModuleDependency struct {
 	DeprecationDate time.Time `toml:"deprecation_date"`
 }
 
+// DependencyLayerContributorMetadata returns the subset of data from BuildpackDependency that is use as expected metadata for the DependencyLayerContributor.
+type DependencyLayerContributorMetadata struct {
+	// ID is the dependency ID.
+	ID string `toml:"id"`
+
+	// Name is the dependency name.
+	Name string `toml:"name"`
+
+	// Version is the dependency version.
+	Version string `toml:"version"`
+
+	// SHA256 is the hash of the dependency.
+	SHA256 string `toml:"sha256"`
+}
+
+// GetMetadata return the relevant metadata of this dependency
+func (b BuildModuleDependency) GetMetadata() DependencyLayerContributorMetadata {
+	return DependencyLayerContributorMetadata{
+		ID:      b.ID,
+		Name:    b.Name,
+		Version: b.Version,
+		SHA256:  b.SHA256,
+	}
+}
+
 // Equals compares the 2 structs if they are equal. This is very simiar to reflect.DeepEqual
 // except that properties that will not work (e.g. DeprecationDate) are ignored.
 func (b1 BuildModuleDependency) Equals(b2 BuildModuleDependency) bool {
