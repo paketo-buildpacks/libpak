@@ -18,8 +18,10 @@ package libpak
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"reflect"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -506,6 +508,15 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 			return BuildpackDependency{}, fmt.Errorf("unable to parse version %s\n%w", c.Version, err)
 		}
 
+		// filter out deps that do not match the current running architecture
+		arch, err := archFromPURL(c.PURL)
+		if err != nil {
+			return BuildpackDependency{}, fmt.Errorf("unable to compare arch\n%w", err)
+		}
+		if arch != archFromSystem() {
+			continue
+		}
+
 		if c.ID == id && vc.Check(v) && d.contains(c.Stacks, d.StackID) {
 			candidates = append(candidates, c)
 		}
@@ -532,6 +543,33 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildpackDepend
 	}
 
 	return candidate, nil
+}
+
+func archFromPURL(rawPURL string) (string, error) {
+	if len(strings.TrimSpace(rawPURL)) == 0 {
+		return "amd64", nil
+	}
+
+	purl, err := url.Parse(rawPURL)
+	if err != nil {
+		return "", fmt.Errorf("unable to parse PURL\n%w", err)
+	}
+
+	queryParams := purl.Query()
+	if arch, ok := queryParams["arch"]; ok {
+		return arch[0], nil
+	}
+
+	return "amd64", nil
+}
+
+func archFromSystem() string {
+	archFromEnv, ok := os.LookupEnv("BP_ARCH")
+	if !ok {
+		archFromEnv = runtime.GOARCH
+	}
+
+	return archFromEnv
 }
 
 func (DependencyResolver) contains(candidates []string, value string) bool {
