@@ -355,6 +355,33 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}))
 			})
 
+			it("filters by arch where arch should match any", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id-1",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						PURL:    "pkg:generic/spring-cloud-bindings@1.2.3",
+					},
+				}
+				resolver.StackID = "test-stack-1"
+
+				t.Setenv("BP_ARCH", "arm64")
+
+				Expect(resolver.Resolve("test-id-1", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id-1",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri",
+					SHA256:  "test-sha256",
+					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					PURL:    "pkg:generic/spring-cloud-bindings@1.2.3",
+				}))
+			})
+
 			it("filters by version constraint", func() {
 				resolver.Dependencies = []libpak.BuildpackDependency{
 					{

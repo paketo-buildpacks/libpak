@@ -560,7 +560,7 @@ func archFromPURL(rawPURL string) (string, error) {
 		return arch[0], nil
 	}
 
-	return "amd64", nil
+	return archFromSystem(), nil
 }
 
 func archFromSystem() string {
