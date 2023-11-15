@@ -282,6 +282,10 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			resolver libpak.DependencyResolver
 		)
 
+		it.Before(func() {
+			t.Setenv("BP_ARCH", "amd64") // force for test consistency
+		})
+
 		context("Resolve", func() {
 
 			it("filters by id", func() {
@@ -312,6 +316,69 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 					URI:     "test-uri",
 					SHA256:  "test-sha256",
 					Stacks:  []string{"test-stack-1", "test-stack-2"},
+				}))
+			})
+
+			it("filters by arch", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id-1",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri-amd64",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						PURL:    "pkg:generic/bellsoft-jdk@8.0.382?arch=amd64",
+					},
+					{
+						ID:      "test-id-1",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri-arm64",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						PURL:    "pkg:generic/bellsoft-jdk@8.0.382?arch=arm64",
+					},
+				}
+				resolver.StackID = "test-stack-1"
+
+				t.Setenv("BP_ARCH", "arm64")
+
+				Expect(resolver.Resolve("test-id-1", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id-1",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri-arm64",
+					SHA256:  "test-sha256",
+					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					PURL:    "pkg:generic/bellsoft-jdk@8.0.382?arch=arm64",
+				}))
+			})
+
+			it("filters by arch where arch should match any", func() {
+				resolver.Dependencies = []libpak.BuildpackDependency{
+					{
+						ID:      "test-id-1",
+						Name:    "test-name",
+						Version: "1.0",
+						URI:     "test-uri",
+						SHA256:  "test-sha256",
+						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						PURL:    "pkg:generic/spring-cloud-bindings@1.2.3",
+					},
+				}
+				resolver.StackID = "test-stack-1"
+
+				t.Setenv("BP_ARCH", "arm64")
+
+				Expect(resolver.Resolve("test-id-1", "1.0")).To(Equal(libpak.BuildpackDependency{
+					ID:      "test-id-1",
+					Name:    "test-name",
+					Version: "1.0",
+					URI:     "test-uri",
+					SHA256:  "test-sha256",
+					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					PURL:    "pkg:generic/spring-cloud-bindings@1.2.3",
 				}))
 			})
 

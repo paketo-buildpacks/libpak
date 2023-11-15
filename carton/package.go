@@ -89,7 +89,7 @@ func (p Package) Create(options ...Option) {
 		config.exitHandler.Error(fmt.Errorf("unable to decode buildpack %s\n%w", file, err))
 		return
 	}
-	logger.Debug("Buildpack: %+v", buildpack)
+	logger.Debugf("Buildpack: %+v", buildpack)
 
 	metadata, err := libpak.NewBuildpackMetadata(buildpack.Metadata)
 	if err != nil {
@@ -102,7 +102,7 @@ func (p Package) Create(options ...Option) {
 	for _, i := range metadata.IncludeFiles {
 		entries[i] = filepath.Join(p.Source, i)
 	}
-	logger.Debug("Include files: %+v", entries)
+	logger.Debugf("Include files: %+v", entries)
 
 	if p.Version != "" {
 		buildpack.Info.Version = p.Version
