@@ -157,7 +157,14 @@ func (b BuildpackDependency) Update(options ...Option) {
 			}
 		}
 
+		// if not set, we presently need to default to amd64 because a lot of deps do not specify arch
+		//   in the future when we add the arch field to our deps, then we can remove this because empty should then mean noarch
+		if depArch == "" {
+			depArch = "amd64"
+		}
+
 		if depId == b.ID && depArch == b.Arch {
+
 			depVersionUnwrapped, found := dep["version"]
 			if !found {
 				continue
