@@ -35,6 +35,7 @@ const (
 type BuildpackDependency struct {
 	BuildpackPath  string
 	ID             string
+	Arch           string
 	SHA256         string
 	URI            string
 	Version        string
@@ -58,6 +59,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 
 	logger := bard.NewLogger(os.Stdout)
 	_, _ = fmt.Fprintf(logger.TitleWriter(), "\n%s\n", bard.FormatIdentity(b.ID, b.VersionPattern))
+	logger.Headerf("Arch:         %s", b.Arch)
 	logger.Headerf("Version:      %s", b.Version)
 	logger.Headerf("PURL:         %s", b.PURL)
 	logger.Headerf("CPEs:         %s", b.CPE)
@@ -141,7 +143,28 @@ func (b BuildpackDependency) Update(options ...Option) {
 			continue
 		}
 
-		if depId == b.ID {
+		// extract the arch from the PURL, it's the only place it lives consistently at the moment
+		var depArch string
+		purlUnwrapped, found := dep["purl"]
+		if found {
+			purl, ok := purlUnwrapped.(string)
+			if ok {
+				purlArchExp := regexp.MustCompile(`arch=(.*)`)
+				purlArchMatches := purlArchExp.FindStringSubmatch(purl)
+				if len(purlArchMatches) == 2 {
+					depArch = purlArchMatches[1]
+				}
+			}
+		}
+
+		// if not set, we presently need to default to amd64 because a lot of deps do not specify arch
+		//   in the future when we add the arch field to our deps, then we can remove this because empty should then mean noarch
+		if depArch == "" {
+			depArch = "amd64"
+		}
+
+		if depId == b.ID && depArch == b.Arch {
+
 			depVersionUnwrapped, found := dep["version"]
 			if !found {
 				continue
@@ -151,6 +174,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 			if !ok {
 				continue
 			}
+
 			if versionExp.MatchString(depVersion) {
 				dep["version"] = b.Version
 				dep["uri"] = b.URI
