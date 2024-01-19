@@ -32,6 +32,7 @@ func main() {
 	flagSet := pflag.NewFlagSet("Update Buildpack Dependency", pflag.ExitOnError)
 	flagSet.StringVar(&b.BuildpackPath, "buildpack-toml", "", "path to buildpack.toml")
 	flagSet.StringVar(&b.ID, "id", "", "the id of the dependency")
+	flagSet.StringVar(&b.Arch, "arch", "", "the arch of the dependency")
 	flagSet.StringVar(&b.SHA256, "sha256", "", "the new sha256 of the dependency")
 	flagSet.StringVar(&b.URI, "uri", "", "the new uri of the dependency")
 	flagSet.StringVar(&b.Version, "version", "", "the new version of the dependency")
@@ -53,6 +54,10 @@ func main() {
 
 	if b.ID == "" {
 		log.Fatal("id must be set")
+	}
+
+	if b.Arch == "" {
+		b.Arch = "amd64"
 	}
 
 	if b.SHA256 == "" {
