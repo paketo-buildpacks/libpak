@@ -59,6 +59,7 @@ func NewLayerContributor(name string, expectedMetadata interface{}, expectedType
 		ExpectedMetadata: expectedMetadata,
 		Name:             name,
 		ExpectedTypes:    expectedTypes,
+		Logger:           bard.NewLogger(os.Stdout),
 	}
 }
 
@@ -119,7 +120,7 @@ func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[strin
 	l.Logger.Debugf("Expected metadata: %+v", expected)
 	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
 
-	match, err := l.Equals(expected,layer.Metadata)
+	match, err := l.Equals(expected, layer.Metadata)
 	if err != nil {
 		return map[string]interface{}{}, false, fmt.Errorf("unable to compare metadata\n%w", err)
 	}
@@ -135,7 +136,7 @@ func (l *LayerContributor) Equals(expectedM map[string]interface{}, layerM map[s
 				break
 			}
 		}
-    }
+	}
 	if dep, ok := layerM["dependency"].(map[string]interface{}); ok {
 		for k, v := range dep {
 			if k == "deprecation_date" {
@@ -148,7 +149,7 @@ func (l *LayerContributor) Equals(expectedM map[string]interface{}, layerM map[s
 				break
 			}
 		}
-	} 
+	}
 	return reflect.DeepEqual(expectedM, layerM), nil
 }
 
@@ -240,6 +241,7 @@ func NewDependencyLayerContributor(dependency BuildpackDependency, cache Depende
 		ExpectedMetadata: dependency,
 		DependencyCache:  cache,
 		ExpectedTypes:    types,
+		Logger:           bard.NewLogger(os.Stdout),
 	}
 }
 
@@ -325,6 +327,7 @@ func NewHelperLayerContributor(buildpack libcnb.Buildpack, names ...string) Help
 		Path:          filepath.Join(buildpack.Path, "bin", "helper"),
 		Names:         names,
 		BuildpackInfo: buildpack.Info,
+		Logger:        bard.NewLogger(os.Stdout),
 	}
 }
 
