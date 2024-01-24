@@ -636,6 +636,56 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(called).To(BeFalse())
 		})
 
+		it("does not contribute when deprecation_date is found on metadata map root", func() {
+			dependency = libpak.BuildpackDependency{
+				ID:      "test-id",
+				Name:    "test-name",
+				Version: "1.1.1",
+				URI:     fmt.Sprintf("%s/test-path", server.URL()),
+				SHA256:  "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Stacks:  []string{"test-stack"},
+				Licenses: []libpak.BuildpackDependencyLicense{
+					{
+						Type: "test-type",
+						URI:  "test-uri",
+					},
+				},
+				CPEs: []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
+			}
+			dlc.ExpectedMetadata = dependency
+
+			layer.Metadata = map[string]interface{}{
+				"id":      dependency.ID,
+				"name":    dependency.Name,
+				"version": dependency.Version,
+				"uri":     dependency.URI,
+				"sha256":  dependency.SHA256,
+				"stacks":  []interface{}{dependency.Stacks[0]},
+				"licenses": []map[string]interface{}{
+					{
+						"type": dependency.Licenses[0].Type,
+						"uri":  dependency.Licenses[0].URI,
+					},
+				},
+				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
+				"deprecation_date": "0001-01-01T00:00:00Z",
+			}
+
+			var called bool
+
+			_, err := dlc.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
+				defer artifact.Close()
+
+				called = true
+				return layer, nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+		})
+
 		it("does not call function with missing deprecation_date", func() {
 			dependency = libpak.BuildpackDependency{
 				ID:      "test-id",

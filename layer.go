@@ -154,6 +154,12 @@ func (l *LayerContributor) normalizeDependencyDeprecationDate(input map[string]i
 				break
 			}
 		}
+	} else if depr_date, ok := input["deprecation_date"]; ok {
+		deprecationDate, err := l.parseDeprecationDate(depr_date)
+		if err != nil {
+			return err
+		}
+		input["deprecation_date"] = deprecationDate
 	}
 
 	return nil
