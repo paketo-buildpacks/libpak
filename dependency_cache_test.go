@@ -17,9 +17,11 @@
 package libpak_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,6 +34,7 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/bard"
 )
 
 func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
@@ -343,6 +346,26 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+		})
+
+		it("hide uri credentials from log", func() {
+			server.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.RespondWith(http.StatusOK, "test-fixture"),
+			))
+
+			url, err := url.Parse(dependency.URI)
+			Expect(err).NotTo(HaveOccurred())
+			credentials := "basic-username:basic-password"
+			urlWithBasicCreds := url.Scheme + "://" + credentials + "@" + url.Hostname() + ":" + url.Port() + url.Path
+			dependency.URI = urlWithBasicCreds
+
+			var logBuffer bytes.Buffer
+			captureLogger := bard.NewLogger(&logBuffer)
+			dependencyCache.Logger = captureLogger
+			a, err := dependencyCache.Artifact(dependency)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(a).NotTo(BeNil())
+			Expect(logBuffer.String()).NotTo(ContainSubstring(credentials))
 		})
 	})
 }
