@@ -146,16 +146,27 @@ func (l *LayerContributor) normalizeDependencyDeprecationDate(input map[string]i
 	if dep, ok := input["dependency"].(map[string]interface{}); ok {
 		for k, v := range dep {
 			if k == "deprecation_date" {
-				deprecationDate, err := l.parseDeprecationDate(v)
-				if err != nil {
+				if err := l.replaceDeprecationDate(dep, v); err != nil {
 					return err
 				}
-				dep["deprecation_date"] = deprecationDate
 				break
 			}
 		}
+	} else if depr_date, ok := input["deprecation_date"]; ok {
+		if err := l.replaceDeprecationDate(input, depr_date); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+func (l *LayerContributor) replaceDeprecationDate(metadata map[string]interface{}, value interface{}) error {
+	deprecationDate, err := l.parseDeprecationDate(value)
+	if err != nil {
+		return err
+	}
+	metadata["deprecation_date"] = deprecationDate
 	return nil
 }
 
