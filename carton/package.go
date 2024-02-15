@@ -185,7 +185,8 @@ func (p Package) Create(options ...Option) {
 
 			f, err := cache.Artifact(dep, n.BasicAuth)
 			if err != nil {
-				config.exitHandler.Error(fmt.Errorf("unable to download %s\n%w", dep.URI, err))
+				logger.Debugf("fetching dependency %s failed\n%w", dep.Name, err)
+				config.exitHandler.Error(fmt.Errorf("unable to download %s. see DEBUG log level", dep.Name))
 				return
 			}
 			if err = f.Close(); err != nil {

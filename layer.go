@@ -291,7 +291,8 @@ func (d *DependencyLayerContributor) Contribute(layer libcnb.Layer, f Dependency
 	return lc.Contribute(layer, func() (libcnb.Layer, error) {
 		artifact, err := d.DependencyCache.Artifact(d.Dependency, d.RequestModifierFuncs...)
 		if err != nil {
-			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s\n%w", d.Dependency.ID, err)
+			d.Logger.Debugf("fetching dependency %s failed\n%w", d.Dependency.Name, err)
+			return libcnb.Layer{}, fmt.Errorf("unable to get dependency %s. see DEBUG log level", d.Dependency.Name)
 		}
 		defer artifact.Close()
 

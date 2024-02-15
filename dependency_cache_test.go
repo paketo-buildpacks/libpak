@@ -353,19 +353,28 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				ghttp.RespondWith(http.StatusOK, "test-fixture"),
 			))
 
-			url, err := url.Parse(dependency.URI)
+			url, err := url.ParseRequestURI(dependency.URI)
 			Expect(err).NotTo(HaveOccurred())
-			credentials := "basic-username:basic-password"
-			urlWithBasicCreds := url.Scheme + "://" + credentials + "@" + url.Hostname() + ":" + url.Port() + url.Path
-			dependency.URI = urlWithBasicCreds
+			credentials := "username:password"
+			uriWithBasicCreds := url.Scheme + "://" + credentials + "@" + url.Hostname() + ":" + url.Port() + url.Path
+			dependency.URI = uriWithBasicCreds
 
 			var logBuffer bytes.Buffer
-			captureLogger := bard.NewLogger(&logBuffer)
-			dependencyCache.Logger = captureLogger
-			a, err := dependencyCache.Artifact(dependency)
-			Expect(err).NotTo(HaveOccurred())
+			dependencyCache.Logger = bard.NewLogger(&logBuffer)
+
+			// Make sure the password is not part of the log output.
+			a, errA := dependencyCache.Artifact(dependency)
+			Expect(errA).NotTo(HaveOccurred())
 			Expect(a).NotTo(BeNil())
-			Expect(logBuffer.String()).NotTo(ContainSubstring(credentials))
+			Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
+			logBuffer.Reset()
+
+			// Make sure the password is not part of the log output when an error occurs.
+			dependency.URI = "foo://username:password@acme.com"
+			b, errB := dependencyCache.Artifact(dependency)
+			Expect(errB).To(HaveOccurred())
+			Expect(b).To(BeNil())
+			Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
 		})
 	})
 }
