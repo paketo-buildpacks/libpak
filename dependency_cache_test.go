@@ -17,9 +17,11 @@
 package libpak_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,6 +34,7 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak"
+	"github.com/paketo-buildpacks/libpak/bard"
 )
 
 func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
@@ -343,6 +346,35 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+		})
+
+		it("hide uri credentials from log", func() {
+			server.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.RespondWith(http.StatusOK, "test-fixture"),
+			))
+
+			url, err := url.ParseRequestURI(dependency.URI)
+			Expect(err).NotTo(HaveOccurred())
+			credentials := "username:password"
+			uriWithBasicCreds := url.Scheme + "://" + credentials + "@" + url.Hostname() + ":" + url.Port() + url.Path
+			dependency.URI = uriWithBasicCreds
+
+			var logBuffer bytes.Buffer
+			dependencyCache.Logger = bard.NewLogger(&logBuffer)
+
+			// Make sure the password is not part of the log output.
+			a, errA := dependencyCache.Artifact(dependency)
+			Expect(errA).NotTo(HaveOccurred())
+			Expect(a).NotTo(BeNil())
+			Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
+			logBuffer.Reset()
+
+			// Make sure the password is not part of the log output when an error occurs.
+			dependency.URI = "foo://username:password@acme.com"
+			b, errB := dependencyCache.Artifact(dependency)
+			Expect(errB).To(HaveOccurred())
+			Expect(b).To(BeNil())
+			Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
 		})
 	})
 }
