@@ -189,7 +189,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
 		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), urlP.Redacted())
-		artifact = filepath.Join(d.DownloadPath, filepath.Base(urlP.Path))
+		artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
 		if err := d.download(urlP, artifact, mods...); err != nil {
 			return nil, fmt.Errorf("unable to download %s\n%w", urlP.Redacted(), err)
 		}
@@ -226,7 +226,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), urlP.Redacted())
-	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(urlP.Path))
+	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri))
 	if err := d.download(urlP, artifact, mods...); err != nil {
 		return nil, fmt.Errorf("unable to download %s\n%w", urlP.Redacted(), err)
 	}
