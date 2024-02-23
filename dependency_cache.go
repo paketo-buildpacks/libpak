@@ -164,15 +164,17 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...RequestModifierFunc) (*os.File, error) {
 
 	var (
-		actual   BuildpackDependency
-		artifact string
-		file     string
-		uri      = dependency.URI
-		urlP     *url.URL
+		actual    BuildpackDependency
+		artifact  string
+		file      string
+		isBinding bool
+		uri       = dependency.URI
+		urlP      *url.URL
 	)
 
 	for d, u := range d.Mappings {
 		if d == dependency.SHA256 {
+			isBinding = true
 			uri = u
 			break
 		}
@@ -182,6 +184,10 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	if err != nil {
 		d.Logger.Debugf("URI format invalid\n%w", err)
 		return nil, fmt.Errorf("unable to parse URI. see DEBUG log level")
+	}
+
+	if !isBinding {
+		d.overrideDependencySource(urlP)
 	}
 
 	if dependency.SHA256 == "" {
@@ -362,4 +368,21 @@ func (DependencyCache) verify(path string, expected string) error {
 	}
 
 	return nil
+}
+
+func (d DependencyCache) overrideDependencySource(urlD *url.URL) {
+	dependencySourceOverride := sherpa.GetEnvWithDefault("BP_DEPENDENCY_SOURCE_OVERRIDE", "")
+	if dependencySourceOverride != "" {
+		d.Logger.Infof("variable BP_DEPENDENCY_SOURCE_OVERRIDE found. overriding download uri.")
+		urlOverride, err := url.ParseRequestURI(dependencySourceOverride)
+		if err == nil {
+			urlD.Scheme = urlOverride.Scheme
+			urlD.User = urlOverride.User
+			urlD.Host = urlOverride.Host
+			urlD.Path = urlOverride.Path + urlD.Path
+		} else {
+			d.Logger.Debugf("environment variable BP_DEPENDENCY_SOURCE_OVERRIDE could not be parsed. value: %s\n%w", dependencySourceOverride, err)
+			d.Logger.Infof("ignoring invalid variable BP_DEPENDENCY_SOURCE_OVERRIDE. continuing without override...")
+		}
+	}
 }
