@@ -298,6 +298,28 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
+		context("source is overridden", func() {
+			serverOverride := ghttp.NewServer()
+			url, _ := url.Parse(serverOverride.URL())
+
+			it.Before(func() {
+				t.Setenv("BP_DEPENDENCY_SOURCE_OVERRIDE", url.Scheme+"://"+"username:password@"+url.Host+"/foo/bar")
+			})
+
+			it("downloads from override source", func() {
+				serverOverride.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth("username", "password"),
+					ghttp.VerifyRequest(http.MethodGet, "/foo/bar/test-path", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
 		it("fails with invalid SHA256", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "invalid-fixture"))
 
