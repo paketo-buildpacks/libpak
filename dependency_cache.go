@@ -18,6 +18,7 @@ package libpak
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -187,7 +188,7 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 	}
 
 	if !isBinding {
-		d.overrideDependencySource(urlP)
+		d.setDependencyMirror(urlP)
 	}
 
 	if dependency.SHA256 == "" {
@@ -293,6 +294,28 @@ func (d DependencyCache) downloadFile(source string, destination string, mods ..
 }
 
 func (d DependencyCache) downloadHttp(url *url.URL, destination string, mods ...RequestModifierFunc) error {
+	var httpClient *http.Client
+	if (strings.EqualFold(url.Hostname(), "localhost")) || (strings.EqualFold(url.Hostname(), "127.0.0.1")) {
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	} else {
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				Dial: (&net.Dialer{
+					Timeout:   d.HttpClientTimeouts.DialerTimeout,
+					KeepAlive: d.HttpClientTimeouts.DialerKeepAlive,
+				}).Dial,
+				TLSHandshakeTimeout:   d.HttpClientTimeouts.TLSHandshakeTimeout,
+				ResponseHeaderTimeout: d.HttpClientTimeouts.ResponseHeaderTimeout,
+				ExpectContinueTimeout: d.HttpClientTimeouts.ExpectContinueTimeout,
+				Proxy:                 http.ProxyFromEnvironment,
+			},
+		}
+	}
+
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return fmt.Errorf("unable to create new GET request for %s\n%w", url.Redacted(), err)
@@ -309,19 +332,7 @@ func (d DependencyCache) downloadHttp(url *url.URL, destination string, mods ...
 		}
 	}
 
-	client := http.Client{
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout:   d.HttpClientTimeouts.DialerTimeout,
-				KeepAlive: d.HttpClientTimeouts.DialerKeepAlive,
-			}).Dial,
-			TLSHandshakeTimeout:   d.HttpClientTimeouts.TLSHandshakeTimeout,
-			ResponseHeaderTimeout: d.HttpClientTimeouts.ResponseHeaderTimeout,
-			ExpectContinueTimeout: d.HttpClientTimeouts.ExpectContinueTimeout,
-			Proxy:                 http.ProxyFromEnvironment,
-		},
-	}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to request %s\n%w", url.Redacted(), err)
 	}
@@ -370,19 +381,27 @@ func (DependencyCache) verify(path string, expected string) error {
 	return nil
 }
 
-func (d DependencyCache) overrideDependencySource(urlD *url.URL) {
-	dependencySourceOverride := sherpa.GetEnvWithDefault("BP_DEPENDENCY_SOURCE_OVERRIDE", "")
-	if dependencySourceOverride != "" {
-		d.Logger.Infof("variable BP_DEPENDENCY_SOURCE_OVERRIDE found. overriding download uri.")
-		urlOverride, err := url.ParseRequestURI(dependencySourceOverride)
-		if err == nil {
+func (d DependencyCache) setDependencyMirror(urlD *url.URL) {
+	dependencyMirror := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR", "")
+	dependencyMirrorPreserveHost := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR_PRESERVE_HOST", "false")
+	if dependencyMirror != "" {
+		var originalHost string
+
+		d.Logger.Infof("variable BP_DEPENDENCY_MIRROR found. overriding download uri.")
+		urlOverride, err := url.ParseRequestURI(dependencyMirror)
+
+		if strings.EqualFold(dependencyMirrorPreserveHost, "true") && urlD.Hostname() != "" {
+			originalHost = "/" + urlD.Hostname()
+		}
+
+		if strings.EqualFold(urlOverride.Scheme, "https") || strings.EqualFold(urlOverride.Scheme, "file") {
 			urlD.Scheme = urlOverride.Scheme
 			urlD.User = urlOverride.User
 			urlD.Host = urlOverride.Host
-			urlD.Path = urlOverride.Path + urlD.Path
+			urlD.Path = urlOverride.Path + originalHost + urlD.Path
 		} else {
-			d.Logger.Debugf("environment variable BP_DEPENDENCY_SOURCE_OVERRIDE could not be parsed. value: %s\n%w", dependencySourceOverride, err)
-			d.Logger.Infof("ignoring invalid variable BP_DEPENDENCY_SOURCE_OVERRIDE. continuing without override...")
+			d.Logger.Debugf("environment variable BP_DEPENDENCY_MIRROR has invalid value: %s\n%w", dependencyMirror, err)
+			d.Logger.Infof("ignoring invalid variable BP_DEPENDENCY_MIRROR. have you used one of the supported schemes 'https://' or 'file://'? continuing without override.")
 		}
 	}
 }

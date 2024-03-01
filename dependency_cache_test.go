@@ -298,20 +298,86 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("source is overridden", func() {
-			serverOverride := ghttp.NewServer()
-			url, _ := url.Parse(serverOverride.URL())
+		context("dependency mirror is used https", func() {
+			var mirrorServer *ghttp.Server
 
 			it.Before(func() {
-				t.Setenv("BP_DEPENDENCY_SOURCE_OVERRIDE", url.Scheme+"://"+"username:password@"+url.Host+"/foo/bar")
+				mirrorServer = ghttp.NewTLSServer()
 			})
 
-			it("downloads from override source", func() {
-				serverOverride.AppendHandlers(ghttp.CombineHandlers(
+			it.After(func() {
+				mirrorServer.Close()
+			})
+
+			it("downloads from https mirror", func() {
+				url, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				t.Setenv("BP_DEPENDENCY_MIRROR", url.Scheme+"://"+"username:password@"+url.Host+"/foo/bar")
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
 					ghttp.VerifyBasicAuth("username", "password"),
 					ghttp.VerifyRequest(http.MethodGet, "/foo/bar/test-path", ""),
 					ghttp.RespondWith(http.StatusOK, "test-fixture"),
 				))
+
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("downloads from https mirror preserving hostname", func() {
+				url, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				t.Setenv("BP_DEPENDENCY_MIRROR", url.Scheme+"://"+url.Host)
+				t.Setenv("BP_DEPENDENCY_MIRROR_PRESERVE_HOST", "true")
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/"+url.Hostname()+"/test-path", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
+		context("dependency mirror is used file", func() {
+			var (
+				mirrorPath              string
+				mirrorPathPreservedHost string
+			)
+
+			it.Before(func() {
+				var err error
+				mirrorPath, err = os.MkdirTemp("", "mirror-path")
+				Expect(err).NotTo(HaveOccurred())
+				mirrorPathPreservedHost = mirrorPath + "/127.0.0.1"
+				Expect(os.Mkdir(mirrorPathPreservedHost, os.ModePerm)).NotTo(HaveOccurred())
+			})
+
+			it.After(func() {
+				Expect(os.RemoveAll(mirrorPath)).To(Succeed())
+			})
+
+			it("downloads from file mirror", func() {
+				mirrorFile := filepath.Join(mirrorPath, "test-path")
+				Expect(os.WriteFile(mirrorFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+
+				t.Setenv("BP_DEPENDENCY_MIRROR", "file://"+mirrorPath)
+
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("downloads from file mirror preserving hostname", func() {
+				mirrorFilePreservedHost := filepath.Join(mirrorPathPreservedHost, "test-path")
+				Expect(os.WriteFile(mirrorFilePreservedHost, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+
+				t.Setenv("BP_DEPENDENCY_MIRROR", "file://"+mirrorPath)
+				t.Setenv("BP_DEPENDENCY_MIRROR_PRESERVE_HOST", "true")
 
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
