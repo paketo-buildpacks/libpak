@@ -77,11 +77,14 @@ type DependencyCache struct {
 // agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
 // Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings".
 //
-// If dependencies should not be downloaded directly, but need to be pulled from a mirror registry (e.g. in air-gapped environments),
-// the alternative URI can either be provided as environment variable "BP_DEPENDENCY_MIRROR", or by a binding of type "dependency-mirror"
-// where a file named "uri" must provide the desired location.
-// The two schemes https:// and file:// are supported in mirror URIs where the expected format is (parts in "[]"" are optional):
+// In some air-gapped environments, dependencies might not be download directly but need to be pulled from a local mirror registry.
+// In such cases, an alternative URI can either be provided as environment variable "BP_DEPENDENCY_MIRROR", or by a binding of type "dependency-mirror"
+// where a file named "uri" holds the desired location.
+// The two schemes https:// and file:// are supported in mirror URIs where the expected format is (optional parts in "[]"):
 // <scheme>://[<username>:<password>@]<hostname>[:<port>][/<prefix>]
+// The optional path part of the provided URI is used as a prefix that might be necessary in some setups.
+// This (prefix) path may also include a placeholder of "{originalHost}" at any level (in sub-paths or at top-level) and is replaced with the
+// hostname of the original download URI at build time. A sample mirror URI might look like this: https://local-mirror.example.com/buildpacks-dependencies/{originalHost}
 func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 	cache := DependencyCache{
 		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
