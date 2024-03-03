@@ -47,8 +47,8 @@ type HttpClientTimeouts struct {
 	ExpectContinueTimeout time.Duration
 }
 
-// DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download, or to download
-// directly.
+// DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download,
+// a mirror registry, or to download directly.
 type DependencyCache struct {
 
 	// CachePath is the location where the buildpack has cached its dependencies.
@@ -75,7 +75,13 @@ type DependencyCache struct {
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
 // agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
-// Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings"
+// Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings".
+//
+// If dependencies should not be downloaded directly, but need to be pulled from a mirror registry (e.g. in air-gapped environments),
+// the alternative URI can either be provided as environment variable "BP_DEPENDENCY_MIRROR", or by a binding of type "dependency-mirror"
+// where a file named "uri" must provide the desired location.
+// The two schemes https:// and file:// are supported in mirror URIs where the expected format is (parts in "[]"" are optional):
+// <scheme>://[<username>:<password>@]<hostname>[:<port>][/<prefix>]
 func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 	cache := DependencyCache{
 		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
