@@ -68,6 +68,9 @@ type DependencyCache struct {
 
 	// httpClientTimeouts contains the timeout values used by HTTP client
 	HttpClientTimeouts HttpClientTimeouts
+
+	// Alternative source used for downloading dependencies.
+	DependencyMirror string
 }
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
@@ -80,7 +83,7 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 		UserAgent:    fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
 		Mappings:     map[string]string{},
 	}
-	mappings, err := mappingsFromBindings(context.Platform.Bindings)
+	mappings, err := filterBindingsByType(context.Platform.Bindings, "dependency-mapping")
 	if err != nil {
 		return DependencyCache{}, fmt.Errorf("unable to process dependency-mapping bindings\n%w", err)
 	}
@@ -91,6 +94,12 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 		return DependencyCache{}, fmt.Errorf("unable to read custom timeout settings\n%w", err)
 	}
 	cache.HttpClientTimeouts = *clientTimeouts
+
+	dependencyMirror, err := getDependencyMirror(context.Platform.Bindings)
+	if err != nil {
+		return DependencyCache{}, err
+	}
+	cache.DependencyMirror = dependencyMirror
 
 	return cache, nil
 }
@@ -135,19 +144,39 @@ func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
 	}, nil
 }
 
-func mappingsFromBindings(bindings libcnb.Bindings) (map[string]string, error) {
-	mappings := map[string]string{}
+// Returns the URI of a dependency mirror (optional).
+// Such mirror location can be defined in a binding of type 'dependency-mirror' with filename 'uri'
+// or using the environment variable 'BP_DEPENDENCY_MIRROR'. The latter takes precedence in case both are found.
+func getDependencyMirror(bindings libcnb.Bindings) (string, error) {
+	dependencyMirror := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR", "")
+	// If no mirror was found in environment variables, try to find one in bindings.
+	if dependencyMirror == "" {
+		dependencyMirrorBindings, err := filterBindingsByType(bindings, "dependency-mirror")
+		if err == nil {
+			// Use the content of the file named "uri" as the mirror's URI.
+			dependencyMirror = dependencyMirrorBindings["uri"]
+		} else {
+			return "", err
+		}
+	}
+	return dependencyMirror, nil
+}
+
+// Returns a key/value map with all entries for a given binding type.
+// An error is returned if multiple entries are found using the same key (e.g. duplicate digests in dependency mappings).
+func filterBindingsByType(bindings libcnb.Bindings, bindingType string) (map[string]string, error) {
+	filteredBindings := map[string]string{}
 	for _, binding := range bindings {
-		if strings.ToLower(binding.Type) == "dependency-mapping" {
-			for digest, uri := range binding.Secret {
-				if _, ok := mappings[digest]; ok {
-					return nil, fmt.Errorf("multiple mappings for digest %q", digest)
+		if strings.ToLower(binding.Type) == bindingType {
+			for key, value := range binding.Secret {
+				if _, ok := filteredBindings[key]; ok {
+					return nil, fmt.Errorf("multiple %s bindings found with duplicate keys %s", binding.Type, key)
 				}
-				mappings[digest] = uri
+				filteredBindings[key] = value
 			}
 		}
 	}
-	return mappings, nil
+	return filteredBindings, nil
 }
 
 // RequestModifierFunc is a callback that enables modification of a download request before it is sent.  It is often
@@ -187,7 +216,10 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		return nil, fmt.Errorf("unable to parse URI. see DEBUG log level")
 	}
 
-	if !isBinding {
+	if isBinding && d.DependencyMirror != "" {
+		d.Logger.Bodyf("Both dependency mirror and bindings are present. %s Please remove dependency map bindings if you wish to use the mirror.",
+			color.YellowString("Mirror is being ignored."))
+	} else {
 		d.setDependencyMirror(urlP)
 	}
 
@@ -382,26 +414,18 @@ func (DependencyCache) verify(path string, expected string) error {
 }
 
 func (d DependencyCache) setDependencyMirror(urlD *url.URL) {
-	dependencyMirror := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR", "")
-	dependencyMirrorPreserveHost := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR_PRESERVE_HOST", "false")
-	if dependencyMirror != "" {
-		var originalHost string
+	if d.DependencyMirror != "" {
+		d.Logger.Bodyf("%s Download URIs will be overridden.", color.GreenString("Dependency mirror found."))
+		urlOverride, err := url.ParseRequestURI(d.DependencyMirror)
 
-		d.Logger.Infof("variable BP_DEPENDENCY_MIRROR found. overriding download uri.")
-		urlOverride, err := url.ParseRequestURI(dependencyMirror)
-
-		if strings.EqualFold(dependencyMirrorPreserveHost, "true") && urlD.Hostname() != "" {
-			originalHost = "/" + urlD.Hostname()
-		}
-
-		if strings.EqualFold(urlOverride.Scheme, "https") || strings.EqualFold(urlOverride.Scheme, "file") {
+		if strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file" {
 			urlD.Scheme = urlOverride.Scheme
 			urlD.User = urlOverride.User
+			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + urlD.Path
 			urlD.Host = urlOverride.Host
-			urlD.Path = urlOverride.Path + originalHost + urlD.Path
 		} else {
-			d.Logger.Debugf("environment variable BP_DEPENDENCY_MIRROR has invalid value: %s\n%w", dependencyMirror, err)
-			d.Logger.Infof("ignoring invalid variable BP_DEPENDENCY_MIRROR. have you used one of the supported schemes 'https://' or 'file://'? continuing without override.")
+			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", d.DependencyMirror, err)
+			d.Logger.Bodyf("%s is ignored. Have you used one of the supported schemes https:// or file://?", color.YellowString("Invalid dependency mirror"))
 		}
 	}
 }
