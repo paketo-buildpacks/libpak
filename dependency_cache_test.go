@@ -150,6 +150,35 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				})
 			})
 		})
+
+		context("dependency mirror from environment variable", func() {
+			it.Before(func() {
+				t.Setenv("BP_DEPENDENCY_MIRROR", "https://env-var-mirror.acme.com")
+			})
+
+			it("uses BP_DEPENDENCY_MIRROR environment variable", func() {
+				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dependencyCache.DependencyMirror).To(Equal("https://env-var-mirror.acme.com"))
+			})
+		})
+
+		context("dependency mirror from binding", func() {
+			it.Before(func() {
+				ctx.Platform.Bindings = append(ctx.Platform.Bindings, libcnb.Binding{
+					Type: "dependency-mirror",
+					Secret: map[string]string{
+						"uri": "https://bindings-mirror.acme.com",
+					},
+				})
+			})
+
+			it("uses dependency-mirror binding", func() {
+				dependencyCache, err := libpak.NewDependencyCache(ctx)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dependencyCache.DependencyMirror).To(Equal("https://bindings-mirror.acme.com"))
+			})
+		})
 	})
 
 	context("artifacts", func() {
@@ -291,6 +320,92 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("downloads from override filesystem", func() {
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
+		context("dependency mirror is used https", func() {
+			var mirrorServer *ghttp.Server
+
+			it.Before(func() {
+				mirrorServer = ghttp.NewTLSServer()
+			})
+
+			it.After(func() {
+				mirrorServer.Close()
+			})
+
+			it("downloads from https mirror", func() {
+				url, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth("username", "password"),
+					ghttp.VerifyRequest(http.MethodGet, "/foo/bar/test-path", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirror = url.Scheme + "://" + "username:password@" + url.Host + "/foo/bar"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("downloads from https mirror preserving hostname", func() {
+				url, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/"+url.Hostname()+"/test-path", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirror = url.Scheme + "://" + url.Host + "/{originalHost}"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
+		context("dependency mirror is used file", func() {
+			var (
+				mirrorPath              string
+				mirrorPathPreservedHost string
+			)
+
+			it.Before(func() {
+				var err error
+				mirrorPath, err = os.MkdirTemp("", "mirror-path")
+				Expect(err).NotTo(HaveOccurred())
+				originalUrl, err := url.Parse(dependency.URI)
+				Expect(err).NotTo(HaveOccurred())
+				mirrorPathPreservedHost = filepath.Join(mirrorPath, originalUrl.Hostname(), "prefix")
+				Expect(os.MkdirAll(mirrorPathPreservedHost, os.ModePerm)).NotTo(HaveOccurred())
+			})
+
+			it.After(func() {
+				Expect(os.RemoveAll(mirrorPath)).To(Succeed())
+			})
+
+			it("downloads from file mirror", func() {
+				mirrorFile := filepath.Join(mirrorPath, "test-path")
+				Expect(os.WriteFile(mirrorFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+
+				dependencyCache.DependencyMirror = "file://" + mirrorPath
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("downloads from file mirror preserving hostname", func() {
+				mirrorFilePreservedHost := filepath.Join(mirrorPathPreservedHost, "test-path")
+				Expect(os.WriteFile(mirrorFilePreservedHost, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+
+				dependencyCache.DependencyMirror = "file://" + mirrorPath + "/{originalHost}" + "/prefix"
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
