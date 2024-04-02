@@ -154,7 +154,7 @@ func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
 }
 
 // Returns the URI of a dependency mirror (optional).
-// Such mirror location can be defined in a binding of type 'dependency-mirror' with filename 'uri'
+// Such mirror location can be defined in a binding of type 'dependency-mirror' with filename 'default'
 // or using the environment variable 'BP_DEPENDENCY_MIRROR'. The latter takes precedence in case both are found.
 func getDependencyMirror(bindings libcnb.Bindings) (string, error) {
 	dependencyMirror := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR", "")
@@ -162,8 +162,8 @@ func getDependencyMirror(bindings libcnb.Bindings) (string, error) {
 	if dependencyMirror == "" {
 		dependencyMirrorBindings, err := filterBindingsByType(bindings, "dependency-mirror")
 		if err == nil {
-			// Use the content of the file named "uri" as the mirror's URI.
-			dependencyMirror = dependencyMirrorBindings["uri"]
+			// Use the content of the file named "default" as the mirror's URI.
+			dependencyMirror = dependencyMirrorBindings["default"]
 		} else {
 			return "", err
 		}

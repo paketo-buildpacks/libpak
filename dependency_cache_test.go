@@ -168,7 +168,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				ctx.Platform.Bindings = append(ctx.Platform.Bindings, libcnb.Binding{
 					Type: "dependency-mirror",
 					Secret: map[string]string{
-						"uri": "https://bindings-mirror.acme.com",
+						"default": "https://bindings-mirror.acme.com",
 					},
 				})
 			})
