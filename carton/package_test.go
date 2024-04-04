@@ -100,7 +100,68 @@ include-files = [
 		Expect(e.Dir).To(Equal(path))
 	})
 
-	it("includes include_files", func() {
+	context("has a buildpack.toml with target specific include files", func() {
+		it.Before(func() {
+			Expect(os.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
+api = "0.0.0"
+
+[buildpack]
+name    = "test-name"
+version = "{{.version}}"
+
+[[metadata.dependencies]]
+id      = "test-id"
+name    = "test-name"
+version = "1.1.1"
+uri     = "test-uri"
+sha256  = "test-sha256"
+stacks  = [ "test-stack" ]
+
+  [[metadata.dependencies.licenses]]
+  type = "test-type"
+  uri  = "test-uri"
+
+[metadata]
+pre-package   = "test-pre-package"
+include-files = [
+  "buildpack.toml",
+  "README",
+  "LICENSE",
+  "linux/amd64/bin/just-once",
+  "linux/arm64/bin/also-just-once"
+]
+`), 0644)).To(Succeed())
+		})
+
+		it("includes include_files using the original format", func() {
+			carton.Package{
+				Source:      path,
+				Destination: "test-destination",
+			}.Create(
+				carton.WithEntryWriter(entryWriter),
+				carton.WithExecutor(executor),
+				carton.WithExitHandler(exitHandler))
+
+			Expect(entryWriter.Calls[0].Arguments[0]).To(Equal(filepath.Join(path, "buildpack.toml")))
+			Expect(entryWriter.Calls[0].Arguments[1]).To(Equal(filepath.Join("test-destination", "buildpack.toml")))
+
+			Expect(entryWriter.Calls[1].Arguments[0]).To(Equal(filepath.Join(path, "LICENSE")))
+			Expect(entryWriter.Calls[1].Arguments[1]).To(Equal(filepath.Join("test-destination", "linux/amd64/LICENSE")))
+			Expect(entryWriter.Calls[2].Arguments[0]).To(Equal(filepath.Join(path, "README")))
+			Expect(entryWriter.Calls[2].Arguments[1]).To(Equal(filepath.Join("test-destination", "linux/amd64/README")))
+			Expect(entryWriter.Calls[3].Arguments[0]).To(Equal(filepath.Join(path, "linux/amd64/bin/just-once")))
+			Expect(entryWriter.Calls[3].Arguments[1]).To(Equal(filepath.Join("test-destination", "linux/amd64/bin/just-once")))
+
+			Expect(entryWriter.Calls[4].Arguments[0]).To(Equal(filepath.Join(path, "LICENSE")))
+			Expect(entryWriter.Calls[4].Arguments[1]).To(Equal(filepath.Join("test-destination", "linux/arm64/LICENSE")))
+			Expect(entryWriter.Calls[5].Arguments[0]).To(Equal(filepath.Join(path, "README")))
+			Expect(entryWriter.Calls[5].Arguments[1]).To(Equal(filepath.Join("test-destination", "linux/arm64/README")))
+			Expect(entryWriter.Calls[6].Arguments[0]).To(Equal(filepath.Join(path, "linux/arm64/bin/also-just-once")))
+			Expect(entryWriter.Calls[6].Arguments[1]).To(Equal(filepath.Join("test-destination", "linux/arm64/bin/also-just-once")))
+		})
+	})
+
+	it("includes include_files using the target format", func() {
 		carton.Package{
 			Source:      path,
 			Destination: "test-destination",
