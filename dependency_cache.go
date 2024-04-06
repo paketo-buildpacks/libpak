@@ -164,7 +164,7 @@ func (d *DependencyCache) setDependencyMirrors(bindingMirrors map[string]string)
 		hostnameSuffix, isMirror := strings.CutPrefix(envPair[0], "BP_DEPENDENCY_MIRROR")
 		if isMirror {
 			hostnameEncoded, _ := strings.CutPrefix(hostnameSuffix, "_")
-			if hostnameEncoded == "default" {
+			if strings.ToLower(hostnameEncoded) == "default" {
 				d.Logger.Bodyf("%s with illegal hostname 'default'. Please use BP_DEPENDENCY_MIRROR to set a default.",
 					color.YellowString("Ignored dependency mirror"))
 				continue
