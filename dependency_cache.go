@@ -88,6 +88,7 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 		UserAgent:         fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
 		Mappings:          map[string]string{},
 		DependencyMirrors: map[string]string{},
+		Logger:            bard.NewLogger(os.Stdout),
 	}
 	mappings, err := filterBindingsByType(context.Platform.Bindings, "dependency-mapping")
 	if err != nil {
@@ -101,11 +102,11 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 	}
 	cache.HttpClientTimeouts = *clientTimeouts
 
-	dependencyMirrors, err := getDependencyMirrors(context.Platform.Bindings)
+	bindingMirrors, err := filterBindingsByType(context.Platform.Bindings, "dependency-mirror")
 	if err != nil {
-		return DependencyCache{}, fmt.Errorf("unable to read dependency mirrors\n%w", err)
+		return DependencyCache{}, fmt.Errorf("unable to process dependency-mirror bindings\n%w", err)
 	}
-	cache.DependencyMirrors = dependencyMirrors
+	cache.setDependencyMirrors(bindingMirrors)
 
 	return cache, nil
 }
@@ -150,39 +151,37 @@ func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
 	}, nil
 }
 
-// Returns a key/value map with the URIs of all dependency mirrors. An empty map is returned if no mirrors are set.
-// Mirror locations can be defined in bindings of type 'dependency-mirror' or using env variables prefixed with 'BP_DEPENDENCY_MIRROR'.
-// Settings provided by env variables override those defined in bindings.
-func getDependencyMirrors(bindings libcnb.Bindings) (map[string]string, error) {
-	dependencyMirrors, err := filterBindingsByType(bindings, "dependency-mirror")
-	if err != nil {
-		return nil, err
-	}
-	dependencyMirrorsFromEnv := getDependencyMirrorsFromEnv()
-	for host, uri := range dependencyMirrorsFromEnv {
-		dependencyMirrors[host] = uri
-	}
-	return dependencyMirrors, nil
-}
-
-// Returns a key/value map of all dependency mirrors set in environment variables.
-func getDependencyMirrorsFromEnv() map[string]string {
-	mirrors := map[string]string{}
+func (d *DependencyCache) setDependencyMirrors(bindingMirrors map[string]string) {
+	// Initialize with mirrors from bindings.
+	d.DependencyMirrors = bindingMirrors
+	// Add mirrors from env variables and override duplicate hostnames set in bindings.
 	envs := os.Environ()
 	for _, env := range envs {
 		envPair := strings.SplitN(env, "=", 2)
+		if len(envPair) != 2 {
+			continue
+		}
 		hostnameSuffix, isMirror := strings.CutPrefix(envPair[0], "BP_DEPENDENCY_MIRROR")
-		hostnameEncoded, _ := strings.CutPrefix(hostnameSuffix, "_")
 		if isMirror {
-			mirrors[decodeHostnameEnv(hostnameEncoded)] = envPair[1]
+			hostnameEncoded, _ := strings.CutPrefix(hostnameSuffix, "_")
+			if hostnameEncoded == "default" {
+				d.Logger.Bodyf("%s with illegal hostname 'default'. Please use BP_DEPENDENCY_MIRROR to set a default.",
+					color.YellowString("Ignored dependency mirror"))
+				continue
+			}
+			d.DependencyMirrors[decodeHostnameEnv(hostnameEncoded, d)] = envPair[1]
 		}
 	}
-	return mirrors
 }
 
 // Takes an encoded hostname (from env key) and returns the decoded version in lower case.
 // Replaces double underscores (__) with one dash (-) and single underscores (_) with one period (.).
-func decodeHostnameEnv(encodedHostname string) string {
+func decodeHostnameEnv(encodedHostname string, d *DependencyCache) string {
+	if strings.ContainsAny(encodedHostname, "-.") || encodedHostname != strings.ToUpper(encodedHostname) {
+		d.Logger.Bodyf("%s These will be allowed but for best results across different shells, you should replace . characters with _ characters "+
+			"and - characters with __, and use all upper case letters. The buildpack will convert these back before using the mirror.",
+			color.YellowString("You have invalid characters in your mirror host environment variable."))
+	}
 	var decodedHostname string
 	if encodedHostname == "" {
 		decodedHostname = "default"
@@ -199,7 +198,7 @@ func filterBindingsByType(bindings libcnb.Bindings, bindingType string) (map[str
 	for _, binding := range bindings {
 		if strings.ToLower(binding.Type) == bindingType {
 			for key, value := range binding.Secret {
-				if _, ok := filteredBindings[key]; ok {
+				if _, ok := filteredBindings[strings.ToLower(key)]; ok {
 					return nil, fmt.Errorf("multiple %s bindings found with duplicate keys %s", binding.Type, key)
 				}
 				filteredBindings[strings.ToLower(key)] = value
