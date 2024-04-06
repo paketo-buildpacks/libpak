@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"text/template"
 
 	"github.com/BurntSushi/toml"
@@ -97,10 +98,37 @@ func (p Package) Create(options ...Option) {
 		return
 	}
 
+	logger.Debugf("IncludeFiles: %+v", metadata.IncludeFiles)
+
+	supportedTargets := []string{}
+	for _, i := range metadata.IncludeFiles {
+		if strings.HasPrefix(i, "linux/") {
+			parts := strings.SplitN(i, "/", 3)
+			if len(parts) < 3 {
+				// this shouldn't happen, but if it does for some reason just ignore it
+				//   this entry is not a properly formatted target
+				continue
+			}
+			supportedTargets = append(supportedTargets, fmt.Sprintf("%s/%s", parts[0], parts[1]))
+		}
+	}
+
+	if len(supportedTargets) == 0 {
+		logger.Info("No supported targets found, defaulting to old format")
+	}
+
+	logger.Debugf("Supported targets: %+v", supportedTargets)
+
 	entries := map[string]string{}
 
 	for _, i := range metadata.IncludeFiles {
-		entries[i] = filepath.Join(p.Source, i)
+		if len(supportedTargets) == 0 || strings.HasPrefix(i, "linux/") || i == "buildpack.toml" {
+			entries[i] = filepath.Join(p.Source, i)
+		} else {
+			for _, target := range supportedTargets {
+				entries[fmt.Sprintf("%s/%s", target, i)] = filepath.Join(p.Source, i)
+			}
+		}
 	}
 	logger.Debugf("Include files: %+v", entries)
 
