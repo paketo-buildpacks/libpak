@@ -69,28 +69,29 @@ type DependencyCache struct {
 	// httpClientTimeouts contains the timeout values used by HTTP client
 	HttpClientTimeouts HttpClientTimeouts
 
-	// Alternative source used for downloading dependencies.
-	DependencyMirror string
+	// Alternative sources used for downloading dependencies.
+	DependencyMirrors map[string]string
 }
 
 // NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
 // agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
 // Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings".
 //
-// In some air-gapped environments, dependencies might not be download directly but need to be pulled from a local mirror registry.
-// In such cases, an alternative URI can either be provided as environment variable "BP_DEPENDENCY_MIRROR", or by a binding of type "dependency-mirror"
-// where a file named "uri" holds the desired location.
-// The two schemes https:// and file:// are supported in mirror URIs where the expected format is (optional parts in "[]"):
-// <scheme>://[<username>:<password>@]<hostname>[:<port>][/<prefix>]
-// The optional path part of the provided URI is used as a prefix that might be necessary in some setups.
-// This (prefix) path may also include a placeholder of "{originalHost}" at any level (in sub-paths or at top-level) and is replaced with the
-// hostname of the original download URI at build time. A sample mirror URI might look like this: https://local-mirror.example.com/buildpacks-dependencies/{originalHost}
+// In some environments, many dependencies might need to be downloaded from a (local) mirror registry or filesystem.
+// Such alternative locations can be configured using bindings of type "dependency-mirror", avoiding too many "dependency-mapping" bindings.
+// Environment variables named "BP_DEPENDENCY_MIRROR" (default) or "BP_DEPENDENCY_MIRROR_<HOSTNAME>" (hostname-specific mirror)
+// can also be used for the same purpose.
 func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 	cache := DependencyCache{
-		CachePath:    filepath.Join(context.Buildpack.Path, "dependencies"),
-		DownloadPath: os.TempDir(),
-		UserAgent:    fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
-		Mappings:     map[string]string{},
+		CachePath:         filepath.Join(context.Buildpack.Path, "dependencies"),
+		DownloadPath:      os.TempDir(),
+		UserAgent:         fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
+		Mappings:          map[string]string{},
+		DependencyMirrors: map[string]string{},
+		// We create the logger here because the initialization process may log some warnings that should be visible to users.
+		// This goes against the usual pattern, which has the user supply the Logger after initialization.
+		// There's no choice though, if we want the warning messages to be visible to users. We should clean this up in v2.
+		Logger:            bard.NewLogger(os.Stdout),
 	}
 	mappings, err := filterBindingsByType(context.Platform.Bindings, "dependency-mapping")
 	if err != nil {
@@ -104,11 +105,11 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 	}
 	cache.HttpClientTimeouts = *clientTimeouts
 
-	dependencyMirror, err := getDependencyMirror(context.Platform.Bindings)
+	bindingMirrors, err := filterBindingsByType(context.Platform.Bindings, "dependency-mirror")
 	if err != nil {
-		return DependencyCache{}, err
+		return DependencyCache{}, fmt.Errorf("unable to process dependency-mirror bindings\n%w", err)
 	}
-	cache.DependencyMirror = dependencyMirror
+	cache.setDependencyMirrors(bindingMirrors)
 
 	return cache, nil
 }
@@ -153,22 +154,44 @@ func customizeHttpClientTimeouts() (*HttpClientTimeouts, error) {
 	}, nil
 }
 
-// Returns the URI of a dependency mirror (optional).
-// Such mirror location can be defined in a binding of type 'dependency-mirror' with filename 'uri'
-// or using the environment variable 'BP_DEPENDENCY_MIRROR'. The latter takes precedence in case both are found.
-func getDependencyMirror(bindings libcnb.Bindings) (string, error) {
-	dependencyMirror := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR", "")
-	// If no mirror was found in environment variables, try to find one in bindings.
-	if dependencyMirror == "" {
-		dependencyMirrorBindings, err := filterBindingsByType(bindings, "dependency-mirror")
-		if err == nil {
-			// Use the content of the file named "uri" as the mirror's URI.
-			dependencyMirror = dependencyMirrorBindings["uri"]
-		} else {
-			return "", err
+func (d *DependencyCache) setDependencyMirrors(bindingMirrors map[string]string) {
+	// Initialize with mirrors from bindings.
+	d.DependencyMirrors = bindingMirrors
+	// Add mirrors from env variables and override duplicate hostnames set in bindings.
+	envs := os.Environ()
+	for _, env := range envs {
+		envPair := strings.SplitN(env, "=", 2)
+		if len(envPair) != 2 {
+			continue
+		}
+		hostnameSuffix, isMirror := strings.CutPrefix(envPair[0], "BP_DEPENDENCY_MIRROR")
+		if isMirror {
+			hostnameEncoded, _ := strings.CutPrefix(hostnameSuffix, "_")
+			if strings.ToLower(hostnameEncoded) == "default" {
+				d.Logger.Bodyf("%s with illegal hostname 'default'. Please use BP_DEPENDENCY_MIRROR to set a default.",
+					color.YellowString("Ignored dependency mirror"))
+				continue
+			}
+			d.DependencyMirrors[decodeHostnameEnv(hostnameEncoded, d)] = envPair[1]
 		}
 	}
-	return dependencyMirror, nil
+}
+
+// Takes an encoded hostname (from env key) and returns the decoded version in lower case.
+// Replaces double underscores (__) with one dash (-) and single underscores (_) with one period (.).
+func decodeHostnameEnv(encodedHostname string, d *DependencyCache) string {
+	if strings.ContainsAny(encodedHostname, "-.") || encodedHostname != strings.ToUpper(encodedHostname) {
+		d.Logger.Bodyf("%s These will be allowed but for best results across different shells, you should replace . characters with _ characters "+
+			"and - characters with __, and use all upper case letters. The buildpack will convert these back before using the mirror.",
+			color.YellowString("You have invalid characters in your mirror host environment variable."))
+	}
+	var decodedHostname string
+	if encodedHostname == "" {
+		decodedHostname = "default"
+	} else {
+		decodedHostname = strings.ReplaceAll(strings.ReplaceAll(encodedHostname, "__", "-"), "_", ".")
+	}
+	return strings.ToLower(decodedHostname)
 }
 
 // Returns a key/value map with all entries for a given binding type.
@@ -178,10 +201,10 @@ func filterBindingsByType(bindings libcnb.Bindings, bindingType string) (map[str
 	for _, binding := range bindings {
 		if strings.ToLower(binding.Type) == bindingType {
 			for key, value := range binding.Secret {
-				if _, ok := filteredBindings[key]; ok {
+				if _, ok := filteredBindings[strings.ToLower(key)]; ok {
 					return nil, fmt.Errorf("multiple %s bindings found with duplicate keys %s", binding.Type, key)
 				}
-				filteredBindings[key] = value
+				filteredBindings[strings.ToLower(key)] = value
 			}
 		}
 	}
@@ -225,11 +248,17 @@ func (d *DependencyCache) Artifact(dependency BuildpackDependency, mods ...Reque
 		return nil, fmt.Errorf("unable to parse URI. see DEBUG log level")
 	}
 
-	if isBinding && d.DependencyMirror != "" {
+	mirror := d.DependencyMirrors["default"]
+	mirrorHostSpecific := d.DependencyMirrors[urlP.Hostname()]
+	if mirrorHostSpecific != "" {
+		mirror = mirrorHostSpecific
+	}
+
+	if isBinding && mirror != "" {
 		d.Logger.Bodyf("Both dependency mirror and bindings are present. %s Please remove dependency map bindings if you wish to use the mirror.",
 			color.YellowString("Mirror is being ignored."))
 	} else {
-		d.setDependencyMirror(urlP)
+		d.setDependencyMirror(urlP, mirror)
 	}
 
 	if dependency.SHA256 == "" {
@@ -422,10 +451,10 @@ func (DependencyCache) verify(path string, expected string) error {
 	return nil
 }
 
-func (d DependencyCache) setDependencyMirror(urlD *url.URL) {
-	if d.DependencyMirror != "" {
+func (d DependencyCache) setDependencyMirror(urlD *url.URL, mirror string) {
+	if mirror != "" {
 		d.Logger.Bodyf("%s Download URIs will be overridden.", color.GreenString("Dependency mirror found."))
-		urlOverride, err := url.ParseRequestURI(d.DependencyMirror)
+		urlOverride, err := url.ParseRequestURI(mirror)
 
 		if strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file" {
 			urlD.Scheme = urlOverride.Scheme
@@ -433,7 +462,7 @@ func (d DependencyCache) setDependencyMirror(urlD *url.URL) {
 			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + urlD.Path
 			urlD.Host = urlOverride.Host
 		} else {
-			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", d.DependencyMirror, err)
+			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", mirror, err)
 			d.Logger.Bodyf("%s is ignored. Have you used one of the supported schemes https:// or file://?", color.YellowString("Invalid dependency mirror"))
 		}
 	}
