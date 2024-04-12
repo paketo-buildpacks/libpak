@@ -88,6 +88,9 @@ func NewDependencyCache(context libcnb.BuildContext) (DependencyCache, error) {
 		UserAgent:         fmt.Sprintf("%s/%s", context.Buildpack.Info.ID, context.Buildpack.Info.Version),
 		Mappings:          map[string]string{},
 		DependencyMirrors: map[string]string{},
+		// We create the logger here because the initialization process may log some warnings that should be visible to users.
+		// This goes against the usual pattern, which has the user supply the Logger after initialization.
+		// There's no choice though, if we want the warning messages to be visible to users. We should clean this up in v2.
 		Logger:            bard.NewLogger(os.Stdout),
 	}
 	mappings, err := filterBindingsByType(context.Platform.Bindings, "dependency-mapping")
