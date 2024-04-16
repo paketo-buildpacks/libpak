@@ -37,6 +37,7 @@ func main() {
 	flagSet.BoolVar(&p.StrictDependencyFilters, "strict-filters", false, "require filter to match all data or just some data (default: false)")
 	flagSet.StringVar(&p.Source, "source", defaultSource(), "path to build package source directory (default: $PWD)")
 	flagSet.StringVar(&p.Version, "version", "", "version to substitute into buildpack.toml")
+	flagSet.StringVar(&p.TargetArch, "target-arch", carton.DefaultTargetArch, "target architecture for the package (default: all)")
 
 	if err := flagSet.Parse(os.Args[1:]); err != nil {
 		log.Fatal(fmt.Errorf("unable to parse flags\n%w", err))
