@@ -95,6 +95,32 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			Expect(filepath.Join(testPath, "dirA", "fileC.txt")).To(BeARegularFile())
 			Expect(os.Readlink(filepath.Join(testPath, "dirA", "fileD.txt"))).To(Equal(filepath.Join(path, "dirA", "fileC.txt")))
 		})
+
+		it("writes a JAR", func() {
+			cwd, _ := os.Getwd()
+			Expect(os.MkdirAll(filepath.Join(path, "META-INF"), 0755)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "META-INF", "MANIFEST.MF"), []byte(`
+	Spring-Boot-Version: 3.3.1
+	Spring-Boot-Classes: BOOT-INF/classes
+	Spring-Boot-Lib: BOOT-INF/lib
+	`), 0644)).To(Succeed())
+			Expect(os.MkdirAll(filepath.Join(path, "BOOT-INF"), 0755)).To(Succeed())
+			Expect(os.MkdirAll(filepath.Join(path, "BOOT-INF", "classes"), 0755)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "BOOT-INF", "classes", "OtherClass.class"), []byte(""), 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "BOOT-INF", "classes", "YetOther.class"), []byte(""), 0644)).To(Succeed())
+			Expect(os.MkdirAll(filepath.Join(path, "BOOT-INF", "lib"), 0755)).To(Succeed())
+			os.Symlink(filepath.Join(cwd, "testdata", "spring-cloud-bindings-1.2.3.jar"), filepath.Join(path, "BOOT-INF", "lib", "spring-cloud-bindings-1.2.3.jar"))
+
+			Expect(crush.CreateJar(path+"/", out.Name()+".jar")).To(Succeed())
+
+			in, err := os.Open(out.Name() + ".jar")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(crush.Extract(in, testPath, 0)).To(Succeed())
+			Expect(filepath.Join(testPath, "BOOT-INF", "classes", "OtherClass.class")).To(BeARegularFile())
+			Expect(filepath.Join(testPath, "META-INF", "MANIFEST.MF")).To(BeARegularFile())
+			Expect(filepath.Join(testPath, "BOOT-INF", "lib", "spring-cloud-bindings-1.2.3.jar")).To(BeARegularFile())
+		})
 	})
 
 	context("Extract", func() {
