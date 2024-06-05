@@ -35,6 +35,7 @@ const (
 type BuildpackDependency struct {
 	BuildpackPath  string
 	ID             string
+	EolID          string
 	Arch           string
 	SHA256         string
 	URI            string
@@ -67,6 +68,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 	logger.Headerf("SHA256:       %s", b.SHA256)
 	logger.Headerf("Source:       %s", b.Source)
 	logger.Headerf("SourceSHA256: %s", b.SourceSHA256)
+	logger.Headerf("EOL ID:       %s", b.EolID)
 
 	versionExp, err := regexp.Compile(b.VersionPattern)
 	if err != nil {
@@ -206,6 +208,18 @@ func (b BuildpackDependency) Update(options ...Option) {
 
 							cpes[i] = cpeExp.ReplaceAllString(cpe, b.CPE)
 						}
+					}
+				}
+
+				if b.EolID != "" {
+					eolDate, err := GetEolDate(b.EolID, b.Version)
+					if err != nil {
+						config.exitHandler.Error(fmt.Errorf("unable to fetch deprecation_date"))
+						return
+					}
+
+					if eolDate != "" {
+						dep["deprecation_date"] = eolDate
 					}
 				}
 			}
