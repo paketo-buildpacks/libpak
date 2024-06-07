@@ -31,6 +31,5 @@ func TestUnit(t *testing.T) {
 	suite("Netrc", testNetrc)
 	suite("Package", testPackage)
 	suite("PackageDependency", testPackageDependency)
-	suite("GetEolDate", testGetEolDate)
 	suite.Run(t)
 }

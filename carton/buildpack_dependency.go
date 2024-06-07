@@ -212,7 +212,7 @@ func (b BuildpackDependency) Update(options ...Option) {
 				}
 
 				if b.EolID != "" {
-					eolDate, err := GetEolDate(b.EolID, b.Version)
+					eolDate, err := internal.GetEolDate(b.EolID, b.Version)
 					if err != nil {
 						config.exitHandler.Error(fmt.Errorf("unable to fetch deprecation_date"))
 						return

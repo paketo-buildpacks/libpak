@@ -1,4 +1,4 @@
-package carton_test
+package internal_test
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 	"github.com/buildpacks/libcnb/mocks"
 	"github.com/jarcoal/httpmock"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/carton"
+	"github.com/paketo-buildpacks/libpak/internal"
 	"github.com/sclevine/spec"
 	"github.com/stretchr/testify/mock"
 )
@@ -64,7 +64,7 @@ func testGetEolDate(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns correct cycle", func() {
-			eolDate, err := carton.GetEolDate("foo", "10.0.0")
+			eolDate, err := internal.GetEolDate("foo", "10.0.0")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(eolDate).To(Equal("2022-10-31T00:00:00Z"))
 		})
@@ -96,7 +96,7 @@ func testGetEolDate(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns correct cycle", func() {
-			eolDate, err := carton.GetEolDate("foo", "10.1.1")
+			eolDate, err := internal.GetEolDate("foo", "10.1.1")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(eolDate).To(Equal("2024-10-31T00:00:00Z"))
 		})
@@ -128,7 +128,7 @@ func testGetEolDate(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns empty eol date", func() {
-			eolDate, err := carton.GetEolDate("foo", "10.0.0")
+			eolDate, err := internal.GetEolDate("foo", "10.0.0")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(eolDate).To(Equal(""))
 		})
