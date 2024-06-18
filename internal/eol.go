@@ -19,7 +19,7 @@ func GetEolDate(eolID, version string) (string, error) {
 
 	cycle, err := selectCycle(version, cycleList)
 	if err != nil {
-		return "", fmt.Errorf("could not find a relese cycle: %w", err)
+		return "", fmt.Errorf("could not find a release cycle: %w", err)
 	}
 
 	if cycle.EOL == "" {
