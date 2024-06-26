@@ -30,5 +30,6 @@ func TestUnit(t *testing.T) {
 	suite("ExitHandler", testExitHandler)
 	suite("TOMLWriter", testTOMLWriter)
 	suite("TOMLMarshal", testTOMLMarshal)
+	suite("EOL", testGetEolDate)
 	suite.Run(t)
 }

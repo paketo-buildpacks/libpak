@@ -10,6 +10,7 @@ require (
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.16
+	github.com/jarcoal/httpmock v1.3.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/onsi/gomega v1.33.1
 	github.com/sclevine/spec v1.4.0
