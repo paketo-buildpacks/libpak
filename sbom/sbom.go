@@ -138,7 +138,7 @@ func (b SyftCLISBOMScanner) ScanLaunch(scanDir string, formats ...libcnb.SBOMFor
 }
 
 func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string, scanDir string, formats ...libcnb.SBOMFormat) error {
-	args := []string{"packages", "-q"}
+	args := []string{"scan", "-q"}
 
 	for _, format := range formats {
 		args = append(args, "-o", fmt.Sprintf("%s=%s", SBOMFormatToSyftOutputFormat(format), sbomPathCreator(format)))
