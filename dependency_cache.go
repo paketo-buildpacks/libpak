@@ -247,13 +247,13 @@ func (d DependencyCache) download(uri string, destination string, mods ...Reques
 	}
 
 	if url.Scheme == "file" {
-		return d.downloadFile(url.Path, destination, mods...)
+		return d.downloadFile(url.Path, destination)
 	}
 
 	return d.downloadHttp(uri, destination, mods...)
 }
 
-func (d DependencyCache) downloadFile(source string, destination string, mods ...RequestModifierFunc) error {
+func (d DependencyCache) downloadFile(source string, destination string) error {
 	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
 		return fmt.Errorf("unable to make directory %s\n%w", filepath.Dir(destination), err)
 	}
