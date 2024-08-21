@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/buildpacks/libcnb v1.30.3
-	github.com/creack/pty v1.1.21
+	github.com/creack/pty v1.1.23
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
 	github.com/imdario/mergo v0.3.16
