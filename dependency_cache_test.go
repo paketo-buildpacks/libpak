@@ -440,6 +440,50 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
+		context("dependency mirror with additional arguments", func() {
+			var mirrorServer *ghttp.Server
+
+			it.Before(func() {
+				mirrorServer = ghttp.NewTLSServer()
+				dependencyCache.DependencyMirrors = map[string]string{}
+			})
+
+			it.After(func() {
+				mirrorServer.Close()
+			})
+
+			it("downloads from escaped mirror", func() {
+				mirrorUrl, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth("user", "pa$$word,"),
+					ghttp.VerifyRequest(http.MethodGet, "/escaped/test-path", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorUrl.Scheme + "://user%3Apa%24%24word%2C%40" + mirrorUrl.Host + "%2Fescaped"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("respects skip-path argument", func() {
+				mirrorUrl, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/test-skip", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorUrl.Scheme + "://" + mirrorUrl.Host + "/test-skip,skip-path=/test-path"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
 		it("fails with invalid SHA256", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "invalid-fixture"))
 
