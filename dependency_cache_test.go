@@ -468,7 +468,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
 
-			it("respects skip-path argument", func() {
+			it("respects skip-path argument without mirror= key", func() {
 				mirrorUrl, err := url.Parse(mirrorServer.URL())
 				Expect(err).NotTo(HaveOccurred())
 				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
@@ -477,6 +477,37 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				))
 
 				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorUrl.Scheme + "://" + mirrorUrl.Host + "/test-skip,skip-path=/test-path"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("respects skip-path argument with mirror= key", func() {
+				mirrorUrl, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/test-skip", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = "mirror=" + mirrorUrl.Scheme + "://" + mirrorUrl.Host + "/test-skip,skip-path=/test-path"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("respects skip-path argument when URL encoded", func() {
+				mirrorUrl, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/test-skip", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorUrl.Scheme + "://" + mirrorUrl.Host + "/test-skip,skip-path=/test%2Cpath"
+				dependency.URI = fmt.Sprintf("%s/test,path", server.URL())
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 

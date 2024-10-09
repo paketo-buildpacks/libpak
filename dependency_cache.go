@@ -478,7 +478,7 @@ func parseMirror(mirror string) map[string]string {
 	}
 
 	// Split mirror string at commas and extract specified arguments.
-	for _, arg := range strings.SplitN(mirror, ",", -1) {
+	for _, arg := range strings.Split(mirror, ",") {
 		argPair := strings.SplitN(arg, "=", 2)
 		// If a URI is provided without the key 'mirror=', still treat it as the 'mirror' argument.
 		// This addresses backwards compatibility and user experience as most mirrors won't need any additional arguments.
