@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@
 package sherpa_test
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -30,35 +32,60 @@ func testCopyFile(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		source      *os.File
-		destination string
+		rootPath   string
+		sourcePath string
 	)
+
+	expectFilePermissionsToMatch := func(destination string, fileMode os.FileMode) {
+		fileInfo, err := os.Stat(destination)
+		fmt.Println("eperms:", fileInfo.Mode().Perm().String())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fileInfo.Mode().Perm().String()).To(Equal(fileMode.String()))
+	}
 
 	it.Before(func() {
 		var err error
 
-		source, err = os.CreateTemp("", "copy-file")
+		rootPath = t.TempDir()
+
+		source, err := os.CreateTemp(rootPath, "source.txt")
 		Expect(err).NotTo(HaveOccurred())
+		sourcePath = source.Name()
+
 		_, err = source.WriteString("test")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(source.Close()).To(Succeed())
-		source, err = os.Open(source.Name())
-		Expect(err).NotTo(HaveOccurred())
-
-		f, err := os.CreateTemp("", "copy-file")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(f.Close()).To(Succeed())
-		destination = f.Name()
 	})
 
 	it.After(func() {
-		Expect(os.RemoveAll(source.Name())).To(Succeed())
-		Expect(os.RemoveAll(destination)).To(Succeed())
+		Expect(os.RemoveAll(rootPath)).To(Succeed())
 	})
 
-	it("create listing", func() {
+	it("copy file with permissions", func() {
+		destination := filepath.Join(rootPath, "destination/nested/destination.txt")
+
+		source, err := os.Open(sourcePath)
+		Expect(err).NotTo(HaveOccurred())
 		defer source.Close()
+
+		expectedMode := os.FileMode(0640)
+		Expect(os.Chmod(sourcePath, expectedMode)).To(Succeed())
+
 		Expect(sherpa.CopyFile(source, destination)).To(Succeed())
 		Expect(os.ReadFile(destination)).To(Equal([]byte("test")))
+
+		expectFilePermissionsToMatch(destination, expectedMode)
+	})
+
+	it.Focus("copy file from string path with permissions", func() {
+		destination := filepath.Join(rootPath, "destination/other-nested/destination.txt")
+
+		expectedMode := os.FileMode(0440)
+		Expect(os.Chmod(sourcePath, expectedMode)).To(Succeed())
+
+		Expect(sherpa.CopyFileFrom(sourcePath, destination)).To(Succeed())
+		Expect(os.ReadFile(destination)).To(Equal([]byte("test")))
+
+		expectFilePermissionsToMatch(destination, expectedMode)
 	})
 }
