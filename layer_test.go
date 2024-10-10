@@ -49,7 +49,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		layer.Exec.Path = layer.Path
 		layer.Metadata = map[string]interface{}{}
-		layer.Profile = libcnb.Profile{}
 	})
 
 	context("LayerContributor", func() {
