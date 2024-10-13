@@ -80,8 +80,7 @@ include-files = [
   "test-include-files",
   "buildpack.toml",
 ]
-`), 0644)).To(Succeed())
-
+`), 0600)).To(Succeed())
 		})
 
 		it.After(func() {
@@ -196,7 +195,7 @@ include-files = [
   "test-include-files",
   "buildpack.toml",
 ]
-`), 0644)).To(Succeed())
+`), 0600)).To(Succeed())
 			})
 
 			it("includes all dependencies", func() {
@@ -354,8 +353,7 @@ include-files = [
   "test-include-files",
   "extension.toml",
 ]
-`), 0644)).To(Succeed())
-
+`), 0600)).To(Succeed())
 		})
 
 		it.After(func() {
@@ -470,7 +468,7 @@ include-files = [
   "test-include-files",
   "extension.toml",
 ]
-`), 0644)).To(Succeed())
+`), 0600)).To(Succeed())
 			})
 
 			it("includes all dependencies", func() {
@@ -593,5 +591,4 @@ include-files = [
 			})
 		})
 	})
-
 }

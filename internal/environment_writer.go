@@ -79,6 +79,7 @@ func (w EnvironmentWriter) Write(path string, environment map[string]string) err
 			return fmt.Errorf("unable to mkdir from key %s\n%w", filepath.Dir(f), err)
 		}
 
+		// #nosec G306 - permissions need to be 644 on the environment files
 		if err := os.WriteFile(f, []byte(environment[k]), 0644); err != nil {
 			return fmt.Errorf("unable to write file %s\n%w", f, err)
 		}

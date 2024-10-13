@@ -29,7 +29,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/internal"
 )
 
-func testPackageDependency(t *testing.T, context spec.G, it spec.S) {
+func testPackageDependency(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -73,7 +73,7 @@ include-files = [
   "LICENSE",
   "README.md",
   "buildpack.toml",
-]`), 0644)).To(Succeed())
+]`), 0600)).To(Succeed())
 
 		p := carton.PackageDependency{
 			BuildpackPath: path,
@@ -114,7 +114,7 @@ include-files = ["LICENSE","README.md","buildpack.toml"]
 group = [
 	{ id = "paketo-buildpacks/test-1", version="test-version-1" },
 	{ id = "paketo-buildpacks/test-2", version="test-version-2" },
-]`), 0644)).To(Succeed())
+]`), 0600)).To(Succeed())
 
 		p := carton.PackageDependency{
 			BuildpackPath: path,
@@ -138,7 +138,7 @@ group = [
 group = [
 	{ id = "paketocommunity/test-1", version="test-version-1" },
 	{ id = "paketocommunity/test-2", version="test-version-2" },
-]`), 0644)).To(Succeed())
+]`), 0600)).To(Succeed())
 
 		p := carton.PackageDependency{
 			BuildpackPath: path,
@@ -161,7 +161,7 @@ group = [
 		Expect(os.WriteFile(path, []byte(`buildpacks = [
 	{ id = "paketo-buildpacks/test-1", uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-1" },
 	{ id = "paketo-buildpacks/test-2", uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
-]`), 0644)).To(Succeed())
+]`), 0600)).To(Succeed())
 
 		p := carton.PackageDependency{
 			BuilderPath: path,
@@ -184,7 +184,7 @@ group = [
 		Expect(os.WriteFile(path, []byte(`dependencies = [
 	{ uri = "docker://gcr.io/paketo-buildpacks/test-1:test-version-1" },
 	{ uri = "docker://gcr.io/paketo-buildpacks/test-2:test-version-2" },
-]`), 0644)).To(Succeed())
+]`), 0600)).To(Succeed())
 
 		p := carton.PackageDependency{
 			PackagePath: path,
@@ -205,7 +205,7 @@ group = [
 		Expect(os.WriteFile(path, []byte(`dependencies = [
 	{ uri = "docker://docker.io/paketocommunity/test-1:test-version-1" },
 	{ uri = "docker://docker.io/paketocommunity/test-2:test-version-2" },
-]`), 0644)).To(Succeed())
+]`), 0600)).To(Succeed())
 
 		p := carton.PackageDependency{
 			PackagePath: path,
@@ -221,5 +221,4 @@ group = [
 	  [[dependencies]]
 		uri = "docker://docker.io/paketocommunity/test-2:test-version-2"`))
 	})
-
 }

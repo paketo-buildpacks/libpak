@@ -27,7 +27,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
-func testNodeJS(t *testing.T, context spec.G, it spec.S) {
+func testNodeJS(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -43,13 +43,13 @@ func testNodeJS(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("returns server.js if package.json does not have a main entry", func() {
-		Expect(os.WriteFile(filepath.Join(path, "package.json"), []byte(`{}`), 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(path, "package.json"), []byte(`{}`), 0600)).To(Succeed())
 
 		Expect(sherpa.NodeJSMainModule(path)).To(Equal("server.js"))
 	})
 
 	it("returns main module", func() {
-		Expect(os.WriteFile(filepath.Join(path, "package.json"), []byte(`{ "main": "test-main" }`), 0644)).
+		Expect(os.WriteFile(filepath.Join(path, "package.json"), []byte(`{ "main": "test-main" }`), 0600)).
 			To(Succeed())
 
 		Expect(sherpa.NodeJSMainModule(path)).To(Equal("test-main"))

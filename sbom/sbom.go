@@ -7,13 +7,14 @@ import (
 
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/mitchellh/hashstructure/v2"
+
 	"github.com/paketo-buildpacks/libpak/v2/effect"
 	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
-//go:generate mockery --name SBOMScanner --case=underscore
+//go:generate mockery --name Scanner --case=underscore
 
-type SBOMScanner interface {
+type Scanner interface {
 	ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error
 	ScanBuild(scanDir string, formats ...libcnb.SBOMFormat) error
 	ScanLaunch(scanDir string, formats ...libcnb.SBOMFormat) error
@@ -50,6 +51,7 @@ func (s SyftDependency) WriteTo(path string) error {
 		return fmt.Errorf("unable to marshal to JSON\n%w", err)
 	}
 
+	// #nosec G306 - permissions need to be 644 on the sbom file
 	err = os.WriteFile(path, output, 0644)
 	if err != nil {
 		return fmt.Errorf("unable to write to path %s\n%w", path, err)
@@ -118,30 +120,24 @@ func NewSyftCLISBOMScanner(layers libcnb.Layers, executor effect.Executor, logge
 
 // ScanLayer will use syft CLI to scan the scanDir and write it's output to the layer SBoM file in the given formats
 func (b SyftCLISBOMScanner) ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(func(fmt libcnb.SBOMFormat) string {
-		return layer.SBOMPath(fmt)
-	}, scanDir, formats...)
+	return b.scan(layer.SBOMPath, scanDir, formats...)
 }
 
 // ScanBuild will use syft CLI to scan the scanDir and write it's output to the build SBoM file in the given formats
 func (b SyftCLISBOMScanner) ScanBuild(scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(func(fmt libcnb.SBOMFormat) string {
-		return b.Layers.BuildSBOMPath(fmt)
-	}, scanDir, formats...)
+	return b.scan(b.Layers.BuildSBOMPath, scanDir, formats...)
 }
 
 // ScanLaunch will use syft CLI to scan the scanDir and write it's output to the launch SBoM file in the given formats
 func (b SyftCLISBOMScanner) ScanLaunch(scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(func(fmt libcnb.SBOMFormat) string {
-		return b.Layers.LaunchSBOMPath(fmt)
-	}, scanDir, formats...)
+	return b.scan(b.Layers.LaunchSBOMPath, scanDir, formats...)
 }
 
 func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string, scanDir string, formats ...libcnb.SBOMFormat) error {
 	args := []string{"scan", "-q"}
 
 	for _, format := range formats {
-		args = append(args, "-o", fmt.Sprintf("%s=%s", SBOMFormatToSyftOutputFormat(format), sbomPathCreator(format)))
+		args = append(args, "-o", fmt.Sprintf("%s=%s", FormatToSyftOutputFormat(format), sbomPathCreator(format)))
 	}
 
 	args = append(args, fmt.Sprintf("dir:%s", scanDir))
@@ -209,8 +205,8 @@ func loadCycloneDXFile(path string) (map[string]interface{}, error) {
 	return raw, nil
 }
 
-// SBOMFormatToSyftOutputFormat converts a libcnb.SBOMFormat to the syft matching syft output format string
-func SBOMFormatToSyftOutputFormat(format libcnb.SBOMFormat) string {
+// FormatToSyftOutputFormat converts a libcnb.SBOMFormat to the syft matching syft output format string
+func FormatToSyftOutputFormat(format libcnb.SBOMFormat) string {
 	var formatRaw string
 
 	switch format {

@@ -151,14 +151,6 @@ func Extract(source io.Reader, destination string, stripComponents int) error {
 	return nil
 }
 
-// ExtractTar extracts source TAR file to a destination directory.  An arbitrary number of top-level directory
-// components can be stripped from each path.
-//
-// Deprecated: use Extract instead
-func ExtractTar(source io.Reader, destination string, stripComponents int) error {
-	return extractTar(source, destination, stripComponents)
-}
-
 func extractTar(source io.Reader, destination string, stripComponents int) error {
 	t := tar.NewReader(source)
 
@@ -180,61 +172,22 @@ func extractTar(source io.Reader, destination string, stripComponents int) error
 			if err := os.MkdirAll(target, 0755); err != nil {
 				return fmt.Errorf("unable to make directory %s\n%w", target, err)
 			}
-		} else if info.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
+
+		if info.Mode()&os.ModeSymlink != 0 {
 			if err := writeSymlink(f.Linkname, target); err != nil {
 				return err
 			}
-		} else {
-			if err := writeFile(t, target, info.Mode()); err != nil {
-				return err
-			}
+			continue
+		}
+
+		if err := writeFile(t, target, info.Mode()); err != nil {
+			return err
 		}
 	}
 
 	return nil
-}
-
-// ExtractTarBz2 extracts source BZIP2'd TAR file to a destination directory.  An arbitrary number of top-level
-// directory components can be stripped from each path.
-//
-// Deprecated: use Extract instead
-func ExtractTarBz2(source io.Reader, destination string, stripComponents int) error {
-	return ExtractTar(bzip2.NewReader(source), destination, stripComponents)
-}
-
-// ExtractTarGz extracts source GZIP'd TAR file to a destination directory.  An arbitrary number of top-level directory
-// components can be stripped from each path.
-//
-// Deprecated: use Extract instead
-func ExtractTarGz(source io.Reader, destination string, stripComponents int) error {
-	gz, err := gzip.NewReader(source)
-	if err != nil {
-		return fmt.Errorf("unable to create GZIP reader\n%w", err)
-	}
-	defer gz.Close()
-
-	return ExtractTar(gz, destination, stripComponents)
-}
-
-// ExtractTarXz extracts source XZ'd TAR file to a destination directory.  An arbitrary number of top-level directory
-// components can be stripped from each path.
-//
-// Deprecated: use Extract instead
-func ExtractTarXz(source io.Reader, destination string, stripComponents int) error {
-	xz, err := xz.NewReader(source, 0)
-	if err != nil {
-		return fmt.Errorf("unable to create XZ reader\n%w", err)
-	}
-
-	return ExtractTar(xz, destination, stripComponents)
-}
-
-// ExtractZip extracts source ZIP file to a destination directory.  An arbitrary number of top-level directory
-// components can be stripped from each path.
-//
-// Deprecated: use Extract instead
-func ExtractZip(source io.Reader, destination string, stripComponents int) error {
-	return extractZip(source, destination, stripComponents)
 }
 
 func extractZip(source io.Reader, destination string, stripComponents int) error {

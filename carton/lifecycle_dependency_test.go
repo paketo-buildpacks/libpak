@@ -28,7 +28,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/carton"
 )
 
-func testLifecycleDependency(t *testing.T, context spec.G, it spec.S) {
+func testLifecycleDependency(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
