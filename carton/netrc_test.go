@@ -74,7 +74,7 @@ func testNetrc(t *testing.T, context spec.G, it spec.S) {
 
 	context("parse", func() {
 		it("parses one-liner", func() {
-			Expect(os.WriteFile(path, []byte(`machine test-machine login test-login password test-password`), 0644)).To(Succeed())
+			Expect(os.WriteFile(path, []byte(`machine test-machine login test-login password test-password`), 0600)).To(Succeed())
 
 			Expect(carton.ParseNetrc(path)).To(Equal(carton.Netrc{
 				{
@@ -90,7 +90,7 @@ func testNetrc(t *testing.T, context spec.G, it spec.S) {
 machine test-machine 
 login test-login 
 password test-password
-`), 0644)).To(Succeed())
+`), 0600)).To(Succeed())
 
 			Expect(carton.ParseNetrc(path)).To(Equal(carton.Netrc{
 				{
@@ -110,7 +110,7 @@ macdef uploadtest
 	quit
 
 machine test-machine login test-login password test-password
-`), 0644)).To(Succeed())
+`), 0600)).To(Succeed())
 
 			Expect(carton.ParseNetrc(path)).To(Equal(carton.Netrc{
 				{
@@ -130,7 +130,7 @@ login test-login-2
 password test-password-2
 
 machine test-machine-3 login test-login-3 password test-password-3
-`), 0644)).To(Succeed())
+`), 0600)).To(Succeed())
 
 			Expect(carton.ParseNetrc(path)).To(Equal(carton.Netrc{
 				{

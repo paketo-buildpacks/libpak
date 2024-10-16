@@ -70,7 +70,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("calls function with no existing metadata", func() {
 			var called bool
 
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				called = true
 				return nil
 			})
@@ -80,12 +80,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("calls function with non-matching metadata", func() {
-
 			layer.Metadata["alpha"] = "test-alpha"
 
 			var called bool
 
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				called = true
 				return nil
 			})
@@ -109,11 +108,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but no layer directory on cache layer", func() {
-				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0600)).To(Succeed())
 				Expect(os.RemoveAll(layer.Path)).To(Succeed())
 				lc.ExpectedTypes.Cache = true
 
-				err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+				err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 					called = true
 					return nil
 				})
@@ -123,11 +122,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but no layer directory on build layer", func() {
-				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0600)).To(Succeed())
 				Expect(os.RemoveAll(layer.Path)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
-				err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+				err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 					called = true
 					return nil
 				})
@@ -137,11 +136,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("calls function with matching metadata but an empty layer directory on build layer", func() {
-				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0600)).To(Succeed())
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
-				err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+				err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 					called = true
 					return nil
 				})
@@ -151,12 +150,12 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			})
 
 			it("does not call function with matching metadata when layer directory exists and has a file in it", func() {
-				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(fmt.Sprintf("%s.toml", layer.Path), []byte{}, 0600)).To(Succeed())
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-				Expect(os.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(layer.Path, "foo"), []byte{}, 0600)).To(Succeed())
 				lc.ExpectedTypes.Build = true
 
-				err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+				err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 					called = true
 					return nil
 				})
@@ -169,7 +168,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
 				layer.Build = true
 
-				err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+				err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 					called = true
 					return nil
 				})
@@ -190,7 +189,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				called = true
 				return nil
 			})
@@ -200,14 +199,14 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns function error", func() {
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				return fmt.Errorf("test-error")
 			})
 			Expect(err).To(MatchError("test-error"))
 		})
 
 		it("adds expected metadata to layer", func() {
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -223,7 +222,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("sets build layer flag", func() {
 			lc.ExpectedTypes.Build = true
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -233,7 +232,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("sets cache layer flag", func() {
 			lc.ExpectedTypes.Cache = true
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -243,7 +242,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("sets launch layer flag", func() {
 			lc.ExpectedTypes.Launch = true
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -266,7 +265,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			err := lc.Contribute(layer, func(layer *libcnb.Layer) error {
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
 				called = true
 				return nil
 			})
@@ -330,7 +329,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 
 				called = true
@@ -352,7 +351,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 				return request, nil
 			})
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 				return nil
 			})
@@ -366,7 +365,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 
 				called = true
@@ -398,7 +397,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 
 				called = true
@@ -412,7 +411,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("returns function error", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 
 				return fmt.Errorf("test-error")
@@ -423,7 +422,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("adds expected metadata to layer", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 				return nil
 			})
@@ -472,7 +471,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			var called bool
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 
 				called = true
@@ -490,7 +489,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 		it("adds expected Syft SBOM file", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 				return nil
 			})
@@ -529,6 +528,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.MkdirAll(file, 0755)).To(Succeed())
 
 			file = filepath.Join(file, "helper")
+			// #nosec G306 - permissions need to be 755 on the helper as it should be executable
 			Expect(os.WriteFile(file, []byte{}, 0755)).To(Succeed())
 
 			hlc = libpak.HelperLayerContributor{
@@ -547,7 +547,7 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).To(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).To(BeAnExistingFile())
 		})
 
 		it("calls function with non-matching metadata", func() {
@@ -556,11 +556,11 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			file := filepath.Join(layer.Exec.FilePath("test-name-1"))
+			file := layer.Exec.FilePath("test-name-1")
 			Expect(file).To(BeAnExistingFile())
 			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
 
-			file = filepath.Join(layer.Exec.FilePath("test-name-2"))
+			file = layer.Exec.FilePath("test-name-2")
 			Expect(file).To(BeAnExistingFile())
 			Expect(os.Readlink(file)).To(Equal(filepath.Join(layer.Path, "helper")))
 		})
@@ -581,8 +581,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-2")).NotTo(BeAnExistingFile())
 		})
 
 		it("adds expected metadata to layer", func() {
@@ -617,8 +617,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).NotTo(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).NotTo(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-2")).NotTo(BeAnExistingFile())
 
 			Expect(layer.LayerTypes.Launch).To(BeTrue())
 			Expect(layer.LayerTypes.Cache).To(BeFalse())
@@ -631,8 +631,8 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-1"))).To(BeAnExistingFile())
-			Expect(filepath.Join(layer.Exec.FilePath("test-name-2"))).To(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-1")).To(BeAnExistingFile())
+			Expect(layer.Exec.FilePath("test-name-2")).To(BeAnExistingFile())
 
 			outputFile := layer.SBOMPath(libcnb.SyftJSON)
 			Expect(outputFile).To(BeARegularFile())

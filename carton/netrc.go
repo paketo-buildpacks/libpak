@@ -76,7 +76,7 @@ func ParseNetrc(path string) (Netrc, error) {
 				i += 2
 			case "default":
 				l = NetrcLine{Machine: "default"}
-				i += 1
+				i++
 			case "login":
 				l.Login = f[i+1]
 				i += 2

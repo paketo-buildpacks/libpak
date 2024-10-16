@@ -631,12 +631,12 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}
 
 				for _, dependency := range resolver.Dependencies {
-					resolver.Resolve(dependency.ID, "")
+					_, err := resolver.Resolve(dependency.ID, "")
+					Expect(err).ToNot(HaveOccurred())
 				}
 
 				Expect(buff.String()).To(Equal(fmt.Sprintf("  \x1b[33mDeprecation Notice:\x1b[0m\n\x1b[2m    \x1b[33mVersion 1.1 of soon-deprecated-dependency will be deprecated after %s.\x1b[0m\x1b[2m\x1b[0m\n\x1b[2m    \x1b[33mMigrate your application to a supported version of soon-deprecated-dependency before this time.\x1b[0m\x1b[2m\x1b[0m\n  \x1b[33mDeprecation Notice:\x1b[0m\n\x1b[2m    \x1b[33mVersion 1.1 of deprecated-dependency is deprecated.\x1b[0m\x1b[2m\x1b[0m\n\x1b[2m    \x1b[33mMigrate your application to a supported version of deprecated-dependency.\x1b[0m\x1b[2m\x1b[0m\n", soonDeprecated.Format("2006-01-02"))))
 			})
-
 		})
 
 		it("indicates whether error is NoValidDependenciesError", func() {

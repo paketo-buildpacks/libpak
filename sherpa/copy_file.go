@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,4 +47,16 @@ func CopyFile(source *os.File, destination string) error {
 	}
 
 	return nil
+}
+
+// CopyFileFrom copies a file from the source to the destination. It ensures that the parent directory is created and
+// matches the source and destination permissions.
+func CopyFileFrom(source string, destination string) error {
+	in, err := os.Open(source)
+	if err != nil {
+		return fmt.Errorf("unable to open %s\n%w", source, err)
+	}
+	defer in.Close()
+
+	return CopyFile(in, destination)
 }

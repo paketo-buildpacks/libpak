@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+
 	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
 )
@@ -92,17 +93,17 @@ func (p PackageDependency) Update(options ...Option) {
 						continue
 					}
 
-					bpIdUnwrappd, found := bp["id"]
+					bpIDUnwrappd, found := bp["id"]
 					if !found {
 						continue
 					}
 
-					bpId, ok := bpIdUnwrappd.(string)
+					bpID, ok := bpIDUnwrappd.(string)
 					if !ok {
 						continue
 					}
 
-					if bpId == id {
+					if bpID == id {
 						bp["version"] = p.Version
 					}
 				}
@@ -180,6 +181,7 @@ func updateFile(cfgPath string, f func(md map[string]interface{})) error {
 
 	b = append(comments, b...)
 
+	// #nosec G306 - permissions need to be 644 on the package
 	if err := os.WriteFile(cfgPath, b, 0644); err != nil {
 		return fmt.Errorf("unable to write %s\n%w", cfgPath, err)
 	}

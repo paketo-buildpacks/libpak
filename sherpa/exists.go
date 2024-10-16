@@ -20,44 +20,56 @@ import "os"
 
 // Exists returns true if the path exists.
 func Exists(path string) (bool, error) {
-	if _, err := os.Stat(path); err == nil {
+	_, err := os.Stat(path)
+	if err == nil {
 		return true, nil
-	} else if os.IsNotExist(err) {
-		return false, nil
-	} else {
-		return false, err
 	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 // FileExists returns true if the path exists and is a regular file.
 func FileExists(path string) (bool, error) {
-	if stat, err := os.Stat(path); err == nil {
+	stat, err := os.Stat(path)
+	if err == nil {
 		return stat.Mode().IsRegular(), nil
-	} else if os.IsNotExist(err) {
-		return false, nil
-	} else {
-		return false, err
 	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 // DirExists returns true if the path exists and is a directory.
 func DirExists(path string) (bool, error) {
-	if stat, err := os.Stat(path); err == nil {
+	stat, err := os.Stat(path)
+	if err == nil {
 		return stat.IsDir(), nil
-	} else if os.IsNotExist(err) {
-		return false, nil
-	} else {
-		return false, err
 	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 // SymlinkExists returns true if the path exists and is a symlink.
 func SymlinkExists(path string) (bool, error) {
-	if stat, err := os.Lstat(path); err == nil {
+	stat, err := os.Lstat(path)
+	if err == nil {
 		return stat.Mode()&os.ModeSymlink != 0, nil
-	} else if os.IsNotExist(err) {
-		return false, nil
-	} else {
-		return false, err
 	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }

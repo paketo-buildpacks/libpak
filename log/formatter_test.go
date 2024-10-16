@@ -22,8 +22,9 @@ import (
 
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testFormatter(t *testing.T, context spec.G, it spec.S) {
@@ -32,7 +33,6 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	context("FormatIdentity", func() {
-
 		it("it formats name", func() {
 			Expect(log.FormatIdentity("test-name", "")).
 				To(Equal(color.New(color.Bold).Sprint("test-name")))
@@ -43,5 +43,4 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 				To(Equal(fmt.Sprintf("%s test-description", color.New(color.Bold).Sprint("test-name"))))
 		})
 	})
-
 }

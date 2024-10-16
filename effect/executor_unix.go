@@ -33,6 +33,7 @@ import (
 type TTYExecutor struct{}
 
 func (t TTYExecutor) Execute(execution Execution) error {
+	// #nosec G204 -- this is a generic executor so this cannot apply
 	cmd := exec.Command(execution.Command, execution.Args...)
 
 	if execution.Dir != "" {
