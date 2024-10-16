@@ -26,6 +26,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/buildpacks/libcnb/v2"
 	"github.com/heroku/color"
+
 	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
@@ -135,6 +136,7 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 		return fmt.Errorf("unable to mkdir %s\n%w", d, err)
 	}
 
+	// #nosec G304 - permissions need to be 644 on buildpack toml files
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("unable to open file %s\n%w", path, err)

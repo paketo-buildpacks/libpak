@@ -32,7 +32,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
-func testDetect(t *testing.T, context spec.G, it spec.S) {
+func testDetect(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -122,9 +122,9 @@ api = "0.8"
 [buildpack]
 name    = "test-name"
 version = "test-version"`),
-			0644)).To(Succeed())
+			0600)).To(Succeed())
 
-		libpak.Detect(func(ctx libcnb.DetectContext) (libcnb.DetectResult, error) {
+		libpak.Detect(func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{}, fmt.Errorf("test-error")
 		},
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),

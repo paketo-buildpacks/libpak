@@ -5,8 +5,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/v2/internal"
 )
 
 type Stuff struct {
@@ -19,7 +20,7 @@ type Stuff struct {
 	BPointer *string
 }
 
-func testTOMLMarshal(t *testing.T, context spec.G, it spec.S) {
+func testTOMLMarshal(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 	)

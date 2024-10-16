@@ -63,9 +63,9 @@ func (l LifecycleDependency) Update(options ...Option) {
 	s := fmt.Sprintf(LifecycleDependencySubstitution, l.Version)
 	c = r.ReplaceAll(c, []byte(s))
 
+	// #nosec G306 - permissions need to be 644 on the builder
 	if err := os.WriteFile(l.BuilderPath, c, 0644); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", l.BuilderPath, err))
 		return
 	}
-
 }

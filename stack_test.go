@@ -4,11 +4,16 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/v2"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/v2"
 )
 
 func testStack(t *testing.T, context spec.G, it spec.S) {
+	var (
+		Expect = NewWithT(t).Expect
+	)
+
 	context("bionic stacks", func() {
 		it("matches standard bionic stack", func() {
 			Expect(libpak.IsBionicStack("io.buildpacks.stacks.bionic")).To(BeTrue())

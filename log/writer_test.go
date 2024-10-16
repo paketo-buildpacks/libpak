@@ -22,8 +22,9 @@ import (
 
 	"github.com/heroku/color"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
 func testWriter(t *testing.T, context spec.G, it spec.S) {

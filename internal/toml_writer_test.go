@@ -107,7 +107,6 @@ other-field = "other-value"`))
 		})
 
 		context("[]libcnb.Process", func() {
-
 			it("aligns process types", func() {
 				err := tomlWriter.Write(path, libcnb.LaunchTOML{
 					Processes: []libcnb.Process{
@@ -137,7 +136,6 @@ other-field = "other-value"`))
 `,
 					color.CyanString("test-type"))))
 			})
-
 		})
 
 		it("logs libcnb.Store", func() {

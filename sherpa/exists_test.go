@@ -21,10 +21,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
+
+	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
 func testExists(t *testing.T, when spec.G, it spec.S) {
@@ -40,7 +41,7 @@ func testExists(t *testing.T, when spec.G, it spec.S) {
 	when("checking something exists", func() {
 		it("should return true if path is a file", func() {
 			path := filepath.Join(testPath, "test-file")
-			Expect(os.WriteFile(path, []byte{}, 0644)).To(Succeed())
+			Expect(os.WriteFile(path, []byte{}, 0600)).To(Succeed())
 			exists, err := sherpa.Exists(path)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeTrue())
@@ -72,7 +73,7 @@ func testExists(t *testing.T, when spec.G, it spec.S) {
 
 		it("should return false if path is a file", func() {
 			path := filepath.Join(testPath, "test-file")
-			Expect(os.WriteFile(path, []byte{}, 0644)).To(Succeed())
+			Expect(os.WriteFile(path, []byte{}, 0600)).To(Succeed())
 			exists, err := sherpa.DirExists(path)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeFalse())
@@ -88,7 +89,7 @@ func testExists(t *testing.T, when spec.G, it spec.S) {
 	when("checking a file exists", func() {
 		it("should return true if path is a file", func() {
 			path := filepath.Join(testPath, "test-file")
-			Expect(os.WriteFile(path, []byte{}, 0644)).To(Succeed())
+			Expect(os.WriteFile(path, []byte{}, 0600)).To(Succeed())
 			exists, err := sherpa.FileExists(path)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeTrue())

@@ -122,18 +122,18 @@ func (b BuildModuleDependency) GetMetadata() DependencyLayerContributorMetadata 
 
 // Equals compares the 2 structs if they are equal. This is very simiar to reflect.DeepEqual
 // except that properties that will not work (e.g. DeprecationDate) are ignored.
-func (b1 BuildModuleDependency) Equals(b2 BuildModuleDependency) bool {
-	b1.DeprecationDate = b1.DeprecationDate.Truncate(time.Second).In(time.UTC)
-	b2.DeprecationDate = b2.DeprecationDate.Truncate(time.Second).In(time.UTC)
+func (b BuildModuleDependency) Equals(other BuildModuleDependency) bool {
+	b.DeprecationDate = b.DeprecationDate.Truncate(time.Second).In(time.UTC)
+	other.DeprecationDate = other.DeprecationDate.Truncate(time.Second).In(time.UTC)
 
-	if len(b1.CPEs) == 0 {
-		b1.CPEs = nil
+	if len(b.CPEs) == 0 {
+		b.CPEs = nil
 	}
-	if len(b2.CPEs) == 0 {
-		b2.CPEs = nil
+	if len(other.CPEs) == 0 {
+		other.CPEs = nil
 	}
 
-	return reflect.DeepEqual(b1, b2)
+	return reflect.DeepEqual(b, other)
 }
 
 // AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.
@@ -461,8 +461,8 @@ type DependencyResolver struct {
 }
 
 // NewDependencyResolver creates a new instance from the build module metadata and stack id.
-func NewDependencyResolver(md BuildModuleMetadata, stackId string) (DependencyResolver, error) {
-	return DependencyResolver{Dependencies: md.Dependencies, StackID: stackId}, nil
+func NewDependencyResolver(md BuildModuleMetadata, stackID string) (DependencyResolver, error) {
+	return DependencyResolver{Dependencies: md.Dependencies, StackID: stackID}, nil
 }
 
 // NoValidDependenciesError is returned when the resolver cannot find any valid dependencies given the constraints.

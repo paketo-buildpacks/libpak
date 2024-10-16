@@ -30,7 +30,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2"
 )
 
-func testMain(t *testing.T, context spec.G, it spec.S) {
+func testMain(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -82,7 +82,7 @@ mixins = ["test-name"]
 [metadata]
 test-key = "test-value"
 `),
-			0644),
+			0600),
 		).To(Succeed())
 
 		f, err := os.CreateTemp("", "main-buildpackplan-path")
@@ -101,7 +101,7 @@ version = "test-version"
 [entries.metadata]
 test-key = "test-value"
 `),
-			0644),
+			0600),
 		).To(Succeed())
 
 		f, err = os.CreateTemp("", "main-buildplan-path")
@@ -128,7 +128,7 @@ test-key = "test-value"
 [metadata]
 test-key = "test-value"
 `),
-			0644),
+			0600),
 		).To(Succeed())
 
 		platformPath = t.TempDir()
@@ -139,17 +139,17 @@ test-key = "test-value"
 		Expect(os.WriteFile(
 			filepath.Join(platformPath, "bindings", "alpha", "metadata", "test-metadata-key"),
 			[]byte("test-metadata-value"),
-			0644,
+			0600,
 		)).To(Succeed())
 		Expect(os.MkdirAll(filepath.Join(platformPath, "bindings", "alpha", "secret"), 0755)).To(Succeed())
 		Expect(os.WriteFile(
 			filepath.Join(platformPath, "bindings", "alpha", "secret", "test-secret-key"),
 			[]byte("test-secret-value"),
-			0644,
+			0600,
 		)).To(Succeed())
 
 		Expect(os.MkdirAll(filepath.Join(platformPath, "env"), 0755)).To(Succeed())
-		Expect(os.WriteFile(filepath.Join(platformPath, "env", "TEST_ENV"), []byte("test-value"), 0644)).
+		Expect(os.WriteFile(filepath.Join(platformPath, "env", "TEST_ENV"), []byte("test-value"), 0600)).
 			To(Succeed())
 
 		tomlWriter = &mocks.TOMLWriter{}
@@ -180,10 +180,10 @@ test-key = "test-value"
 	})
 
 	it("encounters the wrong number of arguments", func() {
-		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+		detector := func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{Pass: true}, nil
 		}
-		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+		builder := func(_ libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 
 		libpak.BuildpackMain(detector, builder,
 			libcnb.WithArguments([]string{}),
@@ -194,10 +194,10 @@ test-key = "test-value"
 	})
 
 	it("calls builder for build command", func() {
-		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+		detector := func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{Pass: true}, nil
 		}
-		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+		builder := func(_ libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "build")
 
 		libpak.BuildpackMain(detector, builder,
@@ -209,10 +209,10 @@ test-key = "test-value"
 	})
 
 	it("calls detector for detect command", func() {
-		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+		detector := func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{Pass: true}, nil
 		}
-		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+		builder := func(_ libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "detect")
 
 		libpak.BuildpackMain(detector, builder,
@@ -222,10 +222,10 @@ test-key = "test-value"
 	})
 
 	it("calls exitHandler.Pass() on detection pass", func() {
-		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+		detector := func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{Pass: true}, nil
 		}
-		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+		builder := func(_ libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "detect")
 
 		libpak.BuildpackMain(detector, builder,
@@ -237,10 +237,10 @@ test-key = "test-value"
 	})
 
 	it("calls exitHandler.Fail() on detection fail", func() {
-		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+		detector := func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{Pass: false}, nil
 		}
-		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+		builder := func(_ libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "detect")
 
 		libpak.BuildpackMain(detector, builder,
@@ -252,10 +252,10 @@ test-key = "test-value"
 	})
 
 	it("encounters an unknown command", func() {
-		detector := func(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+		detector := func(_ libcnb.DetectContext) (libcnb.DetectResult, error) {
 			return libcnb.DetectResult{Pass: true}, nil
 		}
-		builder := func(context libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
+		builder := func(_ libcnb.BuildContext) (libcnb.BuildResult, error) { return libcnb.NewBuildResult(), nil }
 		commandPath := filepath.Join("bin", "test-command")
 
 		libpak.BuildpackMain(detector, builder,
@@ -265,5 +265,4 @@ test-key = "test-value"
 
 		Expect(exitHandler.Calls[0].Arguments.Get(0)).To(MatchError("unsupported command test-command"))
 	})
-
 }
