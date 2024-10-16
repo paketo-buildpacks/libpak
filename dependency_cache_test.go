@@ -58,7 +58,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		it("set default CachePath and UserAgent", func() {
 			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 			Expect(err).NotTo(HaveOccurred())
-			Expect(dependencyCache.CachePath).To(Equal(filepath.Join("some/path/dependencies")))
+			Expect(dependencyCache.CachePath).To(Equal("some/path/dependencies"))
 			Expect(dependencyCache.UserAgent).To(Equal("some-buildpack-id/some-buildpack-version"))
 			Expect(dependencyCache.Mappings).To(Equal(map[string]string{}))
 		})
@@ -66,11 +66,11 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		it("uses default timeout values", func() {
 			dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 			Expect(err).NotTo(HaveOccurred())
-			Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(6 * time.Second))
-			Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(60 * time.Second))
-			Expect(dependencyCache.HttpClientTimeouts.TLSHandshakeTimeout).To(Equal(5 * time.Second))
-			Expect(dependencyCache.HttpClientTimeouts.ResponseHeaderTimeout).To(Equal(5 * time.Second))
-			Expect(dependencyCache.HttpClientTimeouts.ExpectContinueTimeout).To(Equal(1 * time.Second))
+			Expect(dependencyCache.HTTPClientTimeouts.DialerTimeout).To(Equal(6 * time.Second))
+			Expect(dependencyCache.HTTPClientTimeouts.DialerKeepAlive).To(Equal(60 * time.Second))
+			Expect(dependencyCache.HTTPClientTimeouts.TLSHandshakeTimeout).To(Equal(5 * time.Second))
+			Expect(dependencyCache.HTTPClientTimeouts.ResponseHeaderTimeout).To(Equal(5 * time.Second))
+			Expect(dependencyCache.HTTPClientTimeouts.ExpectContinueTimeout).To(Equal(1 * time.Second))
 		})
 
 		context("custom timeout setttings", func() {
@@ -85,11 +85,11 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			it("uses custom timeout values", func() {
 				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 				Expect(err).NotTo(HaveOccurred())
-				Expect(dependencyCache.HttpClientTimeouts.DialerTimeout).To(Equal(7 * time.Second))
-				Expect(dependencyCache.HttpClientTimeouts.DialerKeepAlive).To(Equal(50 * time.Second))
-				Expect(dependencyCache.HttpClientTimeouts.TLSHandshakeTimeout).To(Equal(2 * time.Second))
-				Expect(dependencyCache.HttpClientTimeouts.ResponseHeaderTimeout).To(Equal(3 * time.Second))
-				Expect(dependencyCache.HttpClientTimeouts.ExpectContinueTimeout).To(Equal(2 * time.Second))
+				Expect(dependencyCache.HTTPClientTimeouts.DialerTimeout).To(Equal(7 * time.Second))
+				Expect(dependencyCache.HTTPClientTimeouts.DialerKeepAlive).To(Equal(50 * time.Second))
+				Expect(dependencyCache.HTTPClientTimeouts.TLSHandshakeTimeout).To(Equal(2 * time.Second))
+				Expect(dependencyCache.HTTPClientTimeouts.ResponseHeaderTimeout).To(Equal(3 * time.Second))
+				Expect(dependencyCache.HTTPClientTimeouts.ExpectContinueTimeout).To(Equal(2 * time.Second))
 			})
 		})
 
@@ -209,7 +209,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			defer in.Close()
 
 			Expect(os.MkdirAll(filepath.Dir(destination), 0755)).To(Succeed())
-			out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+			out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 			Expect(err).NotTo(HaveOccurred())
 			defer out.Close()
 
@@ -219,7 +219,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 		writeTOML := func(destination string, v interface{}) {
 			Expect(os.MkdirAll(filepath.Dir(destination), 0755)).To(Succeed())
-			out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+			out, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 			Expect(err).NotTo(HaveOccurred())
 			defer out.Close()
 
@@ -304,7 +304,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				sourcePath := t.TempDir()
 				sourceFile := filepath.Join(sourcePath, "source-file")
-				Expect(os.WriteFile(sourceFile, []byte("test-fixture"), 0644)).ToNot(HaveOccurred())
+				Expect(os.WriteFile(sourceFile, []byte("test-fixture"), 0600)).ToNot(HaveOccurred())
 
 				dependencyCache.Mappings = map[string]string{
 					dependency.SHA256: fmt.Sprintf("file://%s", sourceFile),

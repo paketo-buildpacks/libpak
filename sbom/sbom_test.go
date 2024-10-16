@@ -8,12 +8,13 @@ import (
 
 	"github.com/buildpacks/libcnb/v2"
 	. "github.com/onsi/gomega"
+	"github.com/sclevine/spec"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/paketo-buildpacks/libpak/v2/effect"
 	"github.com/paketo-buildpacks/libpak/v2/effect/mocks"
 	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
-	"github.com/sclevine/spec"
-	"github.com/stretchr/testify/mock"
 )
 
 func testSBOM(t *testing.T, context spec.G, it spec.S) {
@@ -23,7 +24,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 		layers   libcnb.Layers
 		layer    libcnb.Layer
 		executor mocks.Executor
-		scanner  sbom.SBOMScanner
+		scanner  sbom.Scanner
 	)
 
 	it.Before(func() {
@@ -56,8 +57,8 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					len(e.Args) == 5 &&
 					strings.HasPrefix(e.Args[3], "json=") &&
 					e.Args[4] == "dir:something"
-			})).Run(func(args mock.Arguments) {
-				Expect(os.WriteFile(outputPath, []byte("succeed1"), 0644)).To(Succeed())
+			})).Run(func(_ mock.Arguments) {
+				Expect(os.WriteFile(outputPath, []byte("succeed1"), 0600)).To(Succeed())
 			}).Return(nil)
 
 			// uses interface here intentionally, to force that inteface and implementation match
@@ -79,7 +80,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					len(e.Args) == 5 &&
 					strings.HasPrefix(e.Args[3], "cyclonedx-json=") &&
 					e.Args[4] == "dir:something"
-			})).Run(func(args mock.Arguments) {
+			})).Run(func(_ mock.Arguments) {
 				Expect(os.WriteFile(outputPath, []byte(`{
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
@@ -100,7 +101,7 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
       "name": "target/demo-0.0.1-SNAPSHOT.jar"
     }
   }
-}`), 0644)).To(Succeed())
+}`), 0600)).To(Succeed())
 			}).Return(nil)
 
 			// uses interface here intentionally, to force that inteface and implementation match
@@ -125,8 +126,8 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 					len(e.Args) == 5 &&
 					strings.HasPrefix(e.Args[3], "json=") &&
 					e.Args[4] == "dir:something"
-			})).Run(func(args mock.Arguments) {
-				Expect(os.WriteFile(outputPath, []byte("succeed2"), 0644)).To(Succeed())
+			})).Run(func(_ mock.Arguments) {
+				Expect(os.WriteFile(outputPath, []byte("succeed2"), 0600)).To(Succeed())
 			}).Return(nil)
 
 			scanner := sbom.SyftCLISBOMScanner{
@@ -146,14 +147,14 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
 					len(e.Args) == 9 &&
-					strings.HasPrefix(e.Args[3], sbom.SBOMFormatToSyftOutputFormat(libcnb.CycloneDXJSON)) &&
-					strings.HasPrefix(e.Args[5], sbom.SBOMFormatToSyftOutputFormat(libcnb.SyftJSON)) &&
-					strings.HasPrefix(e.Args[7], sbom.SBOMFormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
+					strings.HasPrefix(e.Args[3], sbom.FormatToSyftOutputFormat(libcnb.CycloneDXJSON)) &&
+					strings.HasPrefix(e.Args[5], sbom.FormatToSyftOutputFormat(libcnb.SyftJSON)) &&
+					strings.HasPrefix(e.Args[7], sbom.FormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
 					e.Args[8] == "dir:something"
-			})).Run(func(args mock.Arguments) {
-				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0644)).To(Succeed())
-				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte(`{"succeed":2}`), 0644)).To(Succeed())
-				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0644)).To(Succeed())
+			})).Run(func(_ mock.Arguments) {
+				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0600)).To(Succeed())
+				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte(`{"succeed":2}`), 0600)).To(Succeed())
+				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0600)).To(Succeed())
 			}).Return(nil)
 
 			scanner := sbom.SyftCLISBOMScanner{
@@ -258,5 +259,4 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(data)).To(ContainSubstring(`"Source":{`))
 		})
 	})
-
 }

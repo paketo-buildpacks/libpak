@@ -274,7 +274,7 @@ func (PaketoLogger) print(writer io.Writer, a ...interface{}) {
 	s := fmt.Sprint(a...)
 
 	if !strings.HasSuffix(s, "\n") {
-		s = s + "\n"
+		s += "\n"
 	}
 
 	_, _ = fmt.Fprint(writer, s)
@@ -282,7 +282,7 @@ func (PaketoLogger) print(writer io.Writer, a ...interface{}) {
 
 func (PaketoLogger) printf(writer io.Writer, format string, a ...interface{}) {
 	if !strings.HasSuffix(format, "\n") {
-		format = format + "\n"
+		format += "\n"
 	}
 
 	_, _ = fmt.Fprintf(writer, format, a...)

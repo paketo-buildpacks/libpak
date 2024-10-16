@@ -32,7 +32,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/log"
 )
 
-func testGenerate(t *testing.T, context spec.G, it spec.S) {
+func testGenerate(t *testing.T, _ spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -119,9 +119,9 @@ api = "0.8"
 [extension]
 name    = "test-name"
 version = "test-version"`),
-			0644)).To(Succeed())
+			0600)).To(Succeed())
 
-		libpak.Generate(func(ctx libcnb.GenerateContext) (libcnb.GenerateResult, error) {
+		libpak.Generate(func(_ libcnb.GenerateContext) (libcnb.GenerateResult, error) {
 			return libcnb.GenerateResult{}, fmt.Errorf("test-error")
 		},
 			libcnb.WithArguments([]string{commandPath, platformPath, buildPlanPath}),

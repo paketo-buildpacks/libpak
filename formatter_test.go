@@ -20,8 +20,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/v2"
 	"github.com/sclevine/spec"
+
+	"github.com/paketo-buildpacks/libpak/v2"
 )
 
 func testFormatter(t *testing.T, context spec.G, it spec.S) {
@@ -30,7 +31,6 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	context("DependenciesFormatter", func() {
-
 		it("formats contents", func() {
 			deps := []libpak.BuildModuleDependency{
 				{
@@ -48,6 +48,5 @@ func testFormatter(t *testing.T, context spec.G, it spec.S) {
 			Expect(libpak.DependenciesFormatter(deps).String()).
 				To(Equal("[(test-id-1, 1.1.1, [test-stack-1]) (test-id-2, 2.2.2, [test-stack-2])]"))
 		})
-
 	})
 }

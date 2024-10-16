@@ -43,7 +43,6 @@ func testSherpa(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("Execute", func() {
-
 		it("exits with error", func() {
 			sherpa.Execute(func() error {
 				return fmt.Errorf("test-error")
@@ -59,11 +58,9 @@ func testSherpa(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(exitHandler.Calls).To(HaveLen(0))
 		})
-
 	})
 
 	context("Helpers", func() {
-
 		var (
 			execd *mocks2.ExecD
 		)

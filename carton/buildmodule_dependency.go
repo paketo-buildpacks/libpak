@@ -23,6 +23,7 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
+
 	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
 )
@@ -128,16 +129,16 @@ func (b BuildModuleDependency) Update(options ...Option) {
 	}
 
 	for _, dep := range dependencies {
-		depIdUnwrapped, found := dep["id"]
+		depIDUnwrapped, found := dep["id"]
 		if !found {
 			continue
 		}
-		depId, ok := depIdUnwrapped.(string)
+		depID, ok := depIDUnwrapped.(string)
 		if !ok {
 			continue
 		}
 
-		if depId == b.ID {
+		if depID == b.ID {
 			depVersionUnwrapped, found := dep["version"]
 			if !found {
 				continue
@@ -186,6 +187,7 @@ func (b BuildModuleDependency) Update(options ...Option) {
 
 	c = append(comments, c...)
 
+	// #nosec G306 - permissions need to be 644 on the build module
 	if err := os.WriteFile(b.BuildModulePath, c, 0644); err != nil {
 		config.exitHandler.Error(fmt.Errorf("unable to write %s\n%w", b.BuildModulePath, err))
 		return

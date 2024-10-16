@@ -32,7 +32,6 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 	)
 
 	context("ShallowMerge", func() {
-
 		it("merges with empty", func() {
 			a := libcnb.BuildpackPlanEntry{}
 			b := libcnb.BuildpackPlanEntry{Name: "test-name"}
@@ -109,11 +108,9 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				Expect(libpak.ShallowMerge(a, b)).To(Equal(expected))
 			})
 		})
-
 	})
 
 	context("PlanEntryResolver", func() {
-
 		context("ResolveWithMerge", func() {
 			var (
 				resolver = libpak.PlanEntryResolver{}
@@ -135,7 +132,7 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 				}
 			})
 
-			var f = func(a, b libcnb.BuildpackPlanEntry) (libcnb.BuildpackPlanEntry, error) {
+			var f = func(_, b libcnb.BuildpackPlanEntry) (libcnb.BuildpackPlanEntry, error) {
 				return b, nil
 			}
 
@@ -165,7 +162,6 @@ func testBuildpackPlan(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		context("Resolve", func() {
-
 			it("merges with empty", func() {
 				a := libcnb.BuildpackPlanEntry{}
 				b := libcnb.BuildpackPlanEntry{Name: "test-name"}
