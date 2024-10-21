@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,6 @@
 package libpak
 
 const (
-	// BionicStackID is the ID for the Cloud Native Buildpacks bionic stack.
-	BionicStackID = "io.buildpacks.stacks.bionic"
-
-	// BionicTinyStackID is the ID for the Paketo Buildpacks bionic tiny stack.
-	BionicTinyStackID = "io.paketo.stacks.tiny"
-
-	// TinyStackID is the ID for the Paketo Buildpacks bionic tiny stack.
-	//
-	// Deprecated: use BionicTinyStackID instead
-	TinyStackID = "io.paketo.stacks.tiny"
-
 	// JammyStackID is the ID for the Cloud Native Buildpacks jammy stack.
 	JammyStackID = "io.buildpacks.stacks.jammy"
 
@@ -36,29 +25,38 @@ const (
 
 	// JammyStaticStackID is the ID for the Cloud Native Buildpacks jammy static stack.
 	JammyStaticStackID = "io.buildpacks.stacks.jammy.static"
-)
 
-// IsBionicStack returns true if the stack is one of the bionic variants
-func IsBionicStack(stack string) bool {
-	return BionicStackID == stack || BionicTinyStackID == stack || TinyStackID == stack
-}
+	// NobleStackID is the ID for the Cloud Native Buildpacks noble stack.
+	NobleStackID = "io.buildpacks.stacks.noble"
+
+	// NobleTinyStackID is the ID for the Cloud Native Buildpacks noble tiny stack.
+	NobleTinyStackID = "io.buildpacks.stacks.noble.tiny"
+
+	// NobleStaticStackID is the ID for the Cloud Native Buildpacks noble static stack.
+	NobleStaticStackID = "io.buildpacks.stacks.noble.static"
+)
 
 // IsJammyStack returns true if the stack is one of the jammy variants
 func IsJammyStack(stack string) bool {
 	return JammyStackID == stack || JammyTinyStackID == stack || JammyStaticStackID == stack
 }
 
+// IsNobleStack returns true if the stack is one of the noble variants
+func IsNobleStack(stack string) bool {
+	return NobleStackID == stack || NobleTinyStackID == stack || NobleStaticStackID == stack
+}
+
 // IsTinyStack returns true if the stack is one of the tiny variants
 func IsTinyStack(stack string) bool {
-	return BionicTinyStackID == stack || JammyTinyStackID == stack || TinyStackID == stack
+	return JammyTinyStackID == stack || NobleTinyStackID == stack
 }
 
 // IsStaticStack returns true if the stack is one of the static variants
 func IsStaticStack(stack string) bool {
-	return JammyStaticStackID == stack
+	return JammyStaticStackID == stack || NobleStaticStackID == stack
 }
 
 // IsShellPresentOnStack returns true if the stack is known to have a shell
 func IsShellPresentOnStack(stack string) bool {
-	return BionicStackID == stack || JammyStackID == stack
+	return JammyStackID == stack || NobleStackID == stack
 }
