@@ -19,17 +19,17 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 // Build is called by the main function of a buildpack, for build.
 func Build(builder libcnb.BuildFunc, options ...libcnb.Option) {
 	libcnb.Build(buildDelegate{delegate: builder}.Build,
 		libcnb.NewConfig(append([]libcnb.Option{
-			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
-			libcnb.WithExitHandler(internal.NewExitHandler()),
-			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
+			libcnb.WithEnvironmentWriter(utils.NewEnvironmentWriter()),
+			libcnb.WithExitHandler(utils.NewExitHandler()),
+			libcnb.WithTOMLWriter(utils.NewTOMLWriter()),
 		}, options...)...))
 }
 

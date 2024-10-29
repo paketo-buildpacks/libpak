@@ -19,16 +19,16 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 // Main is called by the main function of a buildpack, encapsulating both detection and build in the same binary.
 func BuildpackMain(detect libcnb.DetectFunc, build libcnb.BuildFunc, options ...libcnb.Option) {
 	libcnb.BuildpackMain(detectDelegate{delegate: detect}.Detect, buildDelegate{delegate: build}.Build,
 		append([]libcnb.Option{
-			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
-			libcnb.WithExitHandler(internal.NewExitHandler()),
-			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
+			libcnb.WithEnvironmentWriter(utils.NewEnvironmentWriter()),
+			libcnb.WithExitHandler(utils.NewExitHandler()),
+			libcnb.WithTOMLWriter(utils.NewTOMLWriter()),
 		}, options...)...,
 	)
 }
@@ -37,9 +37,9 @@ func BuildpackMain(detect libcnb.DetectFunc, build libcnb.BuildFunc, options ...
 func ExtensionMain(detect libcnb.DetectFunc, generate libcnb.GenerateFunc, options ...libcnb.Option) {
 	libcnb.ExtensionMain(detectDelegate{delegate: detect}.Detect, generateDelegate{delegate: generate}.Generate,
 		append([]libcnb.Option{
-			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
-			libcnb.WithExitHandler(internal.NewExitHandler()),
-			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
+			libcnb.WithEnvironmentWriter(utils.NewEnvironmentWriter()),
+			libcnb.WithExitHandler(utils.NewExitHandler()),
+			libcnb.WithTOMLWriter(utils.NewTOMLWriter()),
 		}, options...)...,
 	)
 }
