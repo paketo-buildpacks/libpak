@@ -19,16 +19,16 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 // Detect is called by the main function of a buildpack, for detection.
 func Detect(detector libcnb.DetectFunc, options ...libcnb.Option) {
 	libcnb.Detect(detectDelegate{delegate: detector}.Detect,
 		libcnb.NewConfig(append([]libcnb.Option{
-			libcnb.WithExitHandler(internal.NewExitHandler()),
-			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
+			libcnb.WithExitHandler(utils.NewExitHandler()),
+			libcnb.WithTOMLWriter(utils.NewTOMLWriter()),
 		}, options...)...))
 }
 

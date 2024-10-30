@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package internal_test
+package utils_test
 
 import (
 	"bytes"
@@ -25,8 +25,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 func testExitHandler(t *testing.T, _ spec.G, it spec.S) {
@@ -35,16 +35,16 @@ func testExitHandler(t *testing.T, _ spec.G, it spec.S) {
 
 		b        *bytes.Buffer
 		exitCode int
-		handler  internal.ExitHandler
+		handler  utils.ExitHandler
 	)
 
 	it.Before(func() {
 		b = bytes.NewBuffer([]byte{})
 
-		handler = internal.NewExitHandler(
-			internal.WithExitHandlerExitFunc(func(c int) { exitCode = c }),
-			internal.WithExitHandlerLogger(log.NewPaketoLogger(b)),
-			internal.WithExitHandlerWriter(b),
+		handler = utils.NewExitHandler(
+			utils.WithExitHandlerExitFunc(func(c int) { exitCode = c }),
+			utils.WithExitHandlerLogger(log.NewPaketoLogger(b)),
+			utils.WithExitHandlerWriter(b),
 		)
 	})
 

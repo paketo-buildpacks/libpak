@@ -29,9 +29,9 @@ import (
 	"github.com/sclevine/spec"
 
 	"github.com/paketo-buildpacks/libpak/v2"
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 func testBuildpack(t *testing.T, context spec.G, it spec.S) {
@@ -56,7 +56,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			},
 		}
 
-		bytes, err := internal.Marshal(dependency)
+		bytes, err := utils.Marshal(dependency)
 		Expect(err).NotTo(HaveOccurred())
 
 		var newDependency libpak.BuildModuleDependency

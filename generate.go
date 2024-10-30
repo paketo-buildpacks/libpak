@@ -19,17 +19,17 @@ package libpak
 import (
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 // Generate is called by the main function of an extension, for generation.
 func Generate(generator libcnb.GenerateFunc, options ...libcnb.Option) {
 	libcnb.Generate(generateDelegate{delegate: generator}.Generate,
 		libcnb.NewConfig(append([]libcnb.Option{
-			libcnb.WithEnvironmentWriter(internal.NewEnvironmentWriter()),
-			libcnb.WithExitHandler(internal.NewExitHandler()),
-			libcnb.WithTOMLWriter(internal.NewTOMLWriter()),
+			libcnb.WithEnvironmentWriter(utils.NewEnvironmentWriter()),
+			libcnb.WithExitHandler(utils.NewExitHandler()),
+			libcnb.WithTOMLWriter(utils.NewTOMLWriter()),
 		}, options...)...))
 }
 

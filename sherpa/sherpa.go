@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 // ExecuteFunc is the callback function for buildpack helper application implementations.
@@ -31,7 +31,7 @@ type ExecuteFunc func() error
 // Execute is called by the main function of a buildpack helper application, for execution.
 func Execute(f ExecuteFunc, options ...Option) {
 	config := Config{
-		exitHandler: internal.NewExitHandler(),
+		exitHandler: utils.NewExitHandler(),
 	}
 
 	for _, option := range options {

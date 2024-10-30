@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package internal_test
+package utils_test
 
 import (
 	"bytes"
@@ -28,8 +28,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
+	libpakTesting "github.com/paketo-buildpacks/libpak/v2/testing"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 func testTOMLWriter(t *testing.T, context spec.G, it spec.S) {
@@ -38,7 +39,7 @@ func testTOMLWriter(t *testing.T, context spec.G, it spec.S) {
 
 		parent     string
 		path       string
-		tomlWriter internal.TOMLWriter
+		tomlWriter utils.TOMLWriter
 	)
 
 	it.Before(func() {
@@ -53,7 +54,7 @@ func testTOMLWriter(t *testing.T, context spec.G, it spec.S) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(os.ReadFile(path)).To(internal.MatchTOML(`
+		Expect(os.ReadFile(path)).To(libpakTesting.MatchTOML(`
 some-field = "some-value"
 other-field = "other-value"`))
 	})
@@ -65,7 +66,7 @@ other-field = "other-value"`))
 
 		it.Before(func() {
 			b = bytes.NewBuffer(nil)
-			tomlWriter = internal.NewTOMLWriter(internal.WithTOMLWriterLogger(log.NewPaketoLogger(b)))
+			tomlWriter = utils.NewTOMLWriter(utils.WithTOMLWriterLogger(log.NewPaketoLogger(b)))
 		})
 
 		it("does not log for uninteresting types", func() {

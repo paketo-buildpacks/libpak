@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package internal_test
+package utils_test
 
 import (
 	"os"
@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
@@ -32,7 +32,7 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 
 		destination string
 		source      string
-		writer      internal.EntryWriter
+		writer      utils.EntryWriter
 	)
 
 	it.Before(func() {
@@ -54,7 +54,7 @@ func testEntryWriter(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(f.Name())).To(Succeed())
 		destination = f.Name()
 
-		writer = internal.EntryWriter{}
+		writer = utils.EntryWriter{}
 	})
 
 	it.After(func() {

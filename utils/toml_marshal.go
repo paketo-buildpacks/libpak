@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package internal_test
+package utils
 
 import (
-	"testing"
+	"bytes"
 
-	"github.com/sclevine/spec"
-	"github.com/sclevine/spec/report"
+	"github.com/BurntSushi/toml"
 )
 
-func TestUnit(t *testing.T) {
-	suite := spec.New("libpak/internal", spec.Report(report.Terminal{}))
-	suite("EntryWriter", testEntryWriter)
-	suite("EnvironmentWriter", testEnvironmentWriter)
-	suite("ExitHandler", testExitHandler)
-	suite("TOMLWriter", testTOMLWriter)
-	suite("TOMLMarshal", testTOMLMarshal)
-	suite.Run(t)
+func Marshal(v interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := toml.NewEncoder(buf).Encode(v)
+	return buf.Bytes(), err
 }

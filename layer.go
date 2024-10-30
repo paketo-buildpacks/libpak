@@ -28,10 +28,10 @@ import (
 
 	"github.com/buildpacks/libcnb/v2"
 
-	"github.com/paketo-buildpacks/libpak/v2/internal"
 	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
 	"github.com/paketo-buildpacks/libpak/v2/sherpa"
+	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
 // ContributeLayersFunc takes a context and result pointer returning a list of Contributables, the list of Contributables will be turned into layers automatically
@@ -144,7 +144,7 @@ func (l *LayerContributor) Contribute(layer *libcnb.Layer, f LayerFunc) error {
 }
 
 func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[string]interface{}, bool, error) {
-	raw, err := internal.Marshal(l.ExpectedMetadata)
+	raw, err := utils.Marshal(l.ExpectedMetadata)
 	if err != nil {
 		return map[string]interface{}{}, false, fmt.Errorf("unable to encode metadata\n%w", err)
 	}
