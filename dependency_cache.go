@@ -448,16 +448,51 @@ func (DependencyCache) verify(path string, expected string) error {
 func (d DependencyCache) setDependencyMirror(urlD *url.URL, mirror string) {
 	if mirror != "" {
 		d.Logger.Bodyf("%s Download URIs will be overridden.", color.GreenString("Dependency mirror found."))
-		urlOverride, err := url.ParseRequestURI(mirror)
+		mirrorArgs := parseMirror(mirror)
+		urlOverride, err := url.ParseRequestURI(mirrorArgs["mirror"])
 
 		if strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file" {
 			urlD.Scheme = urlOverride.Scheme
 			urlD.User = urlOverride.User
-			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + urlD.Path
+			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + strings.Replace(urlD.Path, mirrorArgs["skip-path"], "", 1)
 			urlD.Host = urlOverride.Host
 		} else {
 			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", mirror, err)
 			d.Logger.Bodyf("%s is ignored. Have you used one of the supported schemes https:// or file://?", color.YellowString("Invalid dependency mirror"))
 		}
 	}
+}
+
+// Parses a raw mirror string into a map of arguments.
+func parseMirror(mirror string) map[string]string {
+	mirrorArgs := map[string]string{
+		"mirror":    mirror,
+		"skip-path": "",
+	}
+
+	// Split mirror string at commas and extract specified arguments.
+	for _, arg := range strings.Split(mirror, ",") {
+		argPair := strings.SplitN(arg, "=", 2)
+		// If a URI is provided without the key 'mirror=', still treat it as the 'mirror' argument.
+		// This addresses backwards compatibility and user experience as most mirrors won't need any additional arguments.
+		if len(argPair) == 1 && (strings.HasPrefix(argPair[0], "https") || strings.HasPrefix(argPair[0], "file")) {
+			mirrorArgs["mirror"] = argPair[0]
+		}
+		// Add all provided arguments to key/value map.
+		if len(argPair) == 2 {
+			mirrorArgs[argPair[0]] = argPair[1]
+		}
+	}
+
+	// Unescape mirror arguments to support URL-encoded strings.
+	tmp, err := url.PathUnescape(mirrorArgs["mirror"])
+	if err == nil {
+		mirrorArgs["mirror"] = tmp
+	}
+	tmp, err = url.PathUnescape(mirrorArgs["skip-path"])
+	if err == nil {
+		mirrorArgs["skip-path"] = tmp
+	}
+
+	return mirrorArgs
 }
