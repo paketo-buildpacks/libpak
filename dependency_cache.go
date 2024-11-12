@@ -165,6 +165,7 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 		artifact string
 		file     string
 		uri      = dependency.URI
+		urlP     *url.URL
 	)
 
 	for d, u := range d.Mappings {
@@ -174,14 +175,20 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 		}
 	}
 
+	urlP, err := url.Parse(uri)
+	if err != nil {
+		d.Logger.Debugf("URI format invalid\n%w", err)
+		return nil, fmt.Errorf("unable to parse URI. see DEBUG log level")
+	}
+
 	if dependency.SHA256 == "" {
 		d.Logger.Headerf("%s Dependency has no SHA256. Skipping cache.",
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
-		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
+		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), urlP.Redacted())
 		artifact = filepath.Join(d.DownloadPath, filepath.Base(uri))
-		if err := d.download(uri, artifact, mods...); err != nil {
-			return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
+		if err := d.download(urlP, artifact, mods...); err != nil {
+			return nil, fmt.Errorf("unable to download %s\n%w", urlP.Redacted(), err)
 		}
 
 		return os.Open(artifact)
@@ -189,14 +196,13 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 
 	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
 	exists, err := sherpa.Exists(file)
-
 	if err != nil {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
 	}
 
 	if exists {
 		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
-		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(uri)))
+		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(urlP.Path)))
 	}
 
 	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
@@ -208,13 +214,13 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 
 	if exists {
 		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
-		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri)))
+		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(urlP.Path)))
 	}
 
-	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), uri)
+	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), urlP.Redacted())
 	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(uri))
-	if err := d.download(uri, artifact, mods...); err != nil {
-		return nil, fmt.Errorf("unable to download %s\n%w", uri, err)
+	if err := d.download(urlP, artifact, mods...); err != nil {
+		return nil, fmt.Errorf("unable to download %s\n%w", urlP.Redacted(), err)
 	}
 
 	d.Logger.Body("Verifying checksum")
@@ -240,17 +246,12 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 	return os.Open(artifact)
 }
 
-func (d DependencyCache) download(uri string, destination string, mods ...RequestModifierFunc) error {
-	url, err := url.Parse(uri)
-	if err != nil {
-		return fmt.Errorf("unable to parse URI %s\n%w", uri, err)
-	}
-
+func (d DependencyCache) download(url *url.URL, destination string, mods ...RequestModifierFunc) error {
 	if url.Scheme == "file" {
 		return d.downloadFile(url.Path, destination)
 	}
 
-	return d.downloadHTTP(uri, destination, mods...)
+	return d.downloadHTTP(url, destination, mods...)
 }
 
 func (d DependencyCache) downloadFile(source string, destination string) error {
@@ -277,10 +278,10 @@ func (d DependencyCache) downloadFile(source string, destination string) error {
 	return nil
 }
 
-func (d DependencyCache) downloadHTTP(uri string, destination string, mods ...RequestModifierFunc) error {
-	req, err := http.NewRequest("GET", uri, nil)
+func (d DependencyCache) downloadHTTP(url *url.URL, destination string, mods ...RequestModifierFunc) error {
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
-		return fmt.Errorf("unable to create new GET request for %s\n%w", uri, err)
+		return fmt.Errorf("unable to create new GET request for %s\n%w", url.Redacted(), err)
 	}
 
 	if d.UserAgent != "" {
@@ -290,7 +291,7 @@ func (d DependencyCache) downloadHTTP(uri string, destination string, mods ...Re
 	for _, m := range mods {
 		req, err = m(req)
 		if err != nil {
-			return fmt.Errorf("unable to modify request\n%w", err)
+			return fmt.Errorf("unable to request %s\n%w", url.Redacted(), err)
 		}
 	}
 
@@ -308,12 +309,12 @@ func (d DependencyCache) downloadHTTP(uri string, destination string, mods ...Re
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("unable to request %s\n%w", uri, err)
+		return fmt.Errorf("unable to request %s\n%w", url.Redacted(), err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("could not download %s: %d", uri, resp.StatusCode)
+		return fmt.Errorf("could not download %s: %d", url.Redacted(), resp.StatusCode)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
@@ -327,7 +328,7 @@ func (d DependencyCache) downloadHTTP(uri string, destination string, mods ...Re
 	defer out.Close()
 
 	if _, err := io.Copy(out, resp.Body); err != nil {
-		return fmt.Errorf("unable to copy from %s to %s\n%w", uri, destination, err)
+		return fmt.Errorf("unable to copy from %s to %s\n%w", url.Redacted(), destination, err)
 	}
 
 	return nil

@@ -17,9 +17,11 @@
 package libpak_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -367,6 +369,59 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+		})
+
+		context("hides credentials from logs", func() {
+			it("skips cache with empty SHA256", func() {
+				copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, dependency.SHA256, "test-path"))
+				writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+				copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
+				writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+
+				dependency.SHA256 = ""
+				server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
+
+				var logBuffer bytes.Buffer
+				dependencyCache.Logger = log.NewPaketoLogger(&logBuffer)
+
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
+				Expect(logBuffer.String()).To(ContainSubstring("Dependency has no SHA256"))
+				Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
+			})
+
+			it("hide uri credentials from log", func() {
+				server.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				url, err := url.Parse(dependency.URI)
+				Expect(err).NotTo(HaveOccurred())
+				credentials := "username:password"
+				uriWithBasicCreds := url.Scheme + "://" + credentials + "@" + url.Hostname() + ":" + url.Port() + url.Path
+				dependency.URI = uriWithBasicCreds
+
+				var logBuffer bytes.Buffer
+				dependencyCache.Logger = log.NewPaketoLogger(&logBuffer)
+
+				// Make sure the password is not part of the log output.
+				a, errA := dependencyCache.Artifact(dependency)
+				Expect(errA).NotTo(HaveOccurred())
+				Expect(a).NotTo(BeNil())
+				Expect(logBuffer.String()).To(ContainSubstring("Verifying checksum"))
+				Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
+				logBuffer.Reset()
+
+				// Make sure the password is not part of the log output when an error occurs.
+				dependency.SHA256 = "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1"
+				dependency.URI = "://username:password@acme.com"
+				b, errB := dependencyCache.Artifact(dependency)
+				Expect(errB).To(HaveOccurred())
+				Expect(b).To(BeNil())
+				Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
+			})
 		})
 	})
 }
