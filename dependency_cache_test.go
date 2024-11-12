@@ -154,21 +154,25 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		context("dependency mirror from environment variable", func() {
 			it.Before(func() {
 				t.Setenv("BP_DEPENDENCY_MIRROR", "https://env-var-mirror.acme.com")
+				t.Setenv("BP_DEPENDENCY_MIRROR_EXAMP__LE_COM", "https://examp-le.com")
 			})
 
 			it("uses BP_DEPENDENCY_MIRROR environment variable", func() {
 				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 				Expect(err).NotTo(HaveOccurred())
-				Expect(dependencyCache.DependencyMirror).To(Equal("https://env-var-mirror.acme.com"))
+				Expect(dependencyCache.DependencyMirrors["default"]).To(Equal("https://env-var-mirror.acme.com"))
+				Expect(dependencyCache.DependencyMirrors["examp-le.com"]).To(Equal("https://examp-le.com"))
 			})
 		})
 
-		context("dependency mirror from binding", func() {
+		context("dependency mirror from binding and environment variable", func() {
 			it.Before(func() {
+				t.Setenv("BP_DEPENDENCY_MIRROR_EXAMP__LE_COM", "https://examp-le.com")
 				ctx.Platform.Bindings = append(ctx.Platform.Bindings, libcnb.Binding{
 					Type: "dependency-mirror",
 					Secret: map[string]string{
-						"uri": "https://bindings-mirror.acme.com",
+						"default":      "https://bindings-mirror.acme.com",
+						"examp-le.com": "https://invalid.com",
 					},
 				})
 			})
@@ -176,7 +180,13 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			it("uses dependency-mirror binding", func() {
 				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
 				Expect(err).NotTo(HaveOccurred())
-				Expect(dependencyCache.DependencyMirror).To(Equal("https://bindings-mirror.acme.com"))
+				Expect(dependencyCache.DependencyMirrors["default"]).To(Equal("https://bindings-mirror.acme.com"))
+			})
+
+			it("environment variable overrides binding", func() {
+				dependencyCache, err := libpak.NewDependencyCache(ctx.Buildpack.Info.ID, ctx.Buildpack.Info.Version, ctx.Buildpack.Path, ctx.Platform.Bindings, log.NewDiscardLogger())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dependencyCache.DependencyMirrors["examp-le.com"]).To(Equal("https://examp-le.com"))
 			})
 		})
 	})
@@ -355,6 +365,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 			it.Before(func() {
 				mirrorServer = ghttp.NewTLSServer()
+				dependencyCache.DependencyMirrors = map[string]string{}
 			})
 
 			it.After(func() {
@@ -370,7 +381,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 					ghttp.RespondWith(http.StatusOK, "test-fixture"),
 				))
 
-				dependencyCache.DependencyMirror = url.Scheme + "://" + "username:password@" + url.Host + "/foo/bar"
+				dependencyCache.DependencyMirrors["default"] = url.Scheme + "://" + "username:password@" + url.Host + "/foo/bar"
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -385,7 +396,22 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 					ghttp.RespondWith(http.StatusOK, "test-fixture"),
 				))
 
-				dependencyCache.DependencyMirror = url.Scheme + "://" + url.Host + "/{originalHost}"
+				dependencyCache.DependencyMirrors["default"] = url.Scheme + "://" + url.Host + "/{originalHost}"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("downloads from https mirror host specific", func() {
+				url, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/host-specific/test-path", ""),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = url.Scheme + "://" + url.Host + "/host-specific"
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -407,6 +433,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 				mirrorPathPreservedHost = filepath.Join(mirrorPath, originalURL.Hostname(), "prefix")
 				Expect(os.MkdirAll(mirrorPathPreservedHost, os.ModePerm)).NotTo(HaveOccurred())
+				dependencyCache.DependencyMirrors = map[string]string{}
 			})
 
 			it.After(func() {
@@ -417,7 +444,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				mirrorFile := filepath.Join(mirrorPath, "test-path")
 				Expect(os.WriteFile(mirrorFile, []byte("test-fixture"), 0600)).ToNot(HaveOccurred())
 
-				dependencyCache.DependencyMirror = "file://" + mirrorPath
+				dependencyCache.DependencyMirrors["default"] = "file://" + mirrorPath
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -428,7 +455,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				mirrorFilePreservedHost := filepath.Join(mirrorPathPreservedHost, "test-path")
 				Expect(os.WriteFile(mirrorFilePreservedHost, []byte("test-fixture"), 0600)).ToNot(HaveOccurred())
 
-				dependencyCache.DependencyMirror = "file://" + mirrorPath + "/{originalHost}" + "/prefix"
+				dependencyCache.DependencyMirrors["default"] = "file://" + mirrorPath + "/{originalHost}" + "/prefix"
 				a, err := dependencyCache.Artifact(dependency)
 				Expect(err).NotTo(HaveOccurred())
 
