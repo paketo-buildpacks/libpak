@@ -103,6 +103,84 @@ func CreateTarGz(destination io.Writer, source string) error {
 	return CreateTar(gz, source)
 }
 
+// CreateJar heavily inspired by: https://gosamples.dev/zip-file/
+// Be aware that this function does not create a MANIFEST.MF file, not does it strictly enforce jar format
+// in regard to elements that need to be STORE'd versus other that need to be DEFLATE'd; here everything is STORE'd
+// Finally, source path must end with a trailing "/"
+func CreateJar(source, target string) error {
+	// 1. Create a ZIP file and zip.Writer
+	f, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	writer := zip.NewWriter(f)
+	defer writer.Close()
+
+	// 2. Go through all the files of the source
+	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		absolutePath := ""
+
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			if absolutePath, err = filepath.EvalSymlinks(path); err != nil {
+				return fmt.Errorf("unable to eval symlink %s\n%w", absolutePath, err)
+			}
+			if file, err := os.Open(absolutePath); err != nil {
+				return fmt.Errorf("unable to open %s\n%w", absolutePath, err)
+			} else {
+				if info, err = file.Stat(); err != nil {
+					return fmt.Errorf("unable to stat %s\n%w", absolutePath, err)
+				}
+			}
+		}
+
+		// 3. Create a local file header
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+
+		// set compression
+		header.Method = zip.Store
+		// 4. Set relative path of a file as the header name
+		header.Name, err = filepath.Rel(source, path)
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			header.Name += "/"
+		}
+
+		// 5. Create writer for the file header and save content of the file
+		headerWriter, err := writer.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		if absolutePath != "" {
+			path = absolutePath
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		_, err = io.Copy(headerWriter, f)
+		writer.Flush()
+		return err
+	})
+}
+
 // Extract decompresses and extract source files to a destination directory or path. For archives, an arbitrary number of top-level directory
 // components can be stripped from each path.
 func Extract(source io.Reader, destination string, stripComponents int) error {
