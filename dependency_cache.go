@@ -18,6 +18,7 @@ package libpak
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -46,8 +47,8 @@ type HTTPClientTimeouts struct {
 	ExpectContinueTimeout time.Duration
 }
 
-// DependencyCache allows a user to get an artifact either from a buildmodule's cache, a previous download, or to download
-// directly.
+// DependencyCache allows a user to get an artifact either from a buildpack's cache, a previous download,
+// a mirror registry, or to download directly.
 type DependencyCache struct {
 	// CachePath is the location where the buildmodule has cached its dependencies.
 	CachePath string
@@ -66,10 +67,24 @@ type DependencyCache struct {
 
 	// httpClientTimeouts contains the timeout values used by HTTP client
 	HTTPClientTimeouts HTTPClientTimeouts
+
+	// Alternative source used for downloading dependencies.
+	DependencyMirror string
 }
 
-// NewDependencyCache creates a new instance setting the default cache path (<BUILDMODULE_PATH>/dependencies) and user
-// agent (<BUILDMODULE_ID>/<BUILDMODULE_VERSION>).
+// NewDependencyCache creates a new instance setting the default cache path (<BUILDPACK_PATH>/dependencies) and user
+// agent (<BUILDPACK_ID>/<BUILDPACK_VERSION>).
+//
+// Mappings will be read from any libcnb.Binding in the context with type "dependency-mappings".
+//
+// In some air-gapped environments, dependencies might not be download directly but need to be pulled from a local mirror registry.
+// In such cases, an alternative URI can either be provided as environment variable "BP_DEPENDENCY_MIRROR", or by a binding of type "dependency-mirror"
+// where a file named "uri" holds the desired location.
+// The two schemes https:// and file:// are supported in mirror URIs where the expected format is (optional parts in "[]"):
+// <scheme>://[<username>:<password>@]<hostname>[:<port>][/<prefix>]
+// The optional path part of the provided URI is used as a prefix that might be necessary in some setups.
+// This (prefix) path may also include a placeholder of "{originalHost}" at any level (in sub-paths or at top-level) and is replaced with the
+// hostname of the original download URI at build time. A sample mirror URI might look like this: https://local-mirror.example.com/buildpacks-dependencies/{originalHost}
 func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildModulePath string, platformBindings libcnb.Bindings, logger log.Logger) (DependencyCache, error) {
 	cache := DependencyCache{
 		CachePath:    filepath.Join(buildModulePath, "dependencies"),
@@ -78,7 +93,8 @@ func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildMo
 		Mappings:     map[string]string{},
 		UserAgent:    fmt.Sprintf("%s/%s", buildModuleID, buildModuleVersion),
 	}
-	mappings, err := mappingsFromBindings(platformBindings)
+
+	mappings, err := filterBindingsByType(platformBindings, "dependency-mapping")
 	if err != nil {
 		return DependencyCache{}, fmt.Errorf("unable to process dependency-mapping bindings\n%w", err)
 	}
@@ -89,6 +105,12 @@ func NewDependencyCache(buildModuleID string, buildModuleVersion string, buildMo
 		return DependencyCache{}, fmt.Errorf("unable to read custom timeout settings\n%w", err)
 	}
 	cache.HTTPClientTimeouts = *clientTimeouts
+
+	dependencyMirror, err := getDependencyMirror(platformBindings)
+	if err != nil {
+		return DependencyCache{}, err
+	}
+	cache.DependencyMirror = dependencyMirror
 
 	return cache, nil
 }
@@ -133,19 +155,41 @@ func customizeHTTPClientTimeouts() (*HTTPClientTimeouts, error) {
 	}, nil
 }
 
-func mappingsFromBindings(bindings libcnb.Bindings) (map[string]string, error) {
-	mappings := map[string]string{}
+// Returns the URI of a dependency mirror (optional).
+// Such mirror location can be defined in a binding of type 'dependency-mirror' with filename 'uri'
+// or using the environment variable 'BP_DEPENDENCY_MIRROR'. The latter takes precedence in case both are found.
+func getDependencyMirror(bindings libcnb.Bindings) (string, error) {
+	dependencyMirror := sherpa.GetEnvWithDefault("BP_DEPENDENCY_MIRROR", "")
+	// If no mirror was found in environment variables, try to find one in bindings.
+	if dependencyMirror == "" {
+		dependencyMirrorBindings, err := filterBindingsByType(bindings, "dependency-mirror")
+		if err == nil {
+			// Use the content of the file named "uri" as the mirror's URI.
+			dependencyMirror = dependencyMirrorBindings["uri"]
+		} else {
+			return "", err
+		}
+	}
+	return dependencyMirror, nil
+}
+
+// Returns a key/value map with all entries for a given binding type.
+// An error is returned if multiple entries are found using the same key (e.g. duplicate digests in dependency mappings).
+func filterBindingsByType(bindings libcnb.Bindings, bindingType string) (map[string]string, error) {
+	filteredBindings := map[string]string{}
+
 	for _, binding := range bindings {
-		if strings.ToLower(binding.Type) == "dependency-mapping" {
-			for digest, uri := range binding.Secret {
-				if _, ok := mappings[digest]; ok {
-					return nil, fmt.Errorf("multiple mappings for digest %q", digest)
+		if strings.ToLower(binding.Type) == bindingType {
+			for key, value := range binding.Secret {
+				if _, ok := filteredBindings[key]; ok {
+					return nil, fmt.Errorf("multiple %s bindings found with duplicate keys %s", binding.Type, key)
 				}
-				mappings[digest] = uri
+				filteredBindings[key] = value
 			}
 		}
 	}
-	return mappings, nil
+
+	return filteredBindings, nil
 }
 
 // RequestModifierFunc is a callback that enables modification of a download request before it is sent.  It is often
@@ -162,14 +206,16 @@ type RequestModifierFunc func(request *http.Request) (*http.Request, error)
 // download, skipping all the caches.
 func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...RequestModifierFunc) (*os.File, error) {
 	var (
-		artifact string
-		file     string
-		uri      = dependency.URI
-		urlP     *url.URL
+		artifact  string
+		file      string
+		isBinding bool
+		uri       = dependency.URI
+		urlP      *url.URL
 	)
 
 	for d, u := range d.Mappings {
 		if d == dependency.SHA256 {
+			isBinding = true
 			uri = u
 			break
 		}
@@ -179,6 +225,13 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 	if err != nil {
 		d.Logger.Debugf("URI format invalid\n%w", err)
 		return nil, fmt.Errorf("unable to parse URI. see DEBUG log level")
+	}
+
+	if isBinding && d.DependencyMirror != "" {
+		d.Logger.Bodyf("Both dependency mirror and bindings are present. %s Please remove dependency map bindings if you wish to use the mirror.",
+			color.YellowString("Mirror is being ignored."))
+	} else {
+		d.setDependencyMirror(urlP)
 	}
 
 	if dependency.SHA256 == "" {
@@ -279,6 +332,29 @@ func (d DependencyCache) downloadFile(source string, destination string) error {
 }
 
 func (d DependencyCache) downloadHTTP(url *url.URL, destination string, mods ...RequestModifierFunc) error {
+	var httpClient *http.Client
+	if (strings.EqualFold(url.Hostname(), "localhost")) || (strings.EqualFold(url.Hostname(), "127.0.0.1")) {
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				// #nosec G402 - we believe this to be safe as it's only for localhost/127.0.0.1
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	} else {
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				Dial: (&net.Dialer{
+					Timeout:   d.HTTPClientTimeouts.DialerTimeout,
+					KeepAlive: d.HTTPClientTimeouts.DialerKeepAlive,
+				}).Dial,
+				TLSHandshakeTimeout:   d.HTTPClientTimeouts.TLSHandshakeTimeout,
+				ResponseHeaderTimeout: d.HTTPClientTimeouts.ResponseHeaderTimeout,
+				ExpectContinueTimeout: d.HTTPClientTimeouts.ExpectContinueTimeout,
+				Proxy:                 http.ProxyFromEnvironment,
+			},
+		}
+	}
+
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return fmt.Errorf("unable to create new GET request for %s\n%w", url.Redacted(), err)
@@ -295,19 +371,7 @@ func (d DependencyCache) downloadHTTP(url *url.URL, destination string, mods ...
 		}
 	}
 
-	client := http.Client{
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout:   d.HTTPClientTimeouts.DialerTimeout,
-				KeepAlive: d.HTTPClientTimeouts.DialerKeepAlive,
-			}).Dial,
-			TLSHandshakeTimeout:   d.HTTPClientTimeouts.TLSHandshakeTimeout,
-			ResponseHeaderTimeout: d.HTTPClientTimeouts.ResponseHeaderTimeout,
-			ExpectContinueTimeout: d.HTTPClientTimeouts.ExpectContinueTimeout,
-			Proxy:                 http.ProxyFromEnvironment,
-		},
-	}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to request %s\n%w", url.Redacted(), err)
 	}
@@ -354,4 +418,21 @@ func (DependencyCache) verify(path string, expected string) error {
 	}
 
 	return nil
+}
+
+func (d DependencyCache) setDependencyMirror(urlD *url.URL) {
+	if d.DependencyMirror != "" {
+		d.Logger.Bodyf("%s Download URIs will be overridden.", color.GreenString("Dependency mirror found."))
+		urlOverride, err := url.ParseRequestURI(d.DependencyMirror)
+
+		if strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file" {
+			urlD.Scheme = urlOverride.Scheme
+			urlD.User = urlOverride.User
+			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + urlD.Path
+			urlD.Host = urlOverride.Host
+		} else {
+			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", d.DependencyMirror, err)
+			d.Logger.Bodyf("%s is ignored. Have you used one of the supported schemes https:// or file://?", color.YellowString("Invalid dependency mirror"))
+		}
+	}
 }
