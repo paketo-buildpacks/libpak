@@ -71,7 +71,7 @@ func NewFileListing(roots ...string) ([]FileEntry, error) {
 			if os.IsNotExist(err) {
 				continue
 			} else if err != nil {
-				results <- result{err: fmt.Errorf("unable to resolve %s\n%w", root, err)}
+				results <- result{err: fmt.Errorf("symlink path %s does not exist according to the OS\n%w", root, err)}
 				return
 			}
 
@@ -178,7 +178,7 @@ func isSymlinkToDir(symlink string, f os.FileInfo) (bool, error) {
 
 		stat, err := os.Stat(path)
 		if err != nil {
-			return false, fmt.Errorf("unable to stat file %s\n%w", path, err)
+			return false, fmt.Errorf("unable to stat file - source path contains a symlink that cannot be followed, at %s\n%w", path, err)
 		}
 
 		return stat.IsDir(), nil
