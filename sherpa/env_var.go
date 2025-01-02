@@ -69,8 +69,7 @@ func ResolveBoolErr(name string) (bool, error) {
 		return false, nil
 	}
 
-	t := strings.TrimSpace(s)
-	p, err := strconv.ParseBool(t)
+	p, err := strconv.ParseBool(strings.TrimSpace(s))
 	if err != nil {
 		return false, fmt.Errorf(
 			"invalid value '%s' for key '%s': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]",
@@ -80,4 +79,19 @@ func ResolveBoolErr(name string) (bool, error) {
 	}
 
 	return p, nil
+}
+
+// ResolveBoolWithDefault resolves a boolean value for a configuration option or returns the default value
+func ResolveBoolWithDefault(name string, defaultVal bool) bool {
+	s, ok := os.LookupEnv(name)
+	if !ok {
+		return defaultVal
+	}
+
+	p, err := strconv.ParseBool(strings.TrimSpace(s))
+	if err != nil {
+		return false
+	}
+
+	return p
 }
