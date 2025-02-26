@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 the original author or authors.
+ * Copyright 2018-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,15 @@ const (
 
 	// JammyStaticStackID is the ID for the Cloud Native Buildpacks jammy static stack.
 	JammyStaticStackID = "io.buildpacks.stacks.jammy.static"
+
+	// NobleStackID is the ID for the Cloud Native Buildpacks noble stack.
+	NobleStackID = "io.buildpacks.stacks.noble"
+
+	// NobleTinyStackID is the ID for the Cloud Native Buildpacks noble tiny stack.
+	NobleTinyStackID = "io.buildpacks.stacks.noble.tiny"
+
+	// NobleStaticStackID is the ID for the Cloud Native Buildpacks noble static stack.
+	NobleStaticStackID = "io.buildpacks.stacks.noble.static"
 )
 
 // IsBionicStack returns true if the stack is one of the bionic variants
@@ -48,17 +57,22 @@ func IsJammyStack(stack string) bool {
 	return JammyStackID == stack || JammyTinyStackID == stack || JammyStaticStackID == stack
 }
 
+// IsNobleStack returns true if the stack is one of the noble variants
+func IsNobleStack(stack string) bool {
+	return NobleStackID == stack || NobleTinyStackID == stack || NobleStaticStackID == stack
+}
+
 // IsTinyStack returns true if the stack is one of the tiny variants
 func IsTinyStack(stack string) bool {
-	return BionicTinyStackID == stack || JammyTinyStackID == stack || TinyStackID == stack
+	return BionicTinyStackID == stack || JammyTinyStackID == stack || TinyStackID == stack || NobleTinyStackID == stack
 }
 
 // IsStaticStack returns true if the stack is one of the static variants
 func IsStaticStack(stack string) bool {
-	return JammyStaticStackID == stack
+	return JammyStaticStackID == stack || NobleStaticStackID == stack
 }
 
 // IsShellPresentOnStack returns true if the stack is known to have a shell
 func IsShellPresentOnStack(stack string) bool {
-	return BionicStackID == stack || JammyStackID == stack
+	return BionicStackID == stack || JammyStackID == stack || NobleStackID == stack
 }
