@@ -100,6 +100,53 @@ include-files = [
 		Expect(e.Dir).To(Equal(path))
 	})
 
+	context("pre-package call has arguments", func() {
+		it.Before(func() {
+			Expect(os.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
+api = "0.0.0"
+
+[buildpack]
+name    = "test-name"
+version = "{{.version}}"
+
+[[metadata.dependencies]]
+id      = "test-id"
+name    = "test-name"
+version = "1.1.1"
+uri     = "test-uri"
+sha256  = "test-sha256"
+stacks  = [ "test-stack" ]
+
+	[[metadata.dependencies.licenses]]
+	type = "test-type"
+	uri  = "test-uri"
+
+[metadata]
+pre-package   = "test-pre-package --arg1 --arg2"
+include-files = [
+	"test-include-files",
+	"buildpack.toml",
+]
+`), 0644)).To(Succeed())
+		})
+
+		it("executes pre_package scriptwith correct args", func() {
+			carton.Package{
+				Source: path,
+			}.Create(
+				carton.WithEntryWriter(entryWriter),
+				carton.WithExecutor(executor),
+				carton.WithExitHandler(exitHandler))
+
+			e, ok := executor.Calls[0].Arguments[0].(effect.Execution)
+			Expect(ok).To(BeTrue())
+			Expect(e.Command).To(Equal("test-pre-package"))
+			Expect(e.Args).To(ConsistOf([]string{"--arg1", "--arg2"}))
+			Expect(e.Dir).To(Equal(path))
+		})
+
+	})
+
 	context("has a buildpack.toml with target specific include files", func() {
 		it.Before(func() {
 			Expect(os.WriteFile(filepath.Join(path, "buildpack.toml"), []byte(`
