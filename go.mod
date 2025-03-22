@@ -9,7 +9,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/buildpacks/libcnb/v2 v2.0.0-rc.1
-	github.com/creack/pty v1.1.23
+	github.com/creack/pty v1.1.24
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
 	github.com/mitchellh/hashstructure/v2 v2.0.2
