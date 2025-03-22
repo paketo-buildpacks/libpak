@@ -6,8 +6,8 @@ github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3Q
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+hmvYS0=
 github.com/Masterminds/semver/v3 v3.3.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
-github.com/buildpacks/libcnb/v2 v2.0.0-rc.1 h1:pjgfIp/e/5PCcFPvzSB4ewT0f3jOoLykH3z9/H03Sb4=
-github.com/buildpacks/libcnb/v2 v2.0.0-rc.1/go.mod h1:emWCgGJo1VE4WK+hCTo7ZHdEpK5rstr2vyrc3Kq433s=
+github.com/buildpacks/libcnb/v2 v2.0.0 h1:RvoUy2g1K/6tuxpIeV9lFrAwvLZsFvdOXbjtxtaeIr8=
+github.com/buildpacks/libcnb/v2 v2.0.0/go.mod h1:ePaIqWv+J9251MzBnKNWVXpgxIfopqNp9VaupsKM4LM=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.24 h1:bJrF4RRfyJnbTJqzRLHzcGaZK1NeM5kTC9jGgovnR1s=
 github.com/creack/pty v1.1.24/go.mod h1:08sCNb52WyoAwi2QDyzUCTgcvVFhUzewun7wtTfvcwE=
