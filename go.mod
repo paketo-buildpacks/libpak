@@ -3,7 +3,7 @@ module github.com/paketo-buildpacks/libpak
 go 1.24
 
 require (
-	github.com/BurntSushi/toml v1.4.0
+	github.com/BurntSushi/toml v1.5.0
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/buildpacks/libcnb v1.30.4
 	github.com/creack/pty v1.1.24
