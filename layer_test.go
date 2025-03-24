@@ -29,9 +29,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/sclevine/spec"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/paketo-buildpacks/libpak/v2"
 	"github.com/paketo-buildpacks/libpak/v2/log"
+	"github.com/paketo-buildpacks/libpak/v2/mocks"
 )
 
 func testLayer(t *testing.T, context spec.G, it spec.S) {
@@ -248,33 +250,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(layer.LayerTypes.Launch).To(BeTrue())
-		})
-
-		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
-			lc.ExpectedTypes.Launch = true
-			lc.ExpectedTypes.Cache = true
-			lc.ExpectedTypes.Build = true
-
-			layer.Metadata = map[string]interface{}{
-				"alpha": "test-alpha",
-				"bravo": map[string]interface{}{
-					"bravo-1": "test-bravo-1",
-					"bravo-2": "test-bravo-2",
-				},
-			}
-
-			var called bool
-
-			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
-				called = true
-				return nil
-			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(called).To(BeFalse())
-
-			Expect(layer.LayerTypes.Launch).To(BeTrue())
-			Expect(layer.LayerTypes.Cache).To(BeTrue())
-			Expect(layer.LayerTypes.Build).To(BeTrue())
 		})
 	})
 
@@ -680,45 +655,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			}))
 		})
 
-		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
-			layer.Metadata = map[string]interface{}{
-				"id":      dependency.ID,
-				"name":    dependency.Name,
-				"version": dependency.Version,
-				"uri":     dependency.URI,
-				"sha256":  dependency.SHA256,
-				"stacks":  []interface{}{dependency.Stacks[0]},
-				"licenses": []map[string]interface{}{
-					{
-						"type": dependency.Licenses[0].Type,
-						"uri":  dependency.Licenses[0].URI,
-					},
-				},
-				"cpes":             []interface{}{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				"purl":             "pkg:generic/some-java11@11.0.2?arch=amd64",
-				"deprecation_date": dependency.DeprecationDate,
-			}
-			dlc.ExpectedTypes.Launch = true
-			dlc.ExpectedTypes.Cache = true
-			dlc.ExpectedTypes.Build = true
-
-			var called bool
-
-			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
-				defer artifact.Close()
-
-				called = true
-				return nil
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(called).To(BeFalse())
-
-			Expect(layer.LayerTypes.Launch).To(BeTrue())
-			Expect(layer.LayerTypes.Cache).To(BeTrue())
-			Expect(layer.LayerTypes.Build).To(BeTrue())
-		})
-
 		it("adds expected Syft SBOM file", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
@@ -833,31 +769,6 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{"buildpackInfo": buildpackInfo, "helperNames": []interface{}{hlc.Names[0], hlc.Names[1]}}))
 		})
 
-		it("sets layer flags regardless of caching behavior (required for 0.6 API)", func() {
-			buildpackInfo := map[string]interface{}{
-				"id":          buildpack.Info.ID,
-				"name":        buildpack.Info.Name,
-				"version":     buildpack.Info.Version,
-				"homepage":    buildpack.Info.Homepage,
-				"clear-env":   buildpack.Info.ClearEnvironment,
-				"description": "",
-			}
-			layer.Metadata["buildpackInfo"] = buildpackInfo
-			layer.Metadata["helperNames"] = []interface{}{hlc.Names[0], hlc.Names[1]}
-
-			// Launch is the only one set & always true
-
-			err := hlc.Contribute(layer)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(layer.Exec.FilePath("test-name-1")).NotTo(BeAnExistingFile())
-			Expect(layer.Exec.FilePath("test-name-2")).NotTo(BeAnExistingFile())
-
-			Expect(layer.LayerTypes.Launch).To(BeTrue())
-			Expect(layer.LayerTypes.Cache).To(BeFalse())
-			Expect(layer.LayerTypes.Build).To(BeFalse())
-		})
-
 		it("adds expected Syft SBOM file", func() {
 			layer.Metadata = map[string]interface{}{}
 
@@ -879,6 +790,66 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
 			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
 			Expect(string(data)).To(ContainSubstring(`"Source":{`))
+		})
+	})
+
+	context("ContributableBuildFunc", func() {
+		it("calls contributeLayersFunc and processes each layer contributor", func() {
+			mockContributor1 := &mocks.Contributable{}
+			mockContributor2 := &mocks.Contributable{}
+
+			mockContributor1.On("Name").Return("layer-1")
+			mockContributor2.On("Name").Return("layer-2")
+
+			mockContributor1.On("Contribute", mock.Anything).Return(nil)
+			mockContributor2.On("Contribute", mock.Anything).Return(nil)
+
+			buildFunc := libpak.ContributableBuildFunc(func(context libcnb.BuildContext, result *libcnb.BuildResult) ([]libpak.Contributable, error) {
+				return []libpak.Contributable{
+					mockContributor1,
+					mockContributor2,
+				}, nil
+			})
+
+			buildResult, err := buildFunc(libcnb.BuildContext{})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(buildResult.Layers[0].Name).To(Equal("layer-1"))
+			Expect(buildResult.Layers[1].Name).To(Equal("layer-2"))
+			Expect(mockContributor1.Calls).To(HaveLen(2))
+			Expect(mockContributor2.Calls).To(HaveLen(2))
+		})
+
+		it("calls contributeLayersFunc and processes each layer contributor and process type contributor", func() {
+			mockContributor1 := &mocks.ProcessContributable{}
+			mockContributor2 := &mocks.ProcessContributable{}
+
+			mockContributor1.On("Name").Return("layer-1")
+			mockContributor2.On("Name").Return("layer-2")
+
+			mockContributor1.On("Contribute", mock.Anything).Return(nil)
+			mockContributor2.On("Contribute", mock.Anything).Return(nil)
+
+			proc1 := []libcnb.Process{{Type: "foo", Command: []string{"bar"}}}
+			proc2 := []libcnb.Process{{Type: "baz", Command: []string{"qux"}}}
+			mockContributor1.On("ProcessTypes", mock.Anything).Return(proc1, nil)
+			mockContributor2.On("ProcessTypes", mock.Anything).Return(proc2, nil)
+
+			buildFunc := libpak.ContributableBuildFunc(func(context libcnb.BuildContext, result *libcnb.BuildResult) ([]libpak.Contributable, error) {
+				return []libpak.Contributable{
+					mockContributor1,
+					mockContributor2,
+				}, nil
+			})
+
+			buildResult, err := buildFunc(libcnb.BuildContext{})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(buildResult.Layers[0].Name).To(Equal("layer-1"))
+			Expect(buildResult.Layers[1].Name).To(Equal("layer-2"))
+			Expect(buildResult.Processes).To(Equal(append(proc1, proc2...)))
+			Expect(mockContributor1.Calls).To(HaveLen(3))
+			Expect(mockContributor2.Calls).To(HaveLen(3))
 		})
 	})
 }

@@ -61,11 +61,23 @@ func ContributableBuildFunc(contributeLayersFunc ContributeLayersFunc) libcnb.Bu
 			}
 
 			result.Layers = append(result.Layers, layer)
+
+			processTypeContributor, ok := creator.(ProcessContributable)
+			if ok {
+				processes, err := processTypeContributor.ProcessTypes(&layer)
+				if err != nil {
+					return libcnb.BuildResult{}, fmt.Errorf("unable to contribute process types\n%w", err)
+				}
+
+				result.Processes = append(result.Processes, processes...)
+			}
 		}
 
 		return result, nil
 	}
 }
+
+//go:generate mockery --name Contributable --case=underscore
 
 // Contributable is an interface that is implemented when you want to contribute new layers
 type Contributable interface {
@@ -74,6 +86,16 @@ type Contributable interface {
 
 	// Name is the name of the layer.
 	Name() string
+}
+
+//go:generate mockery --name ProcessContributable --case=underscore
+
+// ProcessContributable is an interface that is implemented when you want to contribute new layers and new process types
+type ProcessContributable interface {
+	Contributable
+
+	// ProcessTypes accepts a layer and returns the process types to add
+	ProcessTypes(layer *libcnb.Layer) ([]libcnb.Process, error)
 }
 
 // LayerContributor is a helper for implementing Contributable in order to get consistent logging and avoidance.
