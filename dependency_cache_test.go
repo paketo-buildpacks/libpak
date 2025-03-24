@@ -561,7 +561,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
 		})
 
-		it("sets downloaded file name to uri's sha256", func() {
+		it("sets downloaded file name to uri's path without query params", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
 
 			a, err := dependencyCache.Artifact(dependency)
@@ -571,7 +571,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(filepath.Base(a.Name())).To(Equal("test-path"))
 		})
 
-		it("sets downloaded file name to uri's sha256 with empty SHA256 and query parameters in the uri", func() {
+		it("sets downloaded file name to uri's path without query params when the SHA256 is empty", func() {
 			dependency.SHA256 = ""
 			dependency.URI = fmt.Sprintf("%s/test-path?param1=value1&param2=value2", server.URL())
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
