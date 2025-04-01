@@ -17,6 +17,7 @@
 package libpak
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/Masterminds/semver/v3"
 	"github.com/heroku/color"
 
@@ -179,131 +181,31 @@ func (b BuildModuleDependency) IsSoonDeprecated() bool {
 
 // BuildpackMetadata is an extension to libcnb.Buildpack / libcnb.Extension's metadata with opinions.
 type BuildModuleMetadata struct {
-
 	// Configurations are environment variables that can be used at build time to configure the buildpack and launch
 	// time to configure the application.
-	Configurations []BuildModuleConfiguration
+	Configurations []BuildModuleConfiguration `toml:"configurations"`
 
 	// Dependencies are the dependencies known to the buildpack.
-	Dependencies []BuildModuleDependency
+	Dependencies []BuildModuleDependency `toml:"dependencies"`
 
 	// IncludeFiles describes the files to include in the package.
-	IncludeFiles []string
+	IncludeFiles []string `toml:"include-files"`
 
 	// PrePackage describes a command to invoke before packaging.
-	PrePackage string
+	PrePackage string `toml:"pre-package"`
 }
 
 // NewBuildpackMetadata creates a new instance of BuildpackMetadata from the contents of libcnb.Buildpack.Metadata
 func NewBuildModuleMetadata(metadata map[string]interface{}) (BuildModuleMetadata, error) {
 	m := BuildModuleMetadata{}
 
-	if v, ok := metadata["configurations"]; ok {
-		for _, v := range v.([]map[string]interface{}) {
-			var c BuildModuleConfiguration
-
-			if v, ok := v["build"].(bool); ok {
-				c.Build = v
-			}
-
-			if v, ok := v["default"].(string); ok {
-				c.Default = v
-			}
-
-			if v, ok := v["description"].(string); ok {
-				c.Description = v
-			}
-
-			if v, ok := v["launch"].(bool); ok {
-				c.Launch = v
-			}
-
-			if v, ok := v["name"].(string); ok {
-				c.Name = v
-			}
-
-			m.Configurations = append(m.Configurations, c)
-		}
+	buf := bytes.NewBuffer(nil)
+	if err := toml.NewEncoder(buf).Encode(metadata); err != nil {
+		return BuildModuleMetadata{}, fmt.Errorf("unable to encode metadata\n%w", err)
 	}
 
-	if v, ok := metadata["dependencies"]; ok {
-		for _, v := range v.([]map[string]interface{}) {
-			var d BuildModuleDependency
-
-			if v, ok := v["id"].(string); ok {
-				d.ID = v
-			}
-
-			if v, ok := v["name"].(string); ok {
-				d.Name = v
-			}
-
-			if v, ok := v["version"].(string); ok {
-				d.Version = v
-			}
-
-			if v, ok := v["uri"].(string); ok {
-				d.URI = v
-			}
-
-			if v, ok := v["sha256"].(string); ok {
-				d.SHA256 = v
-			}
-
-			if v, ok := v["stacks"].([]interface{}); ok {
-				for _, v := range v {
-					d.Stacks = append(d.Stacks, v.(string))
-				}
-			}
-
-			if v, ok := v["licenses"].([]map[string]interface{}); ok {
-				for _, v := range v {
-					var l BuildModuleDependencyLicense
-
-					if v, ok := v["type"].(string); ok {
-						l.Type = v
-					}
-
-					if v, ok := v["uri"].(string); ok {
-						l.URI = v
-					}
-
-					d.Licenses = append(d.Licenses, l)
-				}
-			}
-
-			if v, ok := v["cpes"].([]interface{}); ok {
-				for _, v := range v {
-					d.CPEs = append(d.CPEs, v.(string))
-				}
-			}
-
-			if v, ok := v["purl"].(string); ok {
-				d.PURL = v
-			}
-
-			if v, ok := v["deprecation_date"].(string); ok {
-				deprecationDate, err := time.Parse(time.RFC3339, v)
-
-				if err != nil {
-					return BuildModuleMetadata{}, fmt.Errorf("unable to parse deprecation date\n%w", err)
-				}
-
-				d.DeprecationDate = deprecationDate
-			}
-
-			m.Dependencies = append(m.Dependencies, d)
-		}
-	}
-
-	if v, ok := metadata["include-files"].([]interface{}); ok {
-		for _, v := range v {
-			m.IncludeFiles = append(m.IncludeFiles, v.(string))
-		}
-	}
-
-	if v, ok := metadata["pre-package"].(string); ok {
-		m.PrePackage = v
+	if _, err := toml.NewDecoder(buf).Decode(&m); err != nil {
+		return BuildModuleMetadata{}, fmt.Errorf("unable to decode metadata\n%w", err)
 	}
 
 	return m, nil
