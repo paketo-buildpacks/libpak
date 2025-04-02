@@ -15,6 +15,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/buildpacks/libcnb/v2 v2.0.0
 	github.com/creack/pty v1.1.24
+	github.com/google/go-cmp v0.7.0
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
 	github.com/mitchellh/hashstructure/v2 v2.0.2
@@ -90,7 +91,6 @@ require (
 	github.com/golangci/plugin-module-register v0.1.1 // indirect
 	github.com/golangci/revgrep v0.8.0 // indirect
 	github.com/golangci/unconvert v0.0.0-20240309020433-c5143eacb3ed // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 	github.com/gordonklaus/ineffassign v0.1.0 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect

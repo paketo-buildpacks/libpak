@@ -198,6 +198,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			downloadPath    string
 			dependency      libpak.BuildModuleDependency
 			dependencyCache libpak.DependencyCache
+			checksum        libpak.Checksum
 			server          *ghttp.Server
 		)
 
@@ -213,12 +214,14 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			RegisterTestingT(t)
 			server = ghttp.NewServer()
 
+			checksum = libpak.Checksum("sha256:576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1")
+
 			dependency = libpak.BuildModuleDependency{
 				ID:              "test-id",
 				Name:            "test-name",
 				Version:         "1.1.1",
 				URI:             fmt.Sprintf("%s/test-path", server.URL()),
-				SHA256:          "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1",
+				Checksum:        checksum,
 				Stacks:          []string{"test-stack"},
 				DeprecationDate: time.Now(),
 				Licenses: []libpak.BuildModuleDependencyLicense{
@@ -269,8 +272,8 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		}
 
 		it("returns from cache path", func() {
-			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, dependency.SHA256, "test-path"))
-			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, checksum.Hash(), "test-path"))
+			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
@@ -279,9 +282,9 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns from cache path even with updated metadata", func() {
-			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, dependency.SHA256, "test-path"))
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, checksum.Hash(), "test-path"))
 			dependency.DeprecationDate = time.Now()
-			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
@@ -290,8 +293,8 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns from download path", func() {
-			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
-			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, checksum.Hash(), "test-path"))
+			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
@@ -300,9 +303,9 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("returns from download path even with updated metadata", func() {
-			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, checksum.Hash(), "test-path"))
 			dependency.DeprecationDate = time.Now()
-			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)
 			Expect(err).NotTo(HaveOccurred())
@@ -325,7 +328,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		context("uri is overridden HTTP", func() {
 			it.Before(func() {
 				dependencyCache.Mappings = map[string]string{
-					dependency.SHA256: fmt.Sprintf("%s/override-path", server.URL()),
+					checksum.Hash(): fmt.Sprintf("%s/override-path", server.URL()),
 				}
 			})
 
@@ -349,7 +352,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				Expect(os.WriteFile(sourceFile, []byte("test-fixture"), 0600)).ToNot(HaveOccurred())
 
 				dependencyCache.Mappings = map[string]string{
-					dependency.SHA256: fmt.Sprintf("file://%s", sourceFile),
+					checksum.Hash(): fmt.Sprintf("file://%s", sourceFile),
 				}
 			})
 
@@ -546,13 +549,13 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).To(HaveOccurred())
 		})
 
-		it("skips cache with empty SHA256", func() {
-			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, dependency.SHA256, "test-path"))
-			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
-			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
-			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+		it("skips cache with empty Checksum", func() {
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, checksum.Hash(), "test-path"))
+			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
+			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, checksum.Hash(), "test-path"))
+			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
-			dependency.SHA256 = ""
+			dependency.Checksum = ""
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
 
 			a, err := dependencyCache.Artifact(dependency)
@@ -572,7 +575,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		it("sets downloaded file name to uri's path without query params when the SHA256 is empty", func() {
-			dependency.SHA256 = ""
+			dependency.Checksum = ""
 			dependency.URI = fmt.Sprintf("%s/test-path?param1=value1&param2=value2", server.URL())
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
 
@@ -616,12 +619,12 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 		context("hides credentials from logs", func() {
 			it("skips cache with empty SHA256", func() {
-				copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, dependency.SHA256, "test-path"))
-				writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
-				copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, dependency.SHA256, "test-path"))
-				writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", dependency.SHA256)), dependency)
+				copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, checksum.Hash(), "test-path"))
+				writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
+				copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, checksum.Hash(), "test-path"))
+				writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
-				dependency.SHA256 = ""
+				dependency.Checksum = ""
 				server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "alternate-fixture"))
 
 				var logBuffer bytes.Buffer
@@ -631,7 +634,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(io.ReadAll(a)).To(Equal([]byte("alternate-fixture")))
-				Expect(logBuffer.String()).To(ContainSubstring("Dependency has no SHA256"))
+				Expect(logBuffer.String()).To(ContainSubstring("Dependency has no checksum"))
 				Expect(logBuffer.String()).NotTo(ContainSubstring("password"))
 			})
 
