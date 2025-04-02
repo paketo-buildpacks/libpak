@@ -18,9 +18,11 @@ package libpak
 
 import (
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
 	"net"
 	"net/http"
@@ -229,11 +231,12 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 		file      string
 		isBinding bool
 		uri       = dependency.URI
+		checksum  = dependency.GetChecksum()
 		urlP      *url.URL
 	)
 
 	for d, u := range d.Mappings {
-		if d == dependency.SHA256 {
+		if checksum.MatchString(d) {
 			isBinding = true
 			uri = u
 			break
@@ -259,8 +262,8 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 		d.setDependencyMirror(urlP, mirror)
 	}
 
-	if dependency.SHA256 == "" {
-		d.Logger.Headerf("%s Dependency has no SHA256. Skipping cache.",
+	if checksum == "" {
+		d.Logger.Headerf("%s Dependency has no checksum. Skipping cache.",
 			color.New(color.FgYellow, color.Bold).Sprint("Warning:"))
 
 		d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), urlP.Redacted())
@@ -272,7 +275,7 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 		return os.Open(artifact)
 	}
 
-	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", dependency.SHA256))
+	file = filepath.Join(d.CachePath, fmt.Sprintf("%s.toml", checksum.Hash()))
 	exists, err := sherpa.Exists(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read %s\n%w", file, err)
@@ -280,10 +283,10 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 
 	if exists {
 		d.Logger.Bodyf("%s cached download from buildpack", color.GreenString("Reusing"))
-		return os.Open(filepath.Join(d.CachePath, dependency.SHA256, filepath.Base(urlP.Path)))
+		return os.Open(filepath.Join(d.CachePath, checksum.Hash(), filepath.Base(urlP.Path)))
 	}
 
-	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
+	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", checksum.Hash()))
 	exists, err = sherpa.Exists(file)
 
 	if err != nil {
@@ -292,21 +295,21 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 
 	if exists {
 		d.Logger.Bodyf("%s previously cached download", color.GreenString("Reusing"))
-		return os.Open(filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(urlP.Path)))
+		return os.Open(filepath.Join(d.DownloadPath, checksum.Hash(), filepath.Base(urlP.Path)))
 	}
 
 	d.Logger.Bodyf("%s from %s", color.YellowString("Downloading"), urlP.Redacted())
-	artifact = filepath.Join(d.DownloadPath, dependency.SHA256, filepath.Base(urlP.Path))
+	artifact = filepath.Join(d.DownloadPath, checksum.Hash(), filepath.Base(urlP.Path))
 	if err := d.download(urlP, artifact, mods...); err != nil {
 		return nil, fmt.Errorf("unable to download %s\n%w", urlP.Redacted(), err)
 	}
 
 	d.Logger.Body("Verifying checksum")
-	if err := d.verify(artifact, dependency.SHA256); err != nil {
+	if err := d.verify(artifact, checksum); err != nil {
 		return nil, err
 	}
 
-	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", dependency.SHA256))
+	file = filepath.Join(d.DownloadPath, fmt.Sprintf("%s.toml", checksum.Hash()))
 	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
 		return nil, fmt.Errorf("unable to make directory %s\n%w", filepath.Dir(file), err)
 	}
@@ -423,8 +426,16 @@ func (d DependencyCache) downloadHTTP(url *url.URL, destination string, mods ...
 	return nil
 }
 
-func (DependencyCache) verify(path string, expected string) error {
-	s := sha256.New()
+func (DependencyCache) verify(path string, expected Checksum) error {
+	var hash hash.Hash
+	switch expected.Algorithm() {
+	case "sha256":
+		hash = sha256.New()
+	case "sha512":
+		hash = sha512.New()
+	default:
+		return fmt.Errorf("unsupported algorithm %q: the following algorithms are supported [sha256, sha512]", expected.Algorithm())
+	}
 
 	in, err := os.Open(path)
 	if err != nil {
@@ -432,14 +443,14 @@ func (DependencyCache) verify(path string, expected string) error {
 	}
 	defer in.Close()
 
-	if _, err := io.Copy(s, in); err != nil {
+	if _, err := io.Copy(hash, in); err != nil {
 		return fmt.Errorf("unable to read %s\n%w", path, err)
 	}
 
-	actual := hex.EncodeToString(s.Sum(nil))
+	actual := hex.EncodeToString(hash.Sum(nil))
 
-	if expected != actual {
-		return fmt.Errorf("sha256 for %s %s does not match expected %s", path, actual, expected)
+	if expected.Hash() != actual {
+		return fmt.Errorf("sha256 for %s %s does not match expected %s", path, actual, expected.Hash())
 	}
 
 	return nil

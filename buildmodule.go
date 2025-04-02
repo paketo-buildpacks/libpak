@@ -19,10 +19,7 @@ package libpak
 import (
 	"bytes"
 	"fmt"
-	"net/url"
 	"os"
-	"reflect"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -33,12 +30,10 @@ import (
 	"github.com/heroku/color"
 
 	"github.com/paketo-buildpacks/libpak/v2/log"
-	"github.com/paketo-buildpacks/libpak/v2/sbom"
 )
 
-// BuildpackConfiguration represents a build or launch configuration parameter.
+// BuildModuleConfiguration represents a build or launch configuration parameter.
 type BuildModuleConfiguration struct {
-
 	// Build indicates whether the configuration is for build-time.  Optional.
 	Build bool `toml:"build"`
 
@@ -53,50 +48,6 @@ type BuildModuleConfiguration struct {
 
 	// Name is the environment variable name of the configuration parameter.
 	Name string `toml:"name"`
-}
-
-// BuildModuleDependencyLicense represents a license that a BuildModuleDependency is distributed under.  At least one of
-// Name or URI MUST be specified.
-type BuildModuleDependencyLicense struct {
-
-	// Type is the type of the license.  This is typically the SPDX short identifier.
-	Type string `toml:"type"`
-
-	// URI is the location where the license can be found.
-	URI string `toml:"uri"`
-}
-
-// BuildModuleDependency describes a dependency known to the buildpack/extension
-type BuildModuleDependency struct {
-	// ID is the dependency ID.
-	ID string `toml:"id"`
-
-	// Name is the dependency name.
-	Name string `toml:"name"`
-
-	// Version is the dependency version.
-	Version string `toml:"version"`
-
-	// URI is the dependency URI.
-	URI string `toml:"uri"`
-
-	// SHA256 is the hash of the dependency.
-	SHA256 string `toml:"sha256"`
-
-	// Stacks are the stacks the dependency is compatible with.
-	Stacks []string `toml:"stacks"`
-
-	// Licenses are the licenses the dependency is distributed under.
-	Licenses []BuildModuleDependencyLicense `toml:"licenses"`
-
-	// CPEs are the Common Platform Enumeration identifiers for the dependency
-	CPEs []string `toml:"cpes"`
-
-	// PURL is the package URL that identifies the dependency
-	PURL string `toml:"purl"`
-
-	// DeprecationDate is the time when the dependency is deprecated
-	DeprecationDate time.Time `toml:"deprecation_date"`
 }
 
 // DependencyLayerContributorMetadata returns the subset of data from BuildpackDependency that is use as expected metadata for the DependencyLayerContributor.
@@ -114,72 +65,7 @@ type DependencyLayerContributorMetadata struct {
 	SHA256 string `toml:"sha256"`
 }
 
-// GetMetadata return the relevant metadata of this dependency
-func (b BuildModuleDependency) GetMetadata() DependencyLayerContributorMetadata {
-	return DependencyLayerContributorMetadata{
-		ID:      b.ID,
-		Name:    b.Name,
-		Version: b.Version,
-		SHA256:  b.SHA256,
-	}
-}
-
-// Equals compares the 2 structs if they are equal. This is very simiar to reflect.DeepEqual
-// except that properties that will not work (e.g. DeprecationDate) are ignored.
-func (b BuildModuleDependency) Equals(other BuildModuleDependency) bool {
-	b.DeprecationDate = b.DeprecationDate.Truncate(time.Second).In(time.UTC)
-	other.DeprecationDate = other.DeprecationDate.Truncate(time.Second).In(time.UTC)
-
-	if len(b.CPEs) == 0 {
-		b.CPEs = nil
-	}
-	if len(other.CPEs) == 0 {
-		other.CPEs = nil
-	}
-
-	return reflect.DeepEqual(b, other)
-}
-
-// AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.
-func (b BuildModuleDependency) AsSyftArtifact(source string) (sbom.SyftArtifact, error) {
-	licenses := []string{}
-	for _, license := range b.Licenses {
-		licenses = append(licenses, license.Type)
-	}
-
-	sbomArtifact := sbom.SyftArtifact{
-		Name:      b.Name,
-		Version:   b.Version,
-		Type:      "UnknownPackage",
-		FoundBy:   "libpak",
-		Licenses:  licenses,
-		Locations: []sbom.SyftLocation{{Path: source}},
-		CPEs:      b.CPEs,
-		PURL:      b.PURL,
-	}
-
-	var err error
-	sbomArtifact.ID, err = sbomArtifact.Hash()
-	if err != nil {
-		return sbom.SyftArtifact{}, fmt.Errorf("unable to generate hash\n%w", err)
-	}
-
-	return sbomArtifact, nil
-}
-
-func (b BuildModuleDependency) IsDeprecated() bool {
-	deprecationDate := b.DeprecationDate.UTC()
-	now := time.Now().UTC()
-	return deprecationDate.Equal(now) || deprecationDate.Before(now)
-}
-
-func (b BuildModuleDependency) IsSoonDeprecated() bool {
-	deprecationDate := b.DeprecationDate.UTC()
-	now := time.Now().UTC()
-	return deprecationDate.Add(-30*24*time.Hour).Before(now) && deprecationDate.After(now)
-}
-
-// BuildpackMetadata is an extension to libcnb.Buildpack / libcnb.Extension's metadata with opinions.
+// BuildModuleMetadata is an extension to libcnb.Buildpack / libcnb.Extension's metadata with opinions.
 type BuildModuleMetadata struct {
 	// Configurations are environment variables that can be used at build time to configure the buildpack and launch
 	// time to configure the application.
@@ -195,7 +81,7 @@ type BuildModuleMetadata struct {
 	PrePackage string `toml:"pre-package"`
 }
 
-// NewBuildpackMetadata creates a new instance of BuildpackMetadata from the contents of libcnb.Buildpack.Metadata
+// NewBuildModuleMetadata creates a new instance of BuildpackMetadata from the contents of libcnb.Buildpack.Metadata
 func NewBuildModuleMetadata(metadata map[string]interface{}) (BuildModuleMetadata, error) {
 	m := BuildModuleMetadata{}
 
@@ -206,6 +92,12 @@ func NewBuildModuleMetadata(metadata map[string]interface{}) (BuildModuleMetadat
 
 	if _, err := toml.NewDecoder(buf).Decode(&m); err != nil {
 		return BuildModuleMetadata{}, fmt.Errorf("unable to decode metadata\n%w", err)
+	}
+
+	for i := range m.Dependencies {
+		if len(m.Dependencies[i].GetPURLS()) != 1 {
+			return BuildModuleMetadata{}, fmt.Errorf("dependency %s has %d PURLs, expected 1", m.Dependencies[i].ID, len(m.Dependencies[i].GetPURLS()))
+		}
 	}
 
 	return m, nil
@@ -406,7 +298,7 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildModuleDepe
 		}
 
 		// filter out deps that do not match the current running architecture
-		arch, err := archFromPURL(c.PURL)
+		arch, err := c.GetArch()
 		if err != nil {
 			return BuildModuleDependency{}, fmt.Errorf("unable to compare arch\n%w", err)
 		}
@@ -435,38 +327,11 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildModuleDepe
 
 	candidate := candidates[0]
 
-	if (candidate.DeprecationDate != time.Time{}) {
+	if (candidate.GetEOLDate() != time.Time{}) {
 		d.printDependencyDeprecation(candidate)
 	}
 
 	return candidate, nil
-}
-
-func archFromPURL(rawPURL string) (string, error) {
-	if len(strings.TrimSpace(rawPURL)) == 0 {
-		return "amd64", nil
-	}
-
-	purl, err := url.Parse(rawPURL)
-	if err != nil {
-		return "", fmt.Errorf("unable to parse PURL\n%w", err)
-	}
-
-	queryParams := purl.Query()
-	if arch, ok := queryParams["arch"]; ok {
-		return arch[0], nil
-	}
-
-	return archFromSystem(), nil
-}
-
-func archFromSystem() string {
-	archFromEnv, ok := os.LookupEnv("BP_ARCH")
-	if !ok {
-		archFromEnv = runtime.GOARCH
-	}
-
-	return archFromEnv
 }
 
 func (DependencyResolver) contains(candidates []string, value string) bool {
@@ -496,7 +361,7 @@ func (d *DependencyResolver) printDependencyDeprecation(dependency BuildModuleDe
 		d.Logger.Body(f.Sprintf("Migrate your application to a supported version of %s.", dependency.Name))
 	} else if dependency.IsSoonDeprecated() {
 		d.Logger.Header(f.Sprint("Deprecation Notice:"))
-		d.Logger.Body(f.Sprintf("Version %s of %s will be deprecated after %s.", dependency.Version, dependency.Name, dependency.DeprecationDate.Format("2006-01-02")))
+		d.Logger.Body(f.Sprintf("Version %s of %s will be deprecated after %s.", dependency.Version, dependency.Name, dependency.GetEOLDate().Format("2006-01-02")))
 		d.Logger.Body(f.Sprintf("Migrate your application to a supported version of %s before this time.", dependency.Name))
 	}
 }
