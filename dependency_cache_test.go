@@ -217,21 +217,21 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			checksum = libpak.Checksum("sha256:576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1")
 
 			dependency = libpak.BuildModuleDependency{
-				ID:              "test-id",
-				Name:            "test-name",
-				Version:         "1.1.1",
-				URI:             fmt.Sprintf("%s/test-path", server.URL()),
-				Checksum:        checksum,
-				Stacks:          []string{"test-stack"},
-				DeprecationDate: time.Now(),
+				ID:       "test-id",
+				Name:     "test-name",
+				Version:  "1.1.1",
+				URI:      fmt.Sprintf("%s/test-path", server.URL()),
+				Checksum: checksum,
+				Stacks:   []string{"test-stack"},
+				EOLDate:  time.Now(),
 				Licenses: []libpak.BuildModuleDependencyLicense{
 					{
 						Type: "test-type",
 						URI:  "test-uri",
 					},
 				},
-				CPEs: []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				PURL: "pkg:generic/some-java11@11.0.2?arch=amd64",
+				CPEs:  []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURLS: []string{"pkg:generic/some-java11@11.0.2?arch=amd64"},
 			}
 
 			dependencyCache = libpak.DependencyCache{
@@ -283,7 +283,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 		it("returns from cache path even with updated metadata", func() {
 			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(cachePath, checksum.Hash(), "test-path"))
-			dependency.DeprecationDate = time.Now()
+			dependency.EOLDate = time.Now()
 			writeTOML(filepath.Join(cachePath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)
@@ -304,7 +304,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 		it("returns from download path even with updated metadata", func() {
 			copyFile(filepath.Join("testdata", "test-file"), filepath.Join(downloadPath, checksum.Hash(), "test-path"))
-			dependency.DeprecationDate = time.Now()
+			dependency.EOLDate = time.Now()
 			writeTOML(filepath.Join(downloadPath, fmt.Sprintf("%s.toml", checksum.Hash())), dependency)
 
 			a, err := dependencyCache.Artifact(dependency)
@@ -661,7 +661,7 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				logBuffer.Reset()
 
 				// Make sure the password is not part of the log output when an error occurs.
-				dependency.SHA256 = "576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1"
+				dependency.Checksum = "sha256:576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1"
 				dependency.URI = "://username:password@acme.com"
 				b, errB := dependencyCache.Artifact(dependency)
 				Expect(errB).To(HaveOccurred())

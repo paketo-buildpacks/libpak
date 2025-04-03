@@ -280,9 +280,9 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 						URI:  "test-uri",
 					},
 				},
-				CPEs:            []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
-				PURL:            "pkg:generic/some-java11@11.0.2?arch=amd64",
-				DeprecationDate: deprecationDate,
+				CPEs:    []string{"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"},
+				PURLS:   []string{"pkg:generic/some-java11@11.0.2?arch=amd64"},
+				EOLDate: deprecationDate,
 			}
 
 			layer.Metadata = map[string]interface{}{}
