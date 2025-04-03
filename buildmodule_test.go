@@ -41,13 +41,13 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 	it("is equal after toml Marshal and Unmarshal", func() {
 		dependency := libpak.BuildModuleDependency{
-			ID:              "test-id",
-			Name:            "test-name",
-			Version:         "1.1.1",
-			URI:             "test-uri",
-			SHA256:          "test-sha256",
-			DeprecationDate: time.Now(),
-			Stacks:          []string{"test-stack"},
+			ID:       "test-id",
+			Name:     "test-name",
+			Version:  "1.1.1",
+			URI:      "test-uri",
+			Checksum: "sha256:test-sha256",
+			EOLDate:  time.Now(),
+			Stacks:   []string{"test-stack"},
 			Licenses: []libpak.BuildModuleDependencyLicense{
 				{
 					Type: "test-type",
@@ -68,20 +68,20 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 	it("renders dependency as a SyftArtifact", func() {
 		dependency := libpak.BuildModuleDependency{
-			ID:      "test-id",
-			Name:    "test-name",
-			Version: "1.1.1",
-			URI:     "test-uri",
-			SHA256:  "test-sha256",
-			Stacks:  []string{"test-stack"},
+			ID:       "test-id",
+			Name:     "test-name",
+			Version:  "1.1.1",
+			URI:      "test-uri",
+			Checksum: "sha256:test-sha256",
+			Stacks:   []string{"test-stack"},
 			Licenses: []libpak.BuildModuleDependencyLicense{
 				{
 					Type: "test-type",
 					URI:  "test-uri",
 				},
 			},
-			CPEs: []string{"test-cpe1", "test-cpe2"},
-			PURL: "test-purl",
+			CPEs:  []string{"test-cpe1", "test-cpe2"},
+			PURLS: []string{"test-purl"},
 		}
 
 		Expect(dependency.AsSyftArtifact("buildpack.toml")).To(Equal(sbom.SyftArtifact{
@@ -99,20 +99,20 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 	it("renders extension dependency as a SyftArtifact", func() {
 		dependency := libpak.BuildModuleDependency{
-			ID:      "test-id",
-			Name:    "test-name",
-			Version: "1.1.1",
-			URI:     "test-uri",
-			SHA256:  "test-sha256",
-			Stacks:  []string{"test-stack"},
+			ID:       "test-id",
+			Name:     "test-name",
+			Version:  "1.1.1",
+			URI:      "test-uri",
+			Checksum: "sha256:test-sha256",
+			Stacks:   []string{"test-stack"},
 			Licenses: []libpak.BuildModuleDependencyLicense{
 				{
 					Type: "test-type",
 					URI:  "test-uri",
 				},
 			},
-			CPEs: []string{"test-cpe1", "test-cpe2"},
-			PURL: "test-purl",
+			CPEs:  []string{"test-cpe1", "test-cpe2"},
+			PURLS: []string{"test-purl"},
 		}
 
 		Expect(dependency.AsSyftArtifact("extension.toml")).To(Equal(sbom.SyftArtifact{
@@ -130,13 +130,13 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 
 	it("calculates dependency deprecation", func() {
 		deprecatedDependency := libpak.BuildModuleDependency{
-			ID:              "test-id",
-			DeprecationDate: time.Now().UTC(),
+			ID:      "test-id",
+			EOLDate: time.Now().UTC(),
 		}
 
 		soonDeprecatedDependency := libpak.BuildModuleDependency{
-			ID:              "test-id",
-			DeprecationDate: time.Now().UTC().Add(30 * 24 * time.Hour),
+			ID:      "test-id",
+			EOLDate: time.Now().UTC().Add(30 * 24 * time.Hour),
 		}
 
 		Expect(deprecatedDependency.IsDeprecated()).To(BeTrue())
@@ -157,21 +157,21 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				},
 				"dependencies": []map[string]interface{}{
 					{
-						"id":      "test-id",
-						"name":    "test-name",
-						"version": "1.1.1",
-						"uri":     "test-uri",
-						"sha256":  "test-sha256",
-						"stacks":  []interface{}{"test-stack"},
+						"id":       "test-id",
+						"name":     "test-name",
+						"version":  "1.1.1",
+						"uri":      "test-uri",
+						"checksum": "sha256:test-sha256",
+						"stacks":   []interface{}{"test-stack"},
 						"licenses": []map[string]interface{}{
 							{
 								"type": "test-type",
 								"uri":  "test-uri",
 							},
 						},
-						"cpes":             []interface{}{"cpe:2.3:a:test-id:1.1.1"},
-						"purl":             "pkg:generic:test-id@1.1.1",
-						"deprecation_date": "2021-12-31T15:59:00-08:00",
+						"cpes":     []interface{}{"cpe:2.3:a:test-id:1.1.1"},
+						"purls":    []interface{}{"pkg:generic:test-id@1.1.1"},
+						"eol-date": "2021-12-31T15:59:00-08:00",
 					},
 				},
 				"include-files": []interface{}{"test-include-file"},
@@ -191,21 +191,21 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				},
 				Dependencies: []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.1.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.1.1",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack"},
 						Licenses: []libpak.BuildModuleDependencyLicense{
 							{
 								Type: "test-type",
 								URI:  "test-uri",
 							},
 						},
-						CPEs:            []string{"cpe:2.3:a:test-id:1.1.1"},
-						PURL:            "pkg:generic:test-id@1.1.1",
-						DeprecationDate: deprecationDate,
+						CPEs:    []string{"cpe:2.3:a:test-id:1.1.1"},
+						PURLS:   []string{"pkg:generic:test-id@1.1.1"},
+						EOLDate: deprecationDate,
 					},
 				},
 				IncludeFiles: []string{"test-include-file"},
@@ -291,53 +291,54 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			it("filters by id", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id-1",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id-1",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id-2",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
 
 				Expect(resolver.Resolve("test-id-2", "1.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id-2",
-					Name:    "test-name",
-					Version: "1.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					ID:       "test-id-2",
+					Name:     "test-name",
+					Version:  "1.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-2"},
 				}))
 			})
 
 			it("filters by arch", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id-1",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri-amd64",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
-						PURL:    "pkg:generic/bellsoft-jdk@8.0.382?arch=amd64",
+						ID:       "test-id-1",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri-amd64",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
+						PURLS:    []string{"pkg:generic/bellsoft-jdk@8.0.382?arch=amd64"},
 					},
 					{
-						ID:      "test-id-1",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri-arm64",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
-						PURL:    "pkg:generic/bellsoft-jdk@8.0.382?arch=arm64",
+						ID:       "test-id-1",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri-arm64",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
+						Arch:     "arm64",
+						PURLS:    []string{"pkg:generic/bellsoft-jdk@8.0.382"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
@@ -345,26 +346,27 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				t.Setenv("BP_ARCH", "arm64")
 
 				Expect(resolver.Resolve("test-id-1", "1.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id-1",
-					Name:    "test-name",
-					Version: "1.0",
-					URI:     "test-uri-arm64",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-2"},
-					PURL:    "pkg:generic/bellsoft-jdk@8.0.382?arch=arm64",
+					ID:       "test-id-1",
+					Name:     "test-name",
+					Version:  "1.0",
+					URI:      "test-uri-arm64",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-2"},
+					Arch:     "arm64",
+					PURLS:    []string{"pkg:generic/bellsoft-jdk@8.0.382"},
 				}))
 			})
 
 			it("filters by arch where arch should match any", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id-1",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
-						PURL:    "pkg:generic/spring-cloud-bindings@1.2.3",
+						ID:       "test-id-1",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
+						PURLS:    []string{"pkg:generic/spring-cloud-bindings@1.2.3"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
@@ -372,267 +374,267 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				t.Setenv("BP_ARCH", "arm64")
 
 				Expect(resolver.Resolve("test-id-1", "1.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id-1",
-					Name:    "test-name",
-					Version: "1.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-2"},
-					PURL:    "pkg:generic/spring-cloud-bindings@1.2.3",
+					ID:       "test-id-1",
+					Name:     "test-name",
+					Version:  "1.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-2"},
+					PURLS:    []string{"pkg:generic/spring-cloud-bindings@1.2.3"},
 				}))
 			})
 
 			it("filters by version constraint", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "2.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "2.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
 
 				Expect(resolver.Resolve("test-id", "2.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id",
-					Name:    "test-name",
-					Version: "2.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "2.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-2"},
 				}))
 			})
 
 			it("filters by stack", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-3"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-3"},
 					},
 				}
 				resolver.StackID = "test-stack-3"
 
 				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id",
-					Name:    "test-name",
-					Version: "1.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-3"},
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "1.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-3"},
 				}))
 			})
 
 			it("filters by stack and supports the wildcard stack", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"*"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"*"},
 					},
 				}
 				resolver.StackID = "test-stack-3"
 
 				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id",
-					Name:    "test-name",
-					Version: "1.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"*"},
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "1.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"*"},
 				}))
 			})
 
 			it("filters by stack and treats no stacks as the wildcard stack", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{},
 					},
 				}
 				resolver.StackID = "test-stack-3"
 
 				Expect(resolver.Resolve("test-id", "1.0")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id",
-					Name:    "test-name",
-					Version: "1.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{},
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "1.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{},
 				}))
 			})
 
 			it("returns the best dependency", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.1",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-3"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-3"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
 
 				Expect(resolver.Resolve("test-id", "1.*")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id",
-					Name:    "test-name",
-					Version: "1.1",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "1.1",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-2"},
 				}))
 			})
 
 			it("returns the best dependency after filtering", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id-1",
-						Name:    "test-name-1",
-						Version: "1.9.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1"},
+						ID:       "test-id-1",
+						Name:     "test-name-1",
+						Version:  "1.9.1",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1"},
 					},
 					{
-						ID:      "test-id-1",
-						Name:    "test-name-1",
-						Version: "1.9.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-2"},
+						ID:       "test-id-1",
+						Name:     "test-name-1",
+						Version:  "1.9.1",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-2"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name-2",
-						Version: "1.8.5",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-2"},
+						ID:       "test-id-2",
+						Name:     "test-name-2",
+						Version:  "1.8.5",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-2"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name-2",
-						Version: "1.8.6",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1"},
+						ID:       "test-id-2",
+						Name:     "test-name-2",
+						Version:  "1.8.6",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name-2",
-						Version: "1.8.6",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-2"},
+						ID:       "test-id-2",
+						Name:     "test-name-2",
+						Version:  "1.8.6",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-2"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name-2",
-						Version: "1.9.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1"},
+						ID:       "test-id-2",
+						Name:     "test-name-2",
+						Version:  "1.9.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name-2",
-						Version: "1.9.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-2"},
+						ID:       "test-id-2",
+						Name:     "test-name-2",
+						Version:  "1.9.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-2"},
 					},
 				}
 				resolver.StackID = "test-stack-2"
 
 				Expect(resolver.Resolve("test-id-2", "")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id-2",
-					Name:    "test-name-2",
-					Version: "1.9.0",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-2"},
+					ID:       "test-id-2",
+					Name:     "test-name-2",
+					Version:  "1.9.0",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-2"},
 				}))
 			})
 
 			it("returns error if there are no matching dependencies", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.0",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-3"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.0",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-3"},
 					},
 					{
-						ID:      "test-id-2",
-						Name:    "test-name",
-						Version: "1.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-3"},
+						ID:       "test-id-2",
+						Name:     "test-name",
+						Version:  "1.1",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-3"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
@@ -645,23 +647,23 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			it("substitutes all wildcard for unspecified version constraint", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
-						ID:      "test-id",
-						Name:    "test-name",
-						Version: "1.1",
-						URI:     "test-uri",
-						SHA256:  "test-sha256",
-						Stacks:  []string{"test-stack-1", "test-stack-2"},
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  "1.1",
+						URI:      "test-uri",
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1", "test-stack-2"},
 					},
 				}
 				resolver.StackID = "test-stack-1"
 
 				Expect(resolver.Resolve("test-id", "")).To(Equal(libpak.BuildModuleDependency{
-					ID:      "test-id",
-					Name:    "test-name",
-					Version: "1.1",
-					URI:     "test-uri",
-					SHA256:  "test-sha256",
-					Stacks:  []string{"test-stack-1", "test-stack-2"},
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "1.1",
+					URI:      "test-uri",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1", "test-stack-2"},
 				}))
 			})
 
@@ -678,22 +680,22 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						Version: "1.1",
 					},
 					{
-						ID:              "valid-dependency",
-						Name:            "valid-dependency",
-						Version:         "1.1",
-						DeprecationDate: notSoSoonDeprecated,
+						ID:      "valid-dependency",
+						Name:    "valid-dependency",
+						Version: "1.1",
+						EOLDate: notSoSoonDeprecated,
 					},
 					{
-						ID:              "soon-deprecated-dependency",
-						Name:            "soon-deprecated-dependency",
-						Version:         "1.1",
-						DeprecationDate: soonDeprecated,
+						ID:      "soon-deprecated-dependency",
+						Name:    "soon-deprecated-dependency",
+						Version: "1.1",
+						EOLDate: soonDeprecated,
 					},
 					{
-						ID:              "deprecated-dependency",
-						Name:            "deprecated-dependency",
-						Version:         "1.1",
-						DeprecationDate: time.Now().UTC(),
+						ID:      "deprecated-dependency",
+						Name:    "deprecated-dependency",
+						Version: "1.1",
+						EOLDate: time.Now().UTC(),
 					},
 				}
 
