@@ -35,5 +35,6 @@ func TestUnit(t *testing.T) {
 	suite("Layer", testLayer)
 	suite("Main", testMain)
 	suite("Stack", testStack)
+	suite("Checksum", testChecksum)
 	suite.Run(t)
 }
