@@ -94,10 +94,10 @@ type BuildModuleDependency struct {
 // GetMetadata return the relevant metadata of this dependency
 func (b BuildModuleDependency) GetMetadata() DependencyLayerContributorMetadata {
 	return DependencyLayerContributorMetadata{
-		ID:      b.ID,
-		Name:    b.Name,
-		Version: b.Version,
-		SHA256:  b.GetChecksum().Hash(),
+		ID:       b.ID,
+		Name:     b.Name,
+		Version:  b.Version,
+		Checksum: string(b.GetChecksum()),
 	}
 }
 

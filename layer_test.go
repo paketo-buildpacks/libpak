@@ -353,41 +353,15 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 
 		it("does not call function with matching metadata", func() {
 			layer.Metadata = map[string]interface{}{
-				"id":      dependency.ID,
-				"name":    dependency.Name,
-				"version": dependency.Version,
-				"sha256":  dependency.GetChecksum().Hash(),
+				"id":       dependency.ID,
+				"name":     dependency.Name,
+				"version":  dependency.Version,
+				"checksum": string(dependency.GetChecksum()),
 			}
 
 			var called bool
 
 			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
-				defer artifact.Close()
-
-				called = true
-				return nil
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(called).To(BeFalse())
-		})
-
-		it("gracefully handles a deprecationDate in time.Time format in actual layer metadata", func() {
-			// reusing It: does not call function with non-matching deprecation_date format
-			// but this time with a deprecationDate formatted as time.Time in the actual layer metadata
-			actualDeprecationDate, _ := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
-
-			layer.Metadata = map[string]interface{}{"dependency": map[string]interface{}{
-				"id":               dependency.ID,
-				"name":             dependency.Name,
-				"version":          dependency.Version,
-				"sha256":           dependency.GetChecksum().Hash(),
-				"deprecation_date": actualDeprecationDate, // does not match without truncation
-			}}
-
-			var called bool
-
-			err := dlc.Contribute(layer, func(layer *libcnb.Layer, artifact *os.File) error {
 				defer artifact.Close()
 
 				called = true
@@ -419,10 +393,10 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{
-				"id":      dependency.ID,
-				"name":    dependency.Name,
-				"version": dependency.Version,
-				"sha256":  dependency.GetChecksum().Hash(),
+				"id":       dependency.ID,
+				"name":     dependency.Name,
+				"version":  dependency.Version,
+				"checksum": string(dependency.GetChecksum()),
 			}))
 		})
 

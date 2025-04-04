@@ -24,12 +24,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/heroku/color"
 
 	"github.com/buildpacks/libcnb/v2"
-
-	"maps"
 
 	"github.com/paketo-buildpacks/libpak/v2/log"
 	"github.com/paketo-buildpacks/libpak/v2/sbom"
@@ -182,35 +179,7 @@ func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[strin
 	l.Logger.Debugf("Expected metadata: %+v", expected)
 	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
 
-	match, err := l.Equals(expected, layer.Metadata)
-	if err != nil {
-		return map[string]interface{}{}, false, fmt.Errorf("unable to compare metadata\n%w", err)
-	}
-	return expected, match, nil
-}
-
-func (l *LayerContributor) Equals(expectedM map[string]interface{}, layerM map[string]interface{}) (bool, error) {
-	if err := l.removeDependencyDeprecationDate(layerM); err != nil {
-		return false, fmt.Errorf("%w (actual layer)", err)
-	}
-
-	return cmp.Equal(expectedM, layerM, cmpopts.EquateEmpty()), nil
-}
-
-// removeDependencyDeprecationDate makes sure the dependency deprecation is removed from the layer metadata.
-// The field is no longer set in libpak v2.
-func (l *LayerContributor) removeDependencyDeprecationDate(input map[string]interface{}) error {
-	dep, ok := input["dependency"].(map[string]interface{})
-
-	if ok {
-		delete(dep, "deprecation_date")
-
-		maps.Copy(input, dep)
-
-		delete(input, "dependency")
-	}
-
-	return nil
+	return expected, cmp.Equal(expected, layer.Metadata), nil
 }
 
 func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error) {
