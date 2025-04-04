@@ -61,8 +61,8 @@ type DependencyLayerContributorMetadata struct {
 	// Version is the dependency version.
 	Version string `toml:"version"`
 
-	// SHA256 is the hash of the dependency.
-	SHA256 string `toml:"sha256"`
+	// Checksum is the hash of the dependency.
+	Checksum string `toml:"checksum"`
 }
 
 // BuildModuleMetadata is an extension to libcnb.Buildpack / libcnb.Extension's metadata with opinions.

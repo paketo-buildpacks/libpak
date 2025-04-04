@@ -61,7 +61,7 @@ func testChecksum(t *testing.T, _ spec.G, it spec.S) {
 		}
 
 		for _, test := range tests {
-			Expect(test.input1.Match(test.input2)).To(Equal(test.expected))
+			Expect(test.input1.Equal(test.input2)).To(Equal(test.expected))
 		}
 	})
 

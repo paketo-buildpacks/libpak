@@ -47,14 +47,14 @@ func (c Checksum) Hash() string {
 	return hash
 }
 
-// Match returns true only when the given checksum algorithms and hashes
+// Equal returns true only when the given checksum algorithms and hashes
 // match.
-func (c Checksum) Match(o Checksum) bool {
+func (c Checksum) Equal(o Checksum) bool {
 	return strings.EqualFold(c.Algorithm(), o.Algorithm()) && c.Hash() == o.Hash()
 }
 
 // MatchString returns true only when the given checksum formatted string
 // algorithms and hashes match.
 func (c Checksum) MatchString(o string) bool {
-	return c.Match(Checksum(o))
+	return c.Equal(Checksum(o))
 }
