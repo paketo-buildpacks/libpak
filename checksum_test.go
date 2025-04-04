@@ -1,6 +1,10 @@
 package libpak_test
 
 import (
+	"crypto/sha256"
+	"crypto/sha512"
+	"errors"
+	"hash"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -58,6 +62,29 @@ func testChecksum(t *testing.T, _ spec.G, it spec.S) {
 
 		for _, test := range tests {
 			Expect(test.input1.Match(test.input2)).To(Equal(test.expected))
+		}
+	})
+
+	it("returns the correct hash algorithm", func() {
+		tests := []struct {
+			input    libpak.Checksum
+			expected hash.Hash
+			err      error
+		}{
+			{"sha512:abcdef", sha512.New(), nil},
+			{"sha256:abcdef", sha256.New(), nil},
+			{"abcdef", sha256.New(), nil},
+			{"md5:abcdef", nil, errors.New("unsupported checksum algorithm: md5")},
+		}
+
+		for _, test := range tests {
+			algorithm, err := test.input.AlgorithmHash()
+			if test.err != nil {
+				Expect(err).To(MatchError(test.err))
+			} else {
+				Expect(err).To(BeNil())
+				Expect(algorithm).To(Equal(test.expected))
+			}
 		}
 	})
 }

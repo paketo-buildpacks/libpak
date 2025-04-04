@@ -1,6 +1,10 @@
 package libpak
 
 import (
+	"crypto/sha256"
+	"crypto/sha512"
+	"fmt"
+	"hash"
 	"strings"
 )
 
@@ -18,6 +22,19 @@ func (c Checksum) Algorithm() string {
 	}
 
 	return algorithm
+}
+
+// AlgorithmHash return the corresponding hash.Hash interface for the
+// algorithm portion of the checksum string
+func (c Checksum) AlgorithmHash() (hash.Hash, error) {
+	switch c.Algorithm() {
+	case "sha256":
+		return sha256.New(), nil
+	case "sha512":
+		return sha512.New(), nil
+	default:
+		return nil, fmt.Errorf("unsupported checksum algorithm: %s", c.Algorithm())
+	}
 }
 
 // Hash returns the hexadecimal encoded hash portion of the checksum string.

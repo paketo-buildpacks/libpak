@@ -17,7 +17,6 @@ import (
 // BuildModuleDependencyLicense represents a license that a BuildModuleDependency is distributed under.
 // At least one of Name or URI MUST be specified.
 type BuildModuleDependencyLicense struct {
-
 	// Type is the type of the license.  This is typically the SPDX short identifier.
 	Type string `toml:"type"`
 
