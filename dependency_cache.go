@@ -17,12 +17,9 @@
 package libpak
 
 import (
-	"crypto/sha256"
-	"crypto/sha512"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"hash"
 	"io"
 	"net"
 	"net/http"
@@ -427,14 +424,9 @@ func (d DependencyCache) downloadHTTP(url *url.URL, destination string, mods ...
 }
 
 func (DependencyCache) verify(path string, expected Checksum) error {
-	var hash hash.Hash
-	switch expected.Algorithm() {
-	case "sha256":
-		hash = sha256.New()
-	case "sha512":
-		hash = sha512.New()
-	default:
-		return fmt.Errorf("unsupported algorithm %q: the following algorithms are supported [sha256, sha512]", expected.Algorithm())
+	hash, err := expected.AlgorithmHash()
+	if err != nil {
+		return err
 	}
 
 	in, err := os.Open(path)
