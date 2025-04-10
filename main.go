@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package libpak
 package libpak
 
 import (
@@ -22,7 +23,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/v2/utils"
 )
 
-// Main is called by the main function of a buildpack, encapsulating both detection and build in the same binary.
+// BuildpackMain is called by the main function of a buildpack, encapsulating both detection and build in the same binary.
 func BuildpackMain(detect libcnb.DetectFunc, build libcnb.BuildFunc, options ...libcnb.Option) {
 	libcnb.BuildpackMain(detectDelegate{delegate: detect}.Detect, buildDelegate{delegate: build}.Build,
 		append([]libcnb.Option{
@@ -33,7 +34,7 @@ func BuildpackMain(detect libcnb.DetectFunc, build libcnb.BuildFunc, options ...
 	)
 }
 
-// Main is called by the main function of an extension, encapsulating both detection and generation in the same binary.
+// ExtensionMain is called by the main function of an extension, encapsulating both detection and generation in the same binary.
 func ExtensionMain(detect libcnb.DetectFunc, generate libcnb.GenerateFunc, options ...libcnb.Option) {
 	libcnb.ExtensionMain(detectDelegate{delegate: detect}.Detect, generateDelegate{delegate: generate}.Generate,
 		append([]libcnb.Option{

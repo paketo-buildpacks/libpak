@@ -21,10 +21,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"reflect"
-	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/google/go-cmp/cmp"
 	"github.com/heroku/color"
 
 	"github.com/buildpacks/libcnb/v2"
@@ -180,73 +179,7 @@ func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[strin
 	l.Logger.Debugf("Expected metadata: %+v", expected)
 	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
 
-	match, err := l.Equals(expected, layer.Metadata)
-	if err != nil {
-		return map[string]interface{}{}, false, fmt.Errorf("unable to compare metadata\n%w", err)
-	}
-	return expected, match, nil
-}
-
-func (l *LayerContributor) Equals(expectedM map[string]interface{}, layerM map[string]interface{}) (bool, error) {
-	// TODO Do we want the Equals method to modify the underlying maps? Else we need to make a copy here.
-
-	if err := l.normalizeDependencyDeprecationDate(expectedM); err != nil {
-		return false, fmt.Errorf("%w (expected layer)", err)
-	}
-
-	if err := l.normalizeDependencyDeprecationDate(layerM); err != nil {
-		return false, fmt.Errorf("%w (actual layer)", err)
-	}
-
-	return reflect.DeepEqual(expectedM, layerM), nil
-}
-
-// normalizeDependencyDeprecationDate makes sure the dependency deprecation date is represented as a time.Time object
-// in the map whenever it exists.
-func (l *LayerContributor) normalizeDependencyDeprecationDate(input map[string]interface{}) error {
-	if dep, ok := input["dependency"].(map[string]interface{}); ok {
-		for k, v := range dep {
-			if k == "deprecation_date" {
-				if err := l.replaceDeprecationDate(dep, v); err != nil {
-					return err
-				}
-				break
-			}
-		}
-	} else if deprDate, ok := input["deprecation_date"]; ok {
-		if err := l.replaceDeprecationDate(input, deprDate); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (l *LayerContributor) replaceDeprecationDate(metadata map[string]interface{}, value interface{}) error {
-	deprecationDate, err := l.parseDeprecationDate(value)
-	if err != nil {
-		return err
-	}
-	metadata["deprecation_date"] = deprecationDate
-	return nil
-}
-
-// parseDeprecationDate accepts both string and time.Time as input, and returns
-// a truncated time.Time value.
-func (l *LayerContributor) parseDeprecationDate(v interface{}) (deprecationDate time.Time, err error) {
-	switch vDate := v.(type) {
-	case time.Time:
-		deprecationDate = vDate
-	case string:
-		deprecationDate, err = time.Parse(time.RFC3339, vDate)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("unable to parse deprecation_date %s", vDate)
-		}
-	default:
-		return time.Time{}, fmt.Errorf("unexpected type %T for deprecation_date %v", v, v)
-	}
-
-	deprecationDate = deprecationDate.Truncate(time.Second).In(time.UTC)
-	return
+	return expected, cmp.Equal(expected, layer.Metadata), nil
 }
 
 func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error) {
