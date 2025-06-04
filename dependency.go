@@ -89,6 +89,9 @@ type BuildModuleDependency struct {
 
 	// SourceChecksum is the checksum of the source
 	SourceChecksum Checksum `toml:"source-checksum"`
+
+	// OS is the dependency compatible operating system
+	OS string `toml:"os"`
 }
 
 // GetMetadata return the relevant metadata of this dependency
