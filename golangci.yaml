@@ -1,32 +1,47 @@
-run:
-  timeout: 6m
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - bodyclose
-    - dogsled
     - copyloopvar
+    - dogsled
     - gocritic
-    - goimports
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - nakedret
     - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unused
     - whitespace
-
-linters-settings:
-  revive:
-    rules:
-      - name: dot-imports
-        disabled: true
-  goimports:
-    local-prefixes: github.com/paketo-buildpacks/libpak/v2
+  settings:
+    revive:
+      rules:
+        - name: dot-imports
+          disabled: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/paketo-buildpacks/libpak/v2
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
