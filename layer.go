@@ -204,6 +204,8 @@ func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error
 
 	l.Logger.Debugf("Check If Layer Restored -> tomlExists: %s, layerDirExists: %s, dirContents: %s, cache: %s, build: %s",
 		tomlExists, layerDirExists, dirContents, l.ExpectedTypes.Cache, l.ExpectedTypes.Build)
+
+	// nolint:staticcheck
 	return !(tomlExists && (!layerDirExists || len(dirContents) == 0) && (l.ExpectedTypes.Cache || l.ExpectedTypes.Build)), nil
 }
 
