@@ -86,6 +86,79 @@ func testResolve(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
+		context("ByKeyWithValueFromSecret", func() {
+			it("returns all with matching type", func() {
+				b := []libcnb.Binding{
+					{
+						Name:     "name1",
+						Type:     "some-type",
+						Provider: "some-provider",
+						Secret: map[string]string{
+							"type": "other-type",
+							"user": "some-user",
+							"pass": "some-pass",
+						},
+					},
+					{
+						Name:     "name2",
+						Type:     "some-type",
+						Provider: "other-provider",
+						Secret: map[string]string{
+							"type": "other-type",
+							"user": "some-user",
+							"pass": "some-pass",
+						},
+					},
+					{
+						Name:     "name3",
+						Type:     "other-type",
+						Provider: "some-provider",
+						Secret: map[string]string{
+							"type": "foo",
+							"user": "some-user",
+							"pass": "some-pass",
+						},
+					},
+					{
+						Name:     "name1",
+						Type:     "unknown",
+						Provider: "unknown",
+						Secret: map[string]string{
+							"type": "some-type",
+							"user": "some-user",
+							"pass": "some-pass",
+						},
+					},
+				}
+
+				resolved := bindings.Resolve(b,
+					bindings.OfKeyWithValueFromSecret("type", "other-type"),
+				)
+				Expect(resolved).To(Equal(libcnb.Bindings{
+					{
+						Name:     "name1",
+						Type:     "some-type",
+						Provider: "some-provider",
+						Secret: map[string]string{
+							"type": "other-type",
+							"user": "some-user",
+							"pass": "some-pass",
+						},
+					},
+					{
+						Name:     "name2",
+						Type:     "some-type",
+						Provider: "other-provider",
+						Secret: map[string]string{
+							"type": "other-type",
+							"user": "some-user",
+							"pass": "some-pass",
+						},
+					},
+				}))
+			})
+		})
+
 		context("ByProvider", func() {
 			it("returns all with matching type", func() {
 				resolved := bindings.Resolve(binds,
