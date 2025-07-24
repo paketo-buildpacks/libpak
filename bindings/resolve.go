@@ -34,6 +34,19 @@ func OfType(t string) Predicate {
 	}
 }
 
+// OfKeyWithValueFromSecret returns a Predicate that returns true if a given binding has Key that matches k with Value that matches v.
+// The comparison is case-insensitive.
+func OfKeyWithValueFromSecret(k string, v string) Predicate {
+	return func(bind libcnb.Binding) bool {
+		value, exists := bind.Secret[k]
+		if !exists {
+			return false
+		}
+
+		return strings.EqualFold(value, v)
+	}
+}
+
 // OfProvider returns a Predicate that returns true if a given binding has Provider that matches p. The comparison is
 // case-insensitive.
 func OfProvider(p string) Predicate {
