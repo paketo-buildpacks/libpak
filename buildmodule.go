@@ -302,7 +302,7 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildModuleDepe
 		if err != nil {
 			return BuildModuleDependency{}, fmt.Errorf("unable to compare arch\n%w", err)
 		}
-		if arch != archFromSystem() {
+		if c.Arch != "" && arch != archFromSystem() {
 			continue
 		}
 
