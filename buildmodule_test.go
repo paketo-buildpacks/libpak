@@ -283,10 +283,6 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 			resolver libpak.DependencyResolver
 		)
 
-		it.Before(func() {
-			t.Setenv("BP_ARCH", "amd64") // force for test consistency
-		})
-
 		context("Resolve", func() {
 			it("filters by id", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
@@ -325,15 +321,6 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 						ID:       "test-id-1",
 						Name:     "test-name",
 						Version:  "1.0",
-						URI:      "test-uri-amd64",
-						Checksum: "sha256:test-sha256",
-						Stacks:   []string{"test-stack-1", "test-stack-2"},
-						PURLS:    []string{"pkg:generic/bellsoft-jdk@8.0.382?arch=amd64"},
-					},
-					{
-						ID:       "test-id-1",
-						Name:     "test-name",
-						Version:  "1.0",
 						URI:      "test-uri-arm64",
 						Checksum: "sha256:test-sha256",
 						Stacks:   []string{"test-stack-1", "test-stack-2"},
@@ -357,7 +344,7 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}))
 			})
 
-			it("filters by arch where arch should match any", func() {
+			it("should match any when arch is not set", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
 						ID:       "test-id-1",
@@ -370,8 +357,6 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 					},
 				}
 				resolver.StackID = "test-stack-1"
-
-				t.Setenv("BP_ARCH", "arm64")
 
 				Expect(resolver.Resolve("test-id-1", "1.0")).To(Equal(libpak.BuildModuleDependency{
 					ID:       "test-id-1",
