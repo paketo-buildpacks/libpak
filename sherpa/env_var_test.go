@@ -102,6 +102,43 @@ func testEnvVar(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
+	context("GetEnvAndTrimRequired", func() {
+		it.Before(func() {
+			Expect(os.Setenv("TEST_KEY", " test-value \n ")).To(Succeed())
+		})
+
+		it.After(func() {
+			Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+		})
+
+		it("returns value if set", func() {
+			Expect(sherpa.GetEnvAndTrimRequired("TEST_KEY")).To(Equal("test-value"))
+		})
+
+		it("returns error if not set", func() {
+			_, err := sherpa.GetEnvAndTrimRequired("ANOTHER_KEY")
+			Expect(err).To(MatchError("$ANOTHER_KEY must be set"))
+		})
+	})
+
+	context("GetEnvAndTrimWithDefault", func() {
+		it.Before(func() {
+			Expect(os.Setenv("TEST_KEY", " test-value \n ")).To(Succeed())
+		})
+
+		it.After(func() {
+			Expect(os.Unsetenv("TEST_KEY")).To(Succeed())
+		})
+
+		it("returns value if set", func() {
+			Expect(sherpa.GetEnvAndTrimWithDefault("TEST_KEY", "default-value")).To(Equal("test-value"))
+		})
+
+		it("returns default value if not set", func() {
+			Expect(sherpa.GetEnvAndTrimWithDefault("ANOTHER_KEY", "default-value")).To(Equal("default-value"))
+		})
+	})
+
 	context("ResolveBoolErr", func() {
 		context("variable not set", func() {
 			it("returns false if not set", func() {
