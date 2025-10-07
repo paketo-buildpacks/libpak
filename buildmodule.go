@@ -231,11 +231,17 @@ func (c *ConfigurationResolver) Resolve(name string) (string, bool) {
 	return "", false
 }
 
+// ResolveAndTrim resolves the value for a configuration option and trims it, returning the default value and false if it was not set.
+func (c *ConfigurationResolver) ResolveAndTrim(name string) (string, bool) {
+	s, ok := c.Resolve(name)
+	return strings.TrimSpace(s), ok
+}
+
 // ResolveBool resolves a boolean value for a configuration option. Returns true for 1, t, T, TRUE, true, True. Returns
 // false for all other values or unset.
 func (c *ConfigurationResolver) ResolveBool(name string) bool {
 	s, _ := c.Resolve(name)
-	t, err := strconv.ParseBool(s)
+	t, err := strconv.ParseBool(strings.TrimSpace(s))
 	if err != nil {
 		return false
 	}

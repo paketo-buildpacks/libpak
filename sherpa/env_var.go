@@ -44,10 +44,28 @@ func GetEnvRequired(name string) (string, error) {
 	return "", fmt.Errorf("$%s must be set", name)
 }
 
-// GetEnvWithWithDefault returns the value of an environment variable if it exists, otherwise returns the default.
+// GetEnvWithDefault returns the value of an environment variable if it exists, otherwise returns the default.
 func GetEnvWithDefault(name string, def string) string {
 	if s, ok := os.LookupEnv(name); ok {
 		return s
+	}
+	return def
+}
+
+// GetEnvAndTrimRequired returns the value of an environment variable if it exists, otherwise returns an error with a
+// predictable message.
+func GetEnvAndTrimRequired(name string) (string, error) {
+	if s, ok := os.LookupEnv(name); ok {
+		return strings.TrimSpace(s), nil
+	}
+
+	return "", fmt.Errorf("$%s must be set", name)
+}
+
+// GetEnvAndTrimWithDefault returns the value of an environment variable if it exists, otherwise returns the default.
+func GetEnvAndTrimWithDefault(name string, def string) string {
+	if s, ok := os.LookupEnv(name); ok {
+		return strings.TrimSpace(s)
 	}
 	return def
 }
