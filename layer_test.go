@@ -95,6 +95,128 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(called).To(BeTrue())
 		})
 
+		it("does not call function when timestamp metadata differs only by representation", func() {
+			zero := time.Time{}.UTC()
+
+			lc.ExpectedMetadata = map[string]interface{}{
+				"dependency": map[string]interface{}{
+					"deprecation_date": zero,
+					"eol-date":         zero,
+				},
+			}
+
+			layer.Metadata = map[string]interface{}{
+				"dependency": map[string]interface{}{
+					"deprecation_date": "0001-01-01T00:00:00Z",
+					"eol-date":         "0001-01-01T00:00:00Z",
+				},
+			}
+
+			var called bool
+
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
+				called = true
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+		})
+
+		it("calls function when timestamp metadata values are actually different", func() {
+			expectedTime, err := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
+			Expect(err).NotTo(HaveOccurred())
+
+			lc.ExpectedMetadata = map[string]interface{}{
+				"dependency": map[string]interface{}{
+					"eol-date": expectedTime,
+				},
+			}
+
+			layer.Metadata = map[string]interface{}{
+				"dependency": map[string]interface{}{
+					"eol-date": "2021-05-01T00:00:00Z",
+				},
+			}
+
+			var called bool
+
+			err = lc.Contribute(layer, func(_ *libcnb.Layer) error {
+				called = true
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeTrue())
+		})
+
+		it("does not call function when timestamp metadata differs only by UTC offset representation", func() {
+			expectedTime, err := time.Parse(time.RFC3339, "2021-04-01T00:00:00Z")
+			Expect(err).NotTo(HaveOccurred())
+
+			lc.ExpectedMetadata = map[string]interface{}{
+				"dependency": map[string]interface{}{
+					"eol-date": expectedTime,
+				},
+			}
+
+			layer.Metadata = map[string]interface{}{
+				"dependency": map[string]interface{}{
+					"eol-date": "2021-04-01T00:00:00+00:00",
+				},
+			}
+
+			var called bool
+
+			err = lc.Contribute(layer, func(_ *libcnb.Layer) error {
+				called = true
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+		})
+
+		it("does not call function when numeric metadata differs only by type (int64 vs float64 same value)", func() {
+			lc.ExpectedMetadata = map[string]interface{}{
+				"components": int64(0),
+			}
+
+			layer.Metadata = map[string]interface{}{
+				"components": float64(0),
+			}
+
+			var called bool
+
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
+				called = true
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeFalse())
+		})
+
+		it("calls function when numeric metadata values are actually different", func() {
+			lc.ExpectedMetadata = map[string]interface{}{
+				"components": int64(0),
+			}
+
+			layer.Metadata = map[string]interface{}{
+				"components": float64(1),
+			}
+
+			var called bool
+
+			err := lc.Contribute(layer, func(_ *libcnb.Layer) error {
+				called = true
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(called).To(BeTrue())
+		})
+
 		context("reloads layers not restored", func() {
 			var called bool
 
