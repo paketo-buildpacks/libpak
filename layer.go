@@ -21,6 +21,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/google/go-cmp/cmp"
@@ -176,10 +177,95 @@ func (l *LayerContributor) checkIfMetadataMatches(layer libcnb.Layer) (map[strin
 		return map[string]interface{}{}, false, fmt.Errorf("unable to decode metadata\n%w", err)
 	}
 
-	l.Logger.Debugf("Expected metadata: %+v", expected)
-	l.Logger.Debugf("Actual metadata: %+v", layer.Metadata)
+	l.Logger.Debugf("Expected metadata: %#v", expected)
+	l.Logger.Debugf("Actual metadata: %#v", layer.Metadata)
 
-	return expected, cmp.Equal(expected, layer.Metadata), nil
+	equal := cmp.Equal(expected, layer.Metadata, timestampMetadataComparer())
+	l.Logger.Debugf("Comparison: %v", equal)
+
+	if !equal {
+		l.Logger.Debugf("Diff:\n%s", cmp.Diff(expected, layer.Metadata, timestampMetadataComparer()))
+	}
+
+	return expected, equal, nil
+}
+
+func timestampMetadataComparer() cmp.Option {
+	return cmp.Options{
+		cmp.FilterValues(func(left, right interface{}) bool {
+			_, leftIsTimestamp := parseMetadataTimestamp(left)
+			_, rightIsTimestamp := parseMetadataTimestamp(right)
+
+			return leftIsTimestamp && rightIsTimestamp
+		}, cmp.Comparer(func(left, right interface{}) bool {
+			leftTime, leftIsTimestamp := parseMetadataTimestamp(left)
+			rightTime, rightIsTimestamp := parseMetadataTimestamp(right)
+
+			if !leftIsTimestamp || !rightIsTimestamp {
+				return false
+			}
+
+			return leftTime.UTC().Equal(rightTime.UTC())
+		})),
+		cmp.FilterValues(func(left, right interface{}) bool {
+			return isNumeric(left) && isNumeric(right)
+		}, cmp.Comparer(func(left, right interface{}) bool {
+			leftVal := toFloat64(left)
+			rightVal := toFloat64(right)
+
+			return leftVal == rightVal
+		})),
+	}
+}
+
+func isNumeric(value interface{}) bool {
+	switch value.(type) {
+	case int, int32, int64, uint, uint32, uint64, float32, float64:
+		return true
+	}
+	return false
+}
+
+func toFloat64(value interface{}) float64 {
+	switch v := value.(type) {
+	case int:
+		return float64(v)
+	case int32:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case uint:
+		return float64(v)
+	case uint32:
+		return float64(v)
+	case uint64:
+		return float64(v)
+	case float32:
+		return float64(v)
+	case float64:
+		return v
+	}
+	return 0
+}
+
+func parseMetadataTimestamp(value interface{}) (time.Time, bool) {
+	switch v := value.(type) {
+	case time.Time:
+		return v, true
+	case string:
+		for _, layout := range []string{
+			time.RFC3339Nano,
+			time.RFC3339,
+			"2006-01-02 15:04:05 -0700 MST",
+		} {
+			parsed, err := time.Parse(layout, v)
+			if err == nil {
+				return parsed, true
+			}
+		}
+	}
+
+	return time.Time{}, false
 }
 
 func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error) {
@@ -202,7 +288,7 @@ func (l *LayerContributor) checkIfLayerRestored(layer libcnb.Layer) (bool, error
 		}
 	}
 
-	l.Logger.Debugf("Check If Layer Restored -> tomlExists: %s, layerDirExists: %s, dirContents: %s, cache: %s, build: %s",
+	l.Logger.Debugf("Check If Layer Restored -> tomlExists: %t, layerDirExists: %t, dirContents: %v, cache: %t, build: %t",
 		tomlExists, layerDirExists, dirContents, l.ExpectedTypes.Cache, l.ExpectedTypes.Build)
 
 	// nolint:staticcheck
