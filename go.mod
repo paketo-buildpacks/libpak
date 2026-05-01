@@ -10,7 +10,7 @@ tool (
 require (
 	dario.cat/mergo v1.0.2
 	github.com/BurntSushi/toml v1.6.0
-	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/buildpacks/libcnb/v2 v2.1.0
 	github.com/creack/pty v1.1.24
 	github.com/google/go-cmp v0.7.0
