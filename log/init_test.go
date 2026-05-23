@@ -25,6 +25,7 @@ import (
 
 func TestUnit(t *testing.T) {
 	suite := spec.New("libpak/log", spec.Report(report.Terminal{}))
+	suite("LogLevel", testLogLevel)
 	suite("Logger", testLogger)
 	suite("Formatter", testFormatter)
 	suite("Writer", testWriter)
