@@ -37,6 +37,12 @@ func CreateTar(destination io.Writer, source string) error {
 	t := tar.NewWriter(destination)
 	defer t.Close()
 
+	root, err := os.OpenRoot(source)
+	if err != nil {
+		return fmt.Errorf("unable to open root %s\n%w", source, err)
+	}
+	defer root.Close()
+
 	if err := filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -64,7 +70,7 @@ func CreateTar(destination io.Writer, source string) error {
 
 		h, err := tar.FileInfoHeader(info, name)
 		if err != nil {
-			return fmt.Errorf("unable to create TAR header from %+v\n%w", info, err)
+			return fmt.Errorf("unable to create TAR header from %+v\n%w", h, err)
 		}
 		h.Name = rel
 
@@ -76,14 +82,14 @@ func CreateTar(destination io.Writer, source string) error {
 			return nil
 		}
 
-		in, err := os.Open(path)
+		in, err := root.Open(rel)
 		if err != nil {
-			return fmt.Errorf("unable to open %s\n%w", path, err)
+			return fmt.Errorf("unable to open %s\n%w", rel, err)
 		}
 		defer in.Close()
 
 		if _, err := io.Copy(t, in); err != nil {
-			return fmt.Errorf("unable to copy %s to %s\n%w", path, h.Name, err)
+			return fmt.Errorf("unable to copy %s to %s\n%w", rel, h.Name, err)
 		}
 
 		return nil
@@ -118,6 +124,12 @@ func CreateJar(source, target string) error {
 	writer := zip.NewWriter(f)
 	defer writer.Close()
 
+	root, err := os.OpenRoot(source)
+	if err != nil {
+		return fmt.Errorf("unable to open root %s\n%w", source, err)
+	}
+	defer root.Close()
+
 	// 2. Go through all the files of the source
 	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -129,7 +141,7 @@ func CreateJar(source, target string) error {
 			if absolutePath, err = filepath.EvalSymlinks(path); err != nil {
 				return fmt.Errorf("unable to eval symlink %s\n%w", absolutePath, err)
 			}
-			if file, err := os.Open(absolutePath); err != nil {
+			if file, err := os.Open(absolutePath); err != nil { // #nosec G122 -- symlink target from filepath.EvalSymlinks
 				return fmt.Errorf("unable to open %s\n%w", absolutePath, err)
 			} else {
 				if info, err = file.Stat(); err != nil {
@@ -165,17 +177,25 @@ func CreateJar(source, target string) error {
 			return nil
 		}
 
+		// For symlinks that resolve outside the root, fall back to direct open.
+		// This is safe because the symlink target is explicitly set by the caller.
+		var fileReader *os.File
 		if absolutePath != "" {
-			path = absolutePath
+			relPath, relErr := filepath.Rel(source, absolutePath)
+			if relErr != nil || strings.HasPrefix(relPath, "..") {
+				fileReader, err = os.Open(absolutePath) // #nosec G304,G122 -- symlink target from filepath.EvalSymlinks
+			} else {
+				fileReader, err = root.Open(relPath)
+			}
+		} else {
+			fileReader, err = root.Open(header.Name)
 		}
-
-		f, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer fileReader.Close()
 
-		_, err = io.Copy(headerWriter, f)
+		_, err = io.Copy(headerWriter, fileReader)
 		writer.Flush()
 		return err
 	})

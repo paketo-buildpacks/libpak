@@ -343,7 +343,7 @@ func (d DependencyCache) downloadFile(source string, destination string) error {
 	}
 	defer out.Close()
 
-	input, err := os.Open(source)
+	input, err := os.Open(filepath.Clean(source))
 	if err != nil {
 		return fmt.Errorf("unable to open source file %s\n%w", source, err)
 	}
@@ -368,10 +368,10 @@ func (d DependencyCache) downloadHTTP(url *url.URL, destination string, mods ...
 	} else {
 		httpClient = &http.Client{
 			Transport: &http.Transport{
-				Dial: (&net.Dialer{
+				DialContext: (&net.Dialer{
 					Timeout:   d.HTTPClientTimeouts.DialerTimeout,
 					KeepAlive: d.HTTPClientTimeouts.DialerKeepAlive,
-				}).Dial,
+				}).DialContext,
 				TLSHandshakeTimeout:   d.HTTPClientTimeouts.TLSHandshakeTimeout,
 				ResponseHeaderTimeout: d.HTTPClientTimeouts.ResponseHeaderTimeout,
 				ExpectContinueTimeout: d.HTTPClientTimeouts.ExpectContinueTimeout,

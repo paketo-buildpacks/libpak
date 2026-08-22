@@ -94,7 +94,7 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 			max := t.maxTypeLength(v.Processes)
 			for _, p := range v.Processes {
 				sb := strings.Builder{}
-				sb.WriteString(fmt.Sprintf("  %s: ", color.CyanString(p.Type)))
+				fmt.Fprintf(&sb, "  %s: ", color.CyanString(p.Type))
 
 				for i := 0; i < max-len(p.Type); i++ {
 					sb.WriteString(" ")
@@ -108,7 +108,7 @@ func (t TOMLWriter) Write(path string, value interface{}) error {
 				}
 
 				for _, a := range p.Arguments {
-					sb.WriteString(fmt.Sprintf(" %s", a))
+					fmt.Fprintf(&sb, " %s", a)
 				}
 
 				t.logger.Header(sb.String())
