@@ -78,6 +78,24 @@ func testCrush(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.Readlink(filepath.Join(testPath, "dirA", "fileD.txt"))).To(Equal(filepath.Join(path, "dirA", "fileC.txt")))
 		})
 
+		it("writes a TAR with symlink escaping root", func() {
+			cwd, _ := os.Getwd()
+			Expect(os.WriteFile(filepath.Join(path, "fileA.txt"), []byte("content"), 0600)).To(Succeed())
+			Expect(os.MkdirAll(filepath.Join(path, "dirA"), 0755)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(path, "dirA", "fileB.txt"), []byte(""), 0600)).To(Succeed())
+			Expect(os.Symlink(filepath.Join(cwd, "testdata", "test-archive.jar"), filepath.Join(path, "dirA", "external.jar"))).To(Succeed())
+
+			Expect(crush.CreateTar(out, path)).To(Succeed())
+
+			in, err := os.Open(out.Name())
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(crush.Extract(in, testPath, 0)).To(Succeed())
+			Expect(filepath.Join(testPath, "fileA.txt")).To(BeARegularFile())
+			Expect(filepath.Join(testPath, "dirA", "fileB.txt")).To(BeARegularFile())
+			Expect(os.Readlink(filepath.Join(testPath, "dirA", "external.jar"))).To(Equal(filepath.Join(cwd, "testdata", "test-archive.jar")))
+		})
+
 		it("writes a TAR.GZ", func() {
 			Expect(os.WriteFile(filepath.Join(path, "fileA.txt"), []byte(""), 0600)).To(Succeed())
 			Expect(os.MkdirAll(filepath.Join(path, "dirA"), 0755)).To(Succeed())

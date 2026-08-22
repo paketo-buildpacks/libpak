@@ -54,6 +54,7 @@ type BuildModuleDependency struct {
 	Checksum Checksum `toml:"checksum"`
 
 	// Stacks are the stacks the dependency is compatible with.
+	//
 	// Deprecated: use Distros fields instead
 	Stacks []string `toml:"stacks"`
 

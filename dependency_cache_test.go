@@ -362,6 +362,21 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
+
+			it("downloads from override filesystem with cleaned path", func() {
+				subdir := filepath.Join(t.TempDir(), "subdir")
+				Expect(os.MkdirAll(subdir, 0755)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(subdir, "real-file"), []byte("test-fixture"), 0600)).To(Succeed())
+
+				dependencyCache.Mappings = map[string]string{
+					checksum.Hash(): fmt.Sprintf("file://%s", filepath.Join(subdir, "dummy/../real-file")),
+				}
+
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
 		})
 
 		context("dependency mirror is used https", func() {
