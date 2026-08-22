@@ -141,7 +141,7 @@ func CreateJar(source, target string) error {
 			if absolutePath, err = filepath.EvalSymlinks(path); err != nil {
 				return fmt.Errorf("unable to eval symlink %s\n%w", absolutePath, err)
 			}
-			if file, err := os.Open(absolutePath); err != nil {
+			if file, err := os.Open(absolutePath); err != nil { // #nosec G122 -- symlink target from filepath.EvalSymlinks
 				return fmt.Errorf("unable to open %s\n%w", absolutePath, err)
 			} else {
 				if info, err = file.Stat(); err != nil {
@@ -183,7 +183,7 @@ func CreateJar(source, target string) error {
 		if absolutePath != "" {
 			relPath, relErr := filepath.Rel(source, absolutePath)
 			if relErr != nil || strings.HasPrefix(relPath, "..") {
-				fileReader, err = os.Open(absolutePath) // #nosec G304 -- symlink target from filepath.EvalSymlinks
+				fileReader, err = os.Open(absolutePath) // #nosec G304,G122 -- symlink target from filepath.EvalSymlinks
 			} else {
 				fileReader, err = root.Open(relPath)
 			}
