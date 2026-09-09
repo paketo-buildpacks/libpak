@@ -26,6 +26,56 @@ import (
 	"github.com/heroku/color"
 )
 
+// LogLevel represents the level of logger output.
+//
+// Hierarchy:
+//
+//	none < error < info < debug
+//	- none: no logs
+//	- error: only errors
+//	- info: errors + info
+//	- debug: everything
+//
+// BP_DEBUG takes precedence over BP_LOG_LEVEL.
+// Unknown values are treated as info.
+type LogLevel int
+
+const (
+	LogLevelNone LogLevel = iota
+	LogLevelError
+	LogLevelInfo
+	LogLevelDebug
+)
+
+// ParseLogLevel converts a string to a LogLevel. Unknown values are treated as info.
+func ParseLogLevel(level string) LogLevel {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "none":
+		return LogLevelNone
+	case "error":
+		return LogLevelError
+	case "info":
+		return LogLevelInfo
+	case "debug":
+		return LogLevelDebug
+	default:
+		return LogLevelInfo // fallback for unknown values
+	}
+}
+
+// GetLogLevel reads the environment variables BP_DEBUG and BP_LOG_LEVEL and returns the desired LogLevel.
+// BP_DEBUG takes precedence.
+func GetLogLevel() LogLevel {
+	if os.Getenv("BP_DEBUG") != "" {
+		return LogLevelDebug
+	}
+	logLevel := os.Getenv("BP_LOG_LEVEL")
+	if logLevel != "" {
+		return ParseLogLevel(logLevel)
+	}
+	return LogLevelInfo // default
+}
+
 // TODO: Remove once TTY support is in place
 func init() {
 	color.Enabled()
@@ -86,18 +136,36 @@ func NewPaketoLogger(writer io.Writer) PaketoLogger {
 type Option func(logger PaketoLogger) PaketoLogger
 
 func NewPaketoLoggerWithOptions(writer io.Writer, options ...Option) PaketoLogger {
-	var debugWriter io.Writer
-	if strings.ToLower(os.Getenv("BP_LOG_LEVEL")) == "debug" || os.Getenv("BP_DEBUG") != "" {
+	// Initializes the writers depending on the LogLevel. Writers are nil if the respective level is not active.
+	level := GetLogLevel()
+
+	var debugWriter, bodyWriter, headerWriter, titleWriter, terminalBodyWriter, terminalHeaderWriter io.Writer
+
+	// Debug writer
+	if level >= LogLevelDebug {
 		debugWriter = NewWriter(writer, WithAttributes(color.BgCyan))
+	}
+
+	// Info writers (body, header, title)
+	if level >= LogLevelInfo {
+		bodyWriter = NewWriter(writer, WithAttributes(color.Faint), WithIndent(2))
+		headerWriter = NewWriter(writer, WithIndent(1))
+		titleWriter = NewWriter(writer, WithAttributes(color.FgBlue))
+	}
+
+	// Error writers (terminal error)
+	if level >= LogLevelError {
+		terminalBodyWriter = NewWriter(writer, WithAttributes(color.FgRed, color.Bold), WithIndent(1))
+		terminalHeaderWriter = NewWriter(writer, WithAttributes(color.FgRed))
 	}
 
 	l := PaketoLogger{
 		debug:          debugWriter,
-		body:           NewWriter(writer, WithAttributes(color.Faint), WithIndent(2)),
-		header:         NewWriter(writer, WithIndent(1)),
-		terminalBody:   NewWriter(writer, WithAttributes(color.FgRed, color.Bold), WithIndent(1)),
-		terminalHeader: NewWriter(writer, WithAttributes(color.FgRed)),
-		title:          NewWriter(writer, WithAttributes(color.FgBlue)),
+		body:           bodyWriter,
+		header:         headerWriter,
+		terminalBody:   terminalBodyWriter,
+		terminalHeader: terminalHeaderWriter,
+		title:          titleWriter,
 	}
 
 	for _, option := range options {
