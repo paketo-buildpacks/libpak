@@ -27,6 +27,8 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
+
+	"github.com/paketo-buildpacks/libpak/v2/sherpa"
 )
 
 // TTYExecutor is an implementation of Executor that uses exec.Command and runs the command with a TTY.
@@ -70,8 +72,13 @@ func (TTYExecutor) isEIO(err error) bool {
 	return pe.Err == syscall.EIO
 }
 
-// NewExecutor creates a new Executor.  If the buildpack is currently running in a TTY, returns a TTY-aware Executor.
+// NewExecutor creates a new Executor. If BP_DISABLE_PTY is set, returns a CommandExecutor.
+// If the buildpack is currently running in a TTY, returns a TTY-aware Executor.
 func NewExecutor() Executor {
+	if sherpa.ResolveBool("BP_DISABLE_PTY") {
+		return CommandExecutor{}
+	}
+
 	// TODO: Remove once TTY support is in place
 	return TTYExecutor{}
 	// if isatty.IsTerminal(os.Stdout.Fd()) {
