@@ -343,11 +343,22 @@ func (d DependencyCache) downloadFile(source string, destination string) error {
 	}
 	defer out.Close()
 
-	input, err := os.Open(filepath.Clean(source))
+	// Resolve the source relative to its own directory so that the open cannot
+	// be redirected outside of it, e.g. by a symlink. Cleaning first keeps the
+	// existing behaviour of resolving things like "dir/../file".
+	cleanSource := filepath.Clean(source)
+
+	dir, err := os.OpenRoot(filepath.Dir(cleanSource))
+	if err != nil {
+		return fmt.Errorf("unable to open source directory for %s\n%w", source, err)
+	}
+	defer dir.Close()
+
+	input, err := dir.Open(filepath.Base(cleanSource))
 	if err != nil {
 		return fmt.Errorf("unable to open source file %s\n%w", source, err)
 	}
-	defer out.Close()
+	defer input.Close()
 
 	if _, err := io.Copy(out, input); err != nil {
 		return fmt.Errorf("unable to copy from %s to %s\n%w", source, destination, err)
