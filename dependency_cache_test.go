@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -376,6 +377,26 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("does not follow a symlink out of the source directory", func() {
+				if runtime.GOOS == "windows" {
+					t.Skip("symlinks require elevated privileges on Windows")
+				}
+
+				outsideFile := filepath.Join(t.TempDir(), "outside-file")
+				Expect(os.WriteFile(outsideFile, []byte("outside-fixture"), 0600)).To(Succeed())
+
+				sourceDir := t.TempDir()
+				link := filepath.Join(sourceDir, "link")
+				Expect(os.Symlink(outsideFile, link)).To(Succeed())
+
+				dependencyCache.Mappings = map[string]string{
+					checksum.Hash(): fmt.Sprintf("file://%s", link),
+				}
+
+				_, err := dependencyCache.Artifact(dependency)
+				Expect(err).To(HaveOccurred())
 			})
 		})
 
