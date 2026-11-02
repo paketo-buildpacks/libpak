@@ -324,11 +324,10 @@ func (d *DependencyResolver) Resolve(id string, version string) (BuildModuleDepe
 		}
 	}
 
-	sort.Slice(candidates, func(i int, j int) bool {
-		a, _ := semver.NewVersion(candidates[i].Version)
-		b, _ := semver.NewVersion(candidates[j].Version)
-
-		return a.GreaterThan(b)
+	// Sort stable and break precedence ties with build metadata, so the newest
+	// build of a version is selected regardless of the order of Dependencies.
+	sort.SliceStable(candidates, func(i int, j int) bool {
+		return compareVersions(candidates[i].Version, candidates[j].Version) > 0
 	})
 
 	candidate := candidates[0]

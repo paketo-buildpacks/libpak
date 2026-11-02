@@ -333,6 +333,58 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 				}))
 			})
 
+			it("selects the newest build when versions differ only by build metadata", func() {
+				dependency := func(version, uri string) libpak.BuildModuleDependency {
+					return libpak.BuildModuleDependency{
+						ID:       "test-id",
+						Name:     "test-name",
+						Version:  version,
+						URI:      uri,
+						Checksum: "sha256:test-sha256",
+						Stacks:   []string{"test-stack-1"},
+						Arch:     "amd64",
+					}
+				}
+
+				for _, dependencies := range [][]libpak.BuildModuleDependency{
+					{dependency("21.0.13+0.10", "older"), dependency("21.0.13+0.11", "newer")},
+					{dependency("21.0.13+0.11", "newer"), dependency("21.0.13+0.10", "older")},
+					{dependency("21.0.13", "plain"), dependency("21.0.13+0.11", "newer")},
+					{dependency("21.0.13+0.11", "newer"), dependency("21.0.13", "plain")},
+				} {
+					resolver.Dependencies = dependencies
+					resolver.StackID = "test-stack-1"
+
+					Expect(resolver.Resolve("test-id", "^21")).To(Equal(dependency("21.0.13+0.11", "newer")))
+				}
+			})
+
+			it("compares numeric build metadata segments numerically", func() {
+				older := libpak.BuildModuleDependency{
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "21.0.13+0.9",
+					URI:      "older",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1"},
+					Arch:     "amd64",
+				}
+				newer := libpak.BuildModuleDependency{
+					ID:       "test-id",
+					Name:     "test-name",
+					Version:  "21.0.13+0.10",
+					URI:      "newer",
+					Checksum: "sha256:test-sha256",
+					Stacks:   []string{"test-stack-1"},
+					Arch:     "amd64",
+				}
+
+				resolver.Dependencies = []libpak.BuildModuleDependency{newer, older}
+				resolver.StackID = "test-stack-1"
+
+				Expect(resolver.Resolve("test-id", "^21")).To(Equal(newer))
+			})
+
 			it("filters by arch", func() {
 				resolver.Dependencies = []libpak.BuildModuleDependency{
 					{
