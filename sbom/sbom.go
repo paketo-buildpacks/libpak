@@ -49,6 +49,19 @@ func (b SyftCLISBOMScanner) ScanLaunch(scanDir string, formats ...libcnb.SBOMFor
 }
 
 func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string, scanDir string, formats ...libcnb.SBOMFormat) error {
+	// Syft JSON is no longer written: it is the format of one tool, and it repeats what the CycloneDX document says
+	var kept []libcnb.SBOMFormat
+	for _, format := range formats {
+		if format != libcnb.SyftJSON {
+			kept = append(kept, format)
+		}
+	}
+	if len(kept) == 0 {
+		b.Logger.Bodyf("WARNING: no SBOM written for %s, Syft JSON is no longer supported: ask for CycloneDX or SPDX", scanDir)
+		return nil
+	}
+	formats = kept
+
 	args := []string{"scan", "-q"}
 
 	for _, format := range formats {

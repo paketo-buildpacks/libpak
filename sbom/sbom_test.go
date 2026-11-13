@@ -41,14 +41,14 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("syft", func() {
-		it("runs syft once to generate JSON", func() {
-			format := libcnb.SyftJSON
+		it("runs syft once to generate SPDX JSON", func() {
+			format := libcnb.SPDXJSON
 			outputPath := layers.BuildSBOMPath(format)
 
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
 					len(e.Args) == 5 &&
-					strings.HasPrefix(e.Args[3], "json=") &&
+					strings.HasPrefix(e.Args[3], "spdx-json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(_ mock.Arguments) {
 				Expect(os.WriteFile(outputPath, []byte("succeed1"), 0600)).To(Succeed())
@@ -110,14 +110,14 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(result)).ToNot(ContainSubstring("2022-05-05T11:33:13-04:00"))
 		})
 
-		it("runs syft once to generate layer-specific JSON", func() {
-			format := libcnb.SyftJSON
+		it("runs syft once to generate layer-specific SPDX JSON", func() {
+			format := libcnb.SPDXJSON
 			outputPath := layer.SBOMPath(format)
 
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
 					len(e.Args) == 5 &&
-					strings.HasPrefix(e.Args[3], "json=") &&
+					strings.HasPrefix(e.Args[3], "spdx-json=") &&
 					e.Args[4] == "dir:something"
 			})).Run(func(_ mock.Arguments) {
 				Expect(os.WriteFile(outputPath, []byte("succeed2"), 0600)).To(Succeed())
@@ -136,17 +136,15 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(result)).To(Equal("succeed2"))
 		})
 
-		it("runs syft once for all three formats", func() {
+		it("runs syft once for CycloneDX and SPDX, and no longer writes Syft JSON", func() {
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
-					len(e.Args) == 9 &&
+					len(e.Args) == 7 &&
 					strings.HasPrefix(e.Args[3], sbom.FormatToSyftOutputFormat(libcnb.CycloneDXJSON)) &&
-					strings.HasPrefix(e.Args[5], sbom.FormatToSyftOutputFormat(libcnb.SyftJSON)) &&
-					strings.HasPrefix(e.Args[7], sbom.FormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
-					e.Args[8] == "dir:something"
+					strings.HasPrefix(e.Args[5], sbom.FormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
+					e.Args[6] == "dir:something"
 			})).Run(func(_ mock.Arguments) {
 				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0600)).To(Succeed())
-				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SyftJSON), []byte(`{"succeed":2}`), 0600)).To(Succeed())
 				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0600)).To(Succeed())
 			}).Return(nil)
 
@@ -162,13 +160,24 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(HavePrefix(`{"succeed":1}`))
 
-			result, err = os.ReadFile(layers.LaunchSBOMPath(libcnb.SyftJSON))
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(result)).To(HavePrefix(`{"succeed":2}`))
-
 			result, err = os.ReadFile(layers.LaunchSBOMPath(libcnb.SPDXJSON))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(result)).To(HavePrefix(`{"succeed":3}`))
+
+			Expect(layers.LaunchSBOMPath(libcnb.SyftJSON)).NotTo(BeAnExistingFile())
+		})
+
+		it("does not run syft when only Syft JSON is asked for", func() {
+			scanner := sbom.SyftCLISBOMScanner{
+				Executor: &executor,
+				Layers:   layers,
+				Logger:   log.NewDiscardLogger(),
+			}
+
+			Expect(scanner.ScanLaunch("something", libcnb.SyftJSON)).To(Succeed())
+
+			Expect(executor.Calls).To(BeEmpty())
+			Expect(layers.LaunchSBOMPath(libcnb.SyftJSON)).NotTo(BeAnExistingFile())
 		})
 	})
 }
