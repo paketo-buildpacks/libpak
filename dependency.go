@@ -61,6 +61,9 @@ type BuildModuleDependency struct {
 	// Licenses are the licenses the dependency is distributed under.
 	Licenses []BuildModuleDependencyLicense `toml:"licenses"`
 
+	// Deprecated: Use GetCPEs()
+	CPE string `toml:"cpe"`
+
 	// CPEs are the Common Platform Enumeration identifiers for the dependency
 	CPEs []string `toml:"cpes"`
 
@@ -111,31 +114,57 @@ func (b BuildModuleDependency) Equals(other BuildModuleDependency) bool {
 	return cmp.Equal(b, other, cmpopts.EquateEmpty())
 }
 
-// AsSyftArtifact renders a bill of materials entry describing the dependency as Syft.
-func (b BuildModuleDependency) AsSyftArtifact(source string) (sbom.SyftArtifact, error) {
-	licenses := []string{}
+// AsCycloneDXComponent renders a bill of materials entry describing the dependency as CycloneDX.
+func (b BuildModuleDependency) AsCycloneDXComponent() sbom.CycloneDXComponent {
+	component := sbom.CycloneDXComponent{
+		Type:    "library",
+		BOMRef:  fmt.Sprintf("%s@%s", b.ID, b.Version),
+		Name:    b.GetName(),
+		Version: b.Version,
+		PURL:    b.GetPURLS()[0],
+	}
+
+	if component.PURL != "" {
+		component.BOMRef = component.PURL
+	}
+
+	if hash, ok := sbom.NewCycloneDXHash(b.GetChecksum().Algorithm(), b.GetChecksum().Hash()); ok {
+		component.Hashes = []sbom.CycloneDXHash{hash}
+	}
+
+	types, uris := []string{}, []string{}
 	for _, license := range b.Licenses {
-		licenses = append(licenses, license.Type)
+		types = append(types, license.Type)
+		uris = append(uris, license.URI)
+	}
+	component.Licenses = sbom.NewCycloneDXLicenses(types, uris)
+
+	// CycloneDX has room for a single CPE, the others follow the convention Syft and Grype use
+	for i, cpe := range b.GetCPEs() {
+		if i == 0 {
+			component.CPE = cpe
+			continue
+		}
+		component.Properties = append(component.Properties, sbom.CycloneDXProperty{Name: sbom.CycloneDXExtraCPEProperty, Value: cpe})
 	}
 
-	sbomArtifact := sbom.SyftArtifact{
-		Name:      b.Name,
-		Version:   b.Version,
-		Type:      "UnknownPackage",
-		FoundBy:   "libpak",
-		Licenses:  licenses,
-		Locations: []sbom.SyftLocation{{Path: source}},
-		CPEs:      b.CPEs,
-		PURL:      b.GetPURLS()[0],
+	if b.URI != "" {
+		component.ExternalReferences = append(component.ExternalReferences, sbom.CycloneDXExternalReference{
+			Type:   "distribution",
+			URL:    b.URI,
+			Hashes: component.Hashes,
+		})
 	}
 
-	var err error
-	sbomArtifact.ID, err = sbomArtifact.Hash()
-	if err != nil {
-		return sbom.SyftArtifact{}, fmt.Errorf("unable to generate hash\n%w", err)
+	if b.Source != "" {
+		reference := sbom.CycloneDXExternalReference{Type: "source-distribution", URL: b.Source}
+		if hash, ok := sbom.NewCycloneDXHash(b.SourceChecksum.Algorithm(), b.SourceChecksum.Hash()); ok {
+			reference.Hashes = []sbom.CycloneDXHash{hash}
+		}
+		component.ExternalReferences = append(component.ExternalReferences, reference)
 	}
 
-	return sbomArtifact, nil
+	return component
 }
 
 func (b BuildModuleDependency) IsDeprecated() bool {
@@ -156,6 +185,28 @@ func (b BuildModuleDependency) GetEOLDate() time.Time {
 	}
 
 	return b.DeprecationDate
+}
+
+// GetName returns the name of the dependency. The name is optional, so this falls back to the ID.
+func (b BuildModuleDependency) GetName() string {
+	if b.Name != "" {
+		return b.Name
+	}
+
+	return b.ID
+}
+
+// GetCPEs returns the CPEs of the dependency, whether they were declared as `cpes` or as a single `cpe`.
+func (b BuildModuleDependency) GetCPEs() []string {
+	if len(b.CPEs) > 0 {
+		return b.CPEs
+	}
+
+	if b.CPE != "" {
+		return []string{b.CPE}
+	}
+
+	return nil
 }
 
 func (b BuildModuleDependency) GetPURLS() []string {

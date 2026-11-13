@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/buildpacks/libcnb/v2"
-	"github.com/mitchellh/hashstructure/v2"
 
 	"github.com/paketo-buildpacks/libpak/v2/effect"
 	"github.com/paketo-buildpacks/libpak/v2/log"
@@ -18,90 +17,6 @@ type Scanner interface {
 	ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error
 	ScanBuild(scanDir string, formats ...libcnb.SBOMFormat) error
 	ScanLaunch(scanDir string, formats ...libcnb.SBOMFormat) error
-}
-
-type SyftDependency struct {
-	Artifacts  []SyftArtifact
-	Source     SyftSource
-	Descriptor SyftDescriptor
-	Schema     SyftSchema
-}
-
-func NewSyftDependency(dependencyPath string, artifacts []SyftArtifact) SyftDependency {
-	return SyftDependency{
-		Artifacts: artifacts,
-		Source: SyftSource{
-			Type:   "directory",
-			Target: dependencyPath,
-		},
-		Descriptor: SyftDescriptor{
-			Name:    "syft",
-			Version: "0.32.0",
-		},
-		Schema: SyftSchema{
-			Version: "1.1.0",
-			URL:     "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json",
-		},
-	}
-}
-
-func (s SyftDependency) WriteTo(path string) error {
-	output, err := json.Marshal(&s)
-	if err != nil {
-		return fmt.Errorf("unable to marshal to JSON\n%w", err)
-	}
-
-	// #nosec G306 - permissions need to be 644 on the sbom file
-	err = os.WriteFile(path, output, 0644)
-	if err != nil {
-		return fmt.Errorf("unable to write to path %s\n%w", path, err)
-	}
-
-	return nil
-}
-
-type SyftArtifact struct {
-	ID        string
-	Name      string
-	Version   string
-	Type      string
-	FoundBy   string
-	Locations []SyftLocation
-	Licenses  []string
-	Language  string
-	CPEs      []string
-	PURL      string
-}
-
-func (s SyftArtifact) Hash() (string, error) {
-	f, err := hashstructure.Hash(s, hashstructure.FormatV2, &hashstructure.HashOptions{
-		ZeroNil:      true,
-		SlicesAsSets: true,
-	})
-	if err != nil {
-		return "", fmt.Errorf("could not build ID for artifact=%+v: %+v", s, err)
-	}
-
-	return fmt.Sprintf("%x", f), nil
-}
-
-type SyftLocation struct {
-	Path string
-}
-
-type SyftSource struct {
-	Type   string
-	Target string
-}
-
-type SyftDescriptor struct {
-	Name    string
-	Version string
-}
-
-type SyftSchema struct {
-	Version string
-	URL     string
 }
 
 type SyftCLISBOMScanner struct {
@@ -120,21 +35,38 @@ func NewSyftCLISBOMScanner(layers libcnb.Layers, executor effect.Executor, logge
 
 // ScanLayer will use syft CLI to scan the scanDir and write it's output to the layer SBoM file in the given formats
 func (b SyftCLISBOMScanner) ScanLayer(layer libcnb.Layer, scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(layer.SBOMPath, scanDir, formats...)
+	return b.scan(layer.SBOMPath, scanDir, false, formats...)
 }
 
 // ScanBuild will use syft CLI to scan the scanDir and write it's output to the build SBoM file in the given formats
 func (b SyftCLISBOMScanner) ScanBuild(scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(b.Layers.BuildSBOMPath, scanDir, formats...)
+	return b.scan(b.Layers.BuildSBOMPath, scanDir, false, formats...)
 }
 
-// ScanLaunch will use syft CLI to scan the scanDir and write it's output to the launch SBoM file in the given formats
+// ScanLaunch will use syft CLI to scan the scanDir and write it's output to the launch SBoM file in the given formats.
+// Only what is installed is reported, as for an image: not what a pom.xml or another manifest declares.
 func (b SyftCLISBOMScanner) ScanLaunch(scanDir string, formats ...libcnb.SBOMFormat) error {
-	return b.scan(b.Layers.LaunchSBOMPath, scanDir, formats...)
+	return b.scan(b.Layers.LaunchSBOMPath, scanDir, true, formats...)
 }
 
-func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string, scanDir string, formats ...libcnb.SBOMFormat) error {
+func (b SyftCLISBOMScanner) scan(sbomPathCreator func(libcnb.SBOMFormat) string, scanDir string, installedOnly bool, formats ...libcnb.SBOMFormat) error {
+	// Syft JSON is no longer written: it is the format of one tool, and it repeats what the CycloneDX document says
+	var kept []libcnb.SBOMFormat
+	for _, format := range formats {
+		if format != libcnb.SyftJSON {
+			kept = append(kept, format)
+		}
+	}
+	if len(kept) == 0 {
+		b.Logger.Bodyf("WARNING: no SBOM written for %s, Syft JSON is no longer supported: ask for CycloneDX or SPDX", scanDir)
+		return nil
+	}
+	formats = kept
+
 	args := []string{"scan", "-q"}
+	if installedOnly {
+		args = append(args, "--override-default-catalogers=image")
+	}
 
 	for _, format := range formats {
 		args = append(args, "-o", fmt.Sprintf("%s=%s", FormatToSyftOutputFormat(format), sbomPathCreator(format)))

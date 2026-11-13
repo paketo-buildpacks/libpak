@@ -26,5 +26,6 @@ import (
 func TestUnit(t *testing.T) {
 	suite := spec.New("libpak/sbom", spec.Report(report.Terminal{}))
 	suite("SBOM", testSBOM)
+	suite("CycloneDX", testCycloneDX)
 	suite.Run(t)
 }

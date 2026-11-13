@@ -16,7 +16,6 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/h2non/filetype v1.1.3
 	github.com/heroku/color v0.0.6
-	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/onsi/gomega v1.44.0
 	github.com/sclevine/spec v1.4.0
 	github.com/stretchr/testify v1.12.1
