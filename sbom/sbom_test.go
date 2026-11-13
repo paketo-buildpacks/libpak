@@ -136,13 +136,14 @@ func testSBOM(t *testing.T, context spec.G, it spec.S) {
 			Expect(string(result)).To(Equal("succeed2"))
 		})
 
-		it("runs syft once for CycloneDX and SPDX, and no longer writes Syft JSON", func() {
+		it("runs syft once for CycloneDX and SPDX, reports only what is installed, and no longer writes Syft JSON", func() {
 			executor.On("Execute", mock.MatchedBy(func(e effect.Execution) bool {
 				return e.Command == "syft" &&
-					len(e.Args) == 7 &&
-					strings.HasPrefix(e.Args[3], sbom.FormatToSyftOutputFormat(libcnb.CycloneDXJSON)) &&
-					strings.HasPrefix(e.Args[5], sbom.FormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
-					e.Args[6] == "dir:something"
+					len(e.Args) == 8 &&
+					e.Args[2] == "--override-default-catalogers=image" &&
+					strings.HasPrefix(e.Args[4], sbom.FormatToSyftOutputFormat(libcnb.CycloneDXJSON)) &&
+					strings.HasPrefix(e.Args[6], sbom.FormatToSyftOutputFormat(libcnb.SPDXJSON)) &&
+					e.Args[7] == "dir:something"
 			})).Run(func(_ mock.Arguments) {
 				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.CycloneDXJSON), []byte(`{"succeed":1}`), 0600)).To(Succeed())
 				Expect(os.WriteFile(layers.LaunchSBOMPath(libcnb.SPDXJSON), []byte(`{"succeed":3}`), 0600)).To(Succeed())
