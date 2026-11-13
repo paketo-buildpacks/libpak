@@ -327,6 +327,10 @@ type DependencyLayerContributor struct {
 
 	// RequestModifierFuncs is an optional Request Modifier to use when downloading the dependency.
 	RequestModifierFuncs []RequestModifierFunc
+
+	// SBOMFormats are the SBOM media types the buildpack declares in the sbom-formats of its buildpack.toml. An SBOM
+	// is only written in a declared format. When nil, they are read from the buildpack.toml in $CNB_BUILDPACK_DIR.
+	SBOMFormats []string
 }
 
 // NewDependencyLayerContributor returns a new DependencyLayerContributor for the given BuildpackDependency
@@ -355,21 +359,53 @@ func (d *DependencyLayerContributor) Contribute(layer *libcnb.Layer, f Dependenc
 		}
 		defer artifact.Close()
 
-		// Only buildpacks can create layers, so source must be buildpack.toml
-		sbomArtifact, err := d.Dependency.AsSyftArtifact("buildpack.toml")
-		if err != nil {
-			return fmt.Errorf("unable to get SBOM artifact %s\n%w", d.Dependency.ID, err)
+		formats := d.SBOMFormats
+		if formats == nil {
+			formats = declaredSBOMFormats()
 		}
-
-		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
-		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{sbomArtifact})
-		d.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
-		if err := dep.WriteTo(sbomPath); err != nil {
-			return fmt.Errorf("unable to write SBOM\n%w", err)
+		doc := sbom.NewCycloneDXDependency([]sbom.CycloneDXComponent{d.Dependency.AsCycloneDXComponent()})
+		if err := writeCycloneDXSBOM(layer, formats, doc, d.Logger); err != nil {
+			return err
 		}
 
 		return f(layer, artifact)
 	})
+}
+
+// declaredSBOMFormats returns the sbom-formats of the buildpack.toml in $CNB_BUILDPACK_DIR, or nil if it can't be read.
+func declaredSBOMFormats() []string {
+	dir, ok := os.LookupEnv(libcnb.EnvBuildpackDirectory)
+	if !ok {
+		return nil
+	}
+
+	var descriptor struct {
+		Buildpack struct {
+			SBOMFormats []string `toml:"sbom-formats"`
+		} `toml:"buildpack"`
+	}
+	if _, err := toml.DecodeFile(filepath.Join(dir, "buildpack.toml"), &descriptor); err != nil {
+		return nil
+	}
+
+	return descriptor.Buildpack.SBOMFormats
+}
+
+// writeCycloneDXSBOM writes the layer's CycloneDX SBOM, unless the buildpack does not declare that format: libcnb and
+// the lifecycle fail a build that writes an SBOM in an undeclared one.
+func writeCycloneDXSBOM(layer *libcnb.Layer, declaredFormats []string, doc sbom.CycloneDXDocument, logger log.Logger) error {
+	if !sbom.FormatDeclared(declaredFormats, libcnb.CycloneDXJSON) {
+		logger.Bodyf("WARNING: no SBOM written for the %s layer, add %q to the sbom-formats of buildpack.toml", layer.Name, libcnb.CycloneDXJSON.MediaType())
+		return nil
+	}
+
+	sbomPath := layer.SBOMPath(libcnb.CycloneDXJSON)
+	logger.Debugf("Writing CycloneDX SBOM at %s: %+v", sbomPath, doc)
+	if err := doc.WriteTo(sbomPath); err != nil {
+		return fmt.Errorf("unable to write SBOM\n%w", err)
+	}
+
+	return nil
 }
 
 // LayerName returns the conventional name of the layer for this contributor
@@ -447,51 +483,48 @@ func (h HelperLayerContributor) Contribute(layer *libcnb.Layer) error {
 			}
 		}
 
-		sbomArtifact, err := h.AsSyftArtifact()
-		if err != nil {
-			return fmt.Errorf("unable to get SBOM artifact for helper\n%w", err)
-		}
-
-		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
-		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{sbomArtifact})
-		h.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
-		if err := dep.WriteTo(sbomPath); err != nil {
-			return fmt.Errorf("unable to write SBOM\n%w", err)
-		}
-
-		return nil
+		return writeCycloneDXSBOM(layer, h.BuildpackInfo.SBOMFormats, h.AsCycloneDXDocument(), h.Logger)
 	})
 }
 
-func (h HelperLayerContributor) AsSyftArtifact() (sbom.SyftArtifact, error) {
-	licenses := []string{}
-	for _, license := range h.BuildpackInfo.Licenses {
-		licenses = append(licenses, license.Type)
-	}
+// AsCycloneDXDocument renders a bill of materials describing the helper and the Go modules it is built from.
+func (h HelperLayerContributor) AsCycloneDXDocument() sbom.CycloneDXDocument {
+	helper := h.AsCycloneDXComponent()
+	doc := sbom.NewCycloneDXDependency([]sbom.CycloneDXComponent{helper})
 
-	locations := []sbom.SyftLocation{}
-	cpes := []string{}
-	for _, name := range h.Names {
-		locations = append(locations, sbom.SyftLocation{Path: name})
-		cpes = append(cpes, fmt.Sprintf("cpe:2.3:a:%s:%s:%s:*:*:*:*:*:*:*",
-			h.BuildpackInfo.ID, name, h.BuildpackInfo.Version))
-	}
-
-	artifact := sbom.SyftArtifact{
-		Name:      "helper",
-		Version:   h.BuildpackInfo.Version,
-		Type:      "UnknownPackage",
-		FoundBy:   "libpak",
-		Licenses:  licenses,
-		Locations: locations,
-		CPEs:      cpes,
-		PURL:      fmt.Sprintf("pkg:generic/%s@%s", h.BuildpackInfo.ID, h.BuildpackInfo.Version),
-	}
-	var err error
-	artifact.ID, err = artifact.Hash()
+	// the helper is a Go binary: a scanner run on the image finds its modules, so list them here too
+	modules, err := sbom.GoModuleComponents(h.Path, h.BuildpackInfo.ID)
 	if err != nil {
-		return sbom.SyftArtifact{}, fmt.Errorf("unable to generate hash\n%w", err)
+		h.Logger.Debugf("Not listing the Go modules of the helper: %s", err)
+		return doc
 	}
 
-	return artifact, nil
+	dependency := sbom.CycloneDXDependency{Ref: helper.BOMRef}
+	for _, module := range modules {
+		dependency.DependsOn = append(dependency.DependsOn, module.BOMRef)
+	}
+	doc.Components = append(doc.Components, modules...)
+	doc.Dependencies = []sbom.CycloneDXDependency{dependency}
+
+	return doc
+}
+
+// AsCycloneDXComponent renders a bill of materials entry describing the helper as CycloneDX.
+func (h HelperLayerContributor) AsCycloneDXComponent() sbom.CycloneDXComponent {
+	types, uris := []string{}, []string{}
+	for _, license := range h.BuildpackInfo.Licenses {
+		types = append(types, license.Type)
+		uris = append(uris, license.URI)
+	}
+
+	purl := fmt.Sprintf("pkg:generic/%s@%s", h.BuildpackInfo.ID, h.BuildpackInfo.Version)
+
+	return sbom.CycloneDXComponent{
+		Type:     "application",
+		BOMRef:   purl,
+		Name:     "helper",
+		Version:  h.BuildpackInfo.Version,
+		Licenses: sbom.NewCycloneDXLicenses(types, uris),
+		PURL:     purl,
+	}
 }

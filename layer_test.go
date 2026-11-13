@@ -522,26 +522,76 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			}))
 		})
 
-		it("adds expected Syft SBOM file", func() {
+		it("adds expected CycloneDX SBOM file and no Syft one when the buildpack declares the format", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+			dlc.SBOMFormats = []string{"application/vnd.syft+json", "application/vnd.cyclonedx+json"}
 
 			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
-				defer artifact.Close()
-				return nil
+				return artifact.Close()
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			outputFile := layer.SBOMPath(libcnb.SyftJSON)
-			Expect(outputFile).To(BeARegularFile())
-
-			data, err := os.ReadFile(outputFile)
+			data, err := os.ReadFile(layer.SBOMPath(libcnb.CycloneDXJSON))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
-			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))
-			Expect(string(data)).To(ContainSubstring(`"PURL":"pkg:generic/some-java11@11.0.2?arch=amd64"`))
-			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
-			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
-			Expect(string(data)).To(ContainSubstring(`"Source":{`))
+			Expect(string(data)).To(ContainSubstring(`"bomFormat":"CycloneDX"`))
+			Expect(string(data)).To(ContainSubstring(`"specVersion":"1.7"`))
+			Expect(string(data)).To(ContainSubstring(`"name":"test-name"`))
+			Expect(string(data)).To(ContainSubstring(`"purl":"pkg:generic/some-java11@11.0.2?arch=amd64"`))
+			Expect(string(data)).To(ContainSubstring(`"cpe":"cpe:2.3:a:some:jre:11.0.2:*:*:*:*:*:*:*"`))
+			Expect(string(data)).To(ContainSubstring(`"hashes":[{"alg":"SHA-256","content":"576dd8416de5619ea001d9662291d62444d1292a38e96956bc4651c01f14bca1"}]`))
+			Expect(string(data)).NotTo(ContainSubstring(`serialNumber`))
+			Expect(string(data)).NotTo(ContainSubstring(`timestamp`))
+
+			Expect(layer.SBOMPath(libcnb.SyftJSON)).NotTo(BeAnExistingFile())
+		})
+
+		it("does not add a CycloneDX SBOM file when the buildpack does not declare the format", func() {
+			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+			dlc.SBOMFormats = []string{"application/vnd.syft+json"}
+
+			err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
+				return artifact.Close()
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(layer.SBOMPath(libcnb.SyftJSON)).NotTo(BeAnExistingFile())
+			Expect(layer.SBOMPath(libcnb.CycloneDXJSON)).NotTo(BeAnExistingFile())
+		})
+
+		context("the declared SBOM formats are not set", func() {
+			var buildpackPath string
+
+			it.Before(func() {
+				buildpackPath = t.TempDir()
+				t.Setenv("CNB_BUILDPACK_DIR", buildpackPath)
+			})
+
+			it("reads them from the buildpack.toml in $CNB_BUILDPACK_DIR", func() {
+				server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+				Expect(os.WriteFile(filepath.Join(buildpackPath, "buildpack.toml"), []byte(`
+[buildpack]
+sbom-formats = ["application/vnd.cyclonedx+json", "application/vnd.syft+json"]
+`), 0600)).To(Succeed())
+
+				err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
+					return artifact.Close()
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(layer.SBOMPath(libcnb.CycloneDXJSON)).To(BeARegularFile())
+			})
+
+			it("does not add a CycloneDX SBOM file when there is no buildpack.toml", func() {
+				server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+
+				err := dlc.Contribute(layer, func(_ *libcnb.Layer, artifact *os.File) error {
+					return artifact.Close()
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(layer.SBOMPath(libcnb.SyftJSON)).NotTo(BeAnExistingFile())
+				Expect(layer.SBOMPath(libcnb.CycloneDXJSON)).NotTo(BeAnExistingFile())
+			})
 		})
 	})
 
@@ -636,27 +686,47 @@ func testLayer(t *testing.T, context spec.G, it spec.S) {
 			Expect(layer.Metadata).To(Equal(map[string]interface{}{"buildpackInfo": buildpackInfo, "helperNames": []interface{}{hlc.Names[0], hlc.Names[1]}}))
 		})
 
-		it("adds expected Syft SBOM file", func() {
+		it("adds expected CycloneDX SBOM file when the buildpack declares the format", func() {
+			layer.Metadata = map[string]interface{}{}
+			hlc.BuildpackInfo.SBOMFormats = []string{"application/vnd.cyclonedx+json"}
+
+			err := hlc.Contribute(layer)
+			Expect(err).NotTo(HaveOccurred())
+
+			data, err := os.ReadFile(layer.SBOMPath(libcnb.CycloneDXJSON))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(`"bomFormat":"CycloneDX"`))
+			Expect(string(data)).To(ContainSubstring(`"name":"helper"`))
+			Expect(string(data)).To(ContainSubstring(`"purl":"pkg:generic/test-id@test-version"`))
+		})
+
+		it("lists the Go modules the helper is built from", func() {
+			layer.Metadata = map[string]interface{}{}
+			hlc.BuildpackInfo.SBOMFormats = []string{"application/vnd.cyclonedx+json"}
+
+			// the test binary stands in for the helper, which is a Go binary too
+			var err error
+			hlc.Path, err = os.Executable()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(hlc.Contribute(layer)).To(Succeed())
+
+			data, err := os.ReadFile(layer.SBOMPath(libcnb.CycloneDXJSON))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(`"name":"helper"`))
+			Expect(string(data)).To(ContainSubstring(`"name":"stdlib"`))
+			Expect(string(data)).To(ContainSubstring(`"bom-ref":"pkg:golang/github.com/onsi/gomega@`))
+			Expect(string(data)).To(ContainSubstring(`"dependencies":[{"ref":"pkg:generic/test-id@test-version","dependsOn":["pkg:golang/stdlib@`))
+		})
+
+		it("does not add a CycloneDX SBOM file when the buildpack does not declare the format", func() {
 			layer.Metadata = map[string]interface{}{}
 
 			err := hlc.Contribute(layer)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(layer.Exec.FilePath("test-name-1")).To(BeAnExistingFile())
-			Expect(layer.Exec.FilePath("test-name-2")).To(BeAnExistingFile())
-
-			outputFile := layer.SBOMPath(libcnb.SyftJSON)
-			Expect(outputFile).To(BeARegularFile())
-
-			data, err := os.ReadFile(outputFile)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(data)).To(ContainSubstring(`"Artifacts":[`))
-			Expect(string(data)).To(ContainSubstring(`"FoundBy":"libpak",`))
-			Expect(string(data)).To(ContainSubstring(`"PURL":"pkg:generic/test-id@test-version"`))
-			Expect(string(data)).To(ContainSubstring(`"CPEs":["cpe:2.3:a:test-id:test-name-1:test-version:*:*:*:*:*:*:*","cpe:2.3:a:test-id:test-name-2:test-version:*:*:*:*:*:*:*"]`))
-			Expect(string(data)).To(ContainSubstring(`"Schema":{`))
-			Expect(string(data)).To(ContainSubstring(`"Descriptor":{`))
-			Expect(string(data)).To(ContainSubstring(`"Source":{`))
+			Expect(layer.SBOMPath(libcnb.SyftJSON)).NotTo(BeAnExistingFile())
+			Expect(layer.SBOMPath(libcnb.CycloneDXJSON)).NotTo(BeAnExistingFile())
 		})
 	})
 

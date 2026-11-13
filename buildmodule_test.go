@@ -66,65 +66,71 @@ func testBuildpack(t *testing.T, context spec.G, it spec.S) {
 		Expect(dependency.Equals(newDependency)).To(BeTrue())
 	})
 
-	it("renders dependency as a SyftArtifact", func() {
+	it("falls back to the ID and the single cpe", func() {
+		var dependency libpak.BuildModuleDependency
+		Expect(toml.Unmarshal([]byte(`
+id = "test-id"
+version = "1.1.1"
+cpe = "test-cpe"
+purl = "test-purl"
+`), &dependency)).To(Succeed())
+
+		component := dependency.AsCycloneDXComponent()
+		Expect(component.Name).To(Equal("test-id"))
+		Expect(component.CPE).To(Equal("test-cpe"))
+	})
+
+	it("prefers cpes over the single cpe", func() {
+		dependency := libpak.BuildModuleDependency{CPE: "test-cpe", CPEs: []string{"test-cpe1", "test-cpe2"}}
+
+		Expect(dependency.GetCPEs()).To(Equal([]string{"test-cpe1", "test-cpe2"}))
+	})
+
+	it("renders dependency as a CycloneDX component", func() {
 		dependency := libpak.BuildModuleDependency{
-			ID:       "test-id",
-			Name:     "test-name",
-			Version:  "1.1.1",
-			URI:      "test-uri",
-			Checksum: "sha256:test-sha256",
-			Stacks:   []string{"test-stack"},
+			ID:             "test-id",
+			Name:           "test-name",
+			Version:        "1.1.1",
+			URI:            "test-uri",
+			Checksum:       "sha256:ABCD",
+			Source:         "test-source",
+			SourceChecksum: "sha512:ef01",
 			Licenses: []libpak.BuildModuleDependencyLicense{
 				{
 					Type: "test-type",
-					URI:  "test-uri",
+					URI:  "test-license-uri",
 				},
 			},
 			CPEs:  []string{"test-cpe1", "test-cpe2"},
 			PURLS: []string{"test-purl"},
 		}
 
-		Expect(dependency.AsSyftArtifact("buildpack.toml")).To(Equal(sbom.SyftArtifact{
-			ID:        "46713835f08d90b7",
-			Name:      "test-name",
-			Version:   "1.1.1",
-			Type:      "UnknownPackage",
-			FoundBy:   "libpak",
-			Licenses:  []string{"test-type"},
-			Locations: []sbom.SyftLocation{{Path: "buildpack.toml"}},
-			CPEs:      []string{"test-cpe1", "test-cpe2"},
-			PURL:      "test-purl",
+		Expect(dependency.AsCycloneDXComponent()).To(Equal(sbom.CycloneDXComponent{
+			Type:     "library",
+			BOMRef:   "test-purl",
+			Name:     "test-name",
+			Version:  "1.1.1",
+			Hashes:   []sbom.CycloneDXHash{{Algorithm: "SHA-256", Content: "abcd"}},
+			Licenses: []sbom.CycloneDXLicenseChoice{{License: &sbom.CycloneDXLicense{ID: "test-type", URL: "test-license-uri"}}},
+			CPE:      "test-cpe1",
+			PURL:     "test-purl",
+			ExternalReferences: []sbom.CycloneDXExternalReference{
+				{Type: "distribution", URL: "test-uri", Hashes: []sbom.CycloneDXHash{{Algorithm: "SHA-256", Content: "abcd"}}},
+				{Type: "source-distribution", URL: "test-source", Hashes: []sbom.CycloneDXHash{{Algorithm: "SHA-512", Content: "ef01"}}},
+			},
+			Properties: []sbom.CycloneDXProperty{{Name: "syft:cpe23", Value: "test-cpe2"}},
 		}))
 	})
 
-	it("renders extension dependency as a SyftArtifact", func() {
-		dependency := libpak.BuildModuleDependency{
-			ID:       "test-id",
-			Name:     "test-name",
-			Version:  "1.1.1",
-			URI:      "test-uri",
-			Checksum: "sha256:test-sha256",
-			Stacks:   []string{"test-stack"},
-			Licenses: []libpak.BuildModuleDependencyLicense{
-				{
-					Type: "test-type",
-					URI:  "test-uri",
-				},
-			},
-			CPEs:  []string{"test-cpe1", "test-cpe2"},
-			PURLS: []string{"test-purl"},
-		}
+	it("renders a dependency with only required metadata as a CycloneDX component", func() {
+		dependency := libpak.BuildModuleDependency{ID: "test-id", Version: "1.1.1"}
 
-		Expect(dependency.AsSyftArtifact("extension.toml")).To(Equal(sbom.SyftArtifact{
-			ID:        "9a52b9f58469d126",
-			Name:      "test-name",
-			Version:   "1.1.1",
-			Type:      "UnknownPackage",
-			FoundBy:   "libpak",
-			Licenses:  []string{"test-type"},
-			Locations: []sbom.SyftLocation{{Path: "extension.toml"}},
-			CPEs:      []string{"test-cpe1", "test-cpe2"},
-			PURL:      "test-purl",
+		Expect(dependency.AsCycloneDXComponent()).To(Equal(sbom.CycloneDXComponent{
+			Type:     "library",
+			BOMRef:   "test-id@1.1.1",
+			Name:     "test-id",
+			Version:  "1.1.1",
+			Licenses: []sbom.CycloneDXLicenseChoice{},
 		}))
 	})
 
