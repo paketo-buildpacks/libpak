@@ -578,6 +578,22 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
+		context("dependency mirror is not a valid URI", func() {
+			it.Before(func() {
+				dependencyCache.DependencyMirrors = map[string]string{}
+			})
+
+			it("ignores a mirror that cannot be parsed", func() {
+				server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "test-fixture"))
+
+				dependencyCache.DependencyMirrors["default"] = "example.com/mirror"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+		})
+
 		it("fails with invalid SHA256", func() {
 			server.AppendHandlers(ghttp.RespondWith(http.StatusOK, "invalid-fixture"))
 
