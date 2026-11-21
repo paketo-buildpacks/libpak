@@ -465,13 +465,13 @@ func (d DependencyCache) setDependencyMirror(urlD *url.URL, mirror string) {
 		mirrorArgs := parseMirror(mirror)
 		urlOverride, err := url.ParseRequestURI(mirrorArgs["mirror"])
 
-		if strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file" {
+		if err == nil && (strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file") {
 			urlD.Scheme = urlOverride.Scheme
 			urlD.User = urlOverride.User
 			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + strings.Replace(urlD.Path, mirrorArgs["skip-path"], "", 1)
 			urlD.Host = urlOverride.Host
 		} else {
-			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", mirror, err)
+			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%s", mirror, err)
 			d.Logger.Bodyf("%s is ignored. Have you used one of the supported schemes https:// or file://?", color.YellowString("Invalid dependency mirror"))
 		}
 	}
