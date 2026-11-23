@@ -256,7 +256,10 @@ func (d *DependencyCache) Artifact(dependency BuildModuleDependency, mods ...Req
 		d.Logger.Bodyf("Both dependency mirror and bindings are present. %s Please remove dependency map bindings if you wish to use the mirror.",
 			color.YellowString("Mirror is being ignored."))
 	} else {
-		d.setDependencyMirror(urlP, mirror)
+		mods, err = d.setDependencyMirror(urlP, mirror, mods)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if checksum == "" {
@@ -459,29 +462,55 @@ func (DependencyCache) verify(path string, expected Checksum) error {
 	return nil
 }
 
-func (d DependencyCache) setDependencyMirror(urlD *url.URL, mirror string) {
+func (d DependencyCache) setDependencyMirror(urlD *url.URL, mirror string, mods []RequestModifierFunc) ([]RequestModifierFunc, error) {
 	if mirror != "" {
 		d.Logger.Bodyf("%s Download URIs will be overridden.", color.GreenString("Dependency mirror found."))
 		mirrorArgs := parseMirror(mirror)
 		urlOverride, err := url.ParseRequestURI(mirrorArgs["mirror"])
+		if err != nil {
+			d.Logger.Debugf("Dependency mirror URI is invalid\n%w", err)
+			d.Logger.Bodyf("%s is ignored.", color.YellowString("Invalid dependency mirror"))
+			return mods, nil
+		}
 
 		if strings.ToLower(urlOverride.Scheme) == "https" || strings.ToLower(urlOverride.Scheme) == "file" {
 			urlD.Scheme = urlOverride.Scheme
 			urlD.User = urlOverride.User
 			urlD.Path = strings.Replace(urlOverride.Path, "{originalHost}", urlD.Hostname(), 1) + strings.Replace(urlD.Path, mirrorArgs["skip-path"], "", 1)
 			urlD.Host = urlOverride.Host
+
+			if strings.ToLower(urlOverride.Scheme) == "file" {
+				return mods, nil
+			}
+
+			authHeaderEnv := mirrorArgs["auth-header-env"]
+			if authHeaderEnv == "" {
+				return mods, nil
+			}
+			authHeader, ok := os.LookupEnv(authHeaderEnv)
+			if !ok || authHeader == "" {
+				return nil, fmt.Errorf("dependency mirror auth-header-env references environment variable %q which is not set or empty", authHeaderEnv)
+			}
+
+			// prepended so that caller-provided modifiers can still override it.
+			return append([]RequestModifierFunc{func(request *http.Request) (*http.Request, error) {
+				request.Header.Set("Authorization", authHeader)
+				return request, nil
+			}}, mods...), nil
 		} else {
 			d.Logger.Debugf("Dependency mirror URI is invalid: %s\n%w", mirror, err)
 			d.Logger.Bodyf("%s is ignored. Have you used one of the supported schemes https:// or file://?", color.YellowString("Invalid dependency mirror"))
 		}
 	}
+	return mods, nil
 }
 
 // Parses a raw mirror string into a map of arguments.
 func parseMirror(mirror string) map[string]string {
 	mirrorArgs := map[string]string{
-		"mirror":    mirror,
-		"skip-path": "",
+		"mirror":          mirror,
+		"skip-path":       "",
+		"auth-header-env": "",
 	}
 
 	// Split mirror string at commas and extract specified arguments.
@@ -499,6 +528,7 @@ func parseMirror(mirror string) map[string]string {
 	}
 
 	// Unescape mirror arguments to support URL-encoded strings.
+	// Note that ParseRequestURI decodes again, so e.g. user credentials in the URL might need to be encoded twice.
 	tmp, err := url.PathUnescape(mirrorArgs["mirror"])
 	if err == nil {
 		mirrorArgs["mirror"] = tmp
@@ -506,6 +536,10 @@ func parseMirror(mirror string) map[string]string {
 	tmp, err = url.PathUnescape(mirrorArgs["skip-path"])
 	if err == nil {
 		mirrorArgs["skip-path"] = tmp
+	}
+	tmp, err = url.PathUnescape(mirrorArgs["auth-header-env"])
+	if err == nil {
+		mirrorArgs["auth-header-env"] = tmp
 	}
 
 	return mirrorArgs
