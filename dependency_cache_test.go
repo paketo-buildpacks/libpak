@@ -576,6 +576,111 @@ func testDependencyCache(t *testing.T, context spec.G, it spec.S) {
 
 				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
 			})
+
+			it("sets Authorization header from auth-header-env", func() {
+				mirrorURL, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				t.Setenv("DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER", "Bearer test-token")
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/test-path", ""),
+					ghttp.VerifyHeaderKV("Authorization", "Bearer test-token"),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorURL.Scheme + "://" + mirrorURL.Host + ",auth-header-env=DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("sets Authorization header with skip-path", func() {
+				mirrorURL, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				t.Setenv("DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER", "Bearer test-token")
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/test-skip", ""),
+					ghttp.VerifyHeaderKV("Authorization", "Bearer test-token"),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorURL.Scheme + "://" + mirrorURL.Host + "/test-skip,skip-path=/test-path,auth-header-env=DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("sets Authorization header when auth-header-env is URL encoded", func() {
+				mirrorURL, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				t.Setenv("DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER", "Bearer test-token")
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest(http.MethodGet, "/test-path", ""),
+					ghttp.VerifyHeaderKV("Authorization", "Bearer test-token"),
+					ghttp.RespondWith(http.StatusOK, "test-fixture"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorURL.Scheme + "://" + mirrorURL.Host + ",auth-header-env=DEPENDENCY%5FCACHE_TEST_MIRROR_AUTH_HEADER"
+				a, err := dependencyCache.Artifact(dependency)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(io.ReadAll(a)).To(Equal([]byte("test-fixture")))
+			})
+
+			it("fails when auth-header-env is not set", func() {
+				mirrorURL, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				envName := "DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER_MISSING"
+				previous, wasSet := os.LookupEnv(envName)
+				Expect(os.Unsetenv(envName)).To(Succeed())
+				t.Cleanup(func() {
+					if wasSet {
+						_ = os.Setenv(envName, previous)
+					} else {
+						_ = os.Unsetenv(envName)
+					}
+				})
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorURL.Scheme + "://" + mirrorURL.Host + ",auth-header-env=" + envName
+				_, err = dependencyCache.Artifact(dependency)
+				Expect(err).To(HaveOccurred())
+				if err != nil {
+					Expect(err.Error()).To(ContainSubstring(envName))
+				}
+			})
+
+			it("fails when auth-header-env is empty", func() {
+				mirrorURL, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				t.Setenv("DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER_EMPTY", "")
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorURL.Scheme + "://" + mirrorURL.Host + ",auth-header-env=DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER_EMPTY"
+				_, err = dependencyCache.Artifact(dependency)
+				Expect(err).To(HaveOccurred())
+				if err != nil {
+					Expect(err.Error()).To(ContainSubstring("DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER_EMPTY"))
+				}
+			})
+
+			it("does not log auth header value on download error", func() {
+				mirrorURL, err := url.Parse(mirrorServer.URL())
+				Expect(err).NotTo(HaveOccurred())
+				secret := "Bearer secret-mirror-token"
+				t.Setenv("DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER", secret)
+				buffer := bytes.NewBuffer(nil)
+				dependencyCache.Logger = log.NewPaketoLogger(buffer)
+				mirrorServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyHeaderKV("Authorization", secret),
+					ghttp.RespondWith(http.StatusUnauthorized, "unauthorized"),
+				))
+
+				dependencyCache.DependencyMirrors["127.0.0.1"] = mirrorURL.Scheme + "://" + mirrorURL.Host + ",auth-header-env=DEPENDENCY_CACHE_TEST_MIRROR_AUTH_HEADER"
+				_, err = dependencyCache.Artifact(dependency)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).NotTo(ContainSubstring(secret))
+				Expect(buffer.String()).NotTo(ContainSubstring(secret))
+			})
 		})
 
 		it("fails with invalid SHA256", func() {
